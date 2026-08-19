@@ -12,9 +12,19 @@ function Search() {
         }
         setName(value)
         console.log(`The company name is ${value}`)
+        tryingFetch()
+    }
+    async function tryingFetch(){
+        try {
+            const response = await fetch("https://catfact.ninja/fact")
+            const data = await response.json()
+            console.log(`The data we Fetched is ${data}`)
+        } catch (error) {
+            throw error
+        }
     }
     return (
-        <form className="flex items-center gap-3 max-w-md" onSubmit={submitHandler}>
+        <form className="flex items-center gap-3 max-w-md" onSubmit={submitHandler} >
       <input
         type="text"
         placeholder="Enter a company name"
