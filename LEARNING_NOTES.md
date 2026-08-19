@@ -17,7 +17,7 @@ Running log of mistakes made while building this project, with one-sentence corr
 - **Logged `console.log(`The company name is ${name}`)` using state (`name`) instead of the local trimmed variable (`value`)** — right after `setName(value)`, the `name` variable in this render's closure is still the old, pre-submit value ("stale closure"), since state updates apply on the next render, not immediately; log the local variable you already computed instead.
 - **Didn't know why `onSubmit={submitHandler}` would work the same as `onSubmit={(e)=>submitHandler(e)}`** — React automatically calls any event handler prop with the event object as its one argument, so a wrapper arrow function that just forwards `e` unchanged is redundant; only wrap in an arrow function when you need to pass something *extra* or *different* from the raw event (like `onChange={(e)=>setName(e.target.value)}`, which pulls a value out of the event instead of forwarding it).
 
-## Step 4 — HTTP requests & APIs (in progress)
+## Step 4 — HTTP requests & APIs (complete)
 
 - **Wasn't sure how to run two functions from one `onSubmit`** — a handler prop only takes one function reference, but that function's body can call as many other functions as needed, one after another, just like it already calls `console.log` and `setName`; call the new function from inside `submitHandler` instead of trying to attach a second handler.
 - **Didn't know `fetch` doesn't reject on HTTP error statuses (404, 500, etc.)** — `fetch` only rejects on total network failure, so a bad status code has to be checked manually via `response.ok` (a boolean) before trying to parse the body, otherwise you'd try to parse an error page as if it were valid data.
