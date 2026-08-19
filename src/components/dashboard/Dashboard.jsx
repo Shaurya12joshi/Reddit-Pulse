@@ -1,0 +1,218 @@
+import { useMemo, useState } from 'react'
+import { buildInsights } from '../../analysis/aggregate.js'
+
+import FilterBar from './FilterBar.jsx'
+import { DEFAULT_FILTERS } from './filterOptions.js'
+import CompanyOverview from './CompanyOverview.jsx'
+import StatTiles from './StatTiles.jsx'
+import TakeawaysPanel from './TakeawaysPanel.jsx'
+import SentimentDistribution from './SentimentDistribution.jsx'
+import TopicPanel from './TopicPanel.jsx'
+import TrendingThemes from './TrendingThemes.jsx'
+import ThemesPanel from './ThemesPanel.jsx'
+import CompetitorPanel from './CompetitorPanel.jsx'
+import SubredditPanel from './SubredditPanel.jsx'
+import DiscussionsPanel from './DiscussionsPanel.jsx'
+import PostDetailModal from './PostDetailModal.jsx'
+
+import { Card, CardBody, CardHeader } from '../ui/Card.jsx'
+import Icon from '../ui/Icon.jsx'
+import Button from '../ui/Button.jsx'
+import SentimentTrendChart from '../charts/SentimentTrendChart.jsx'
+import VolumeChart from '../charts/VolumeChart.jsx'
+
+const DAY_MS = 24 * 60 * 60 * 1000
+
+/**
+ * The report. Receives already-enriched posts and does two things:
+ * filter them, then re-aggregate whatever survives.
+ */
+export default function Dashboard({ company, posts, meta, onRefresh }) {
+  const [filters, setFilters] = useState(DEFAULT_FILTERS)
+  const [selectedPost, setSelectedPost] = useState(null)
+
+  // Unfiltered aggregate — powers the filter dropdown options so they do not
+  // vanish as soon as you narrow the selection.
+  const baseInsights = useMemo(
+    () => buildInsights(posts, company),
+    [posts, company],
+  )
+
+  // Relative filters are measured from when the report was generated, not from
+  // "now" at render time — that keeps results stable while the page is open.
+  const referenceTime = meta?.analyzedAt ?? posts[0]?.timestamp ?? 0
+
+  const filtered = useMemo(() => {
+    const cutoff =
+      filters.timeRange === 'all'
+        ? null
+        : referenceTime - Number(filters.timeRange) * DAY_MS
+
+    return posts.filter((post) => {
+      if (cutoff !== null && post.timestamp < cutoff) return false
+      if (filters.subreddit !== 'all' && post.subreddit !== filters.subreddit) return false
+      if (filters.sentiment !== 'all' && post.sentimentLabel !== filters.sentiment) return false
+      if (filters.topic !== 'all' && !post.topicIds.includes(filters.topic)) return false
+      return true
+    })
+  }, [posts, filters, referenceTime])
+
+  const insights = useMemo(
+    () => buildInsights(filtered, company),
+    [filtered, company],
+  )
+
+  const hasResults = filtered.length > 0
+
+  return (
+    <main className="mx-auto w-full max-w-[1400px] px-5 pb-20 sm:px-8">
+      <div className="pt-8">
+        <CompanyOverview
+          company={company}
+          insights={baseInsights}
+          meta={meta}
+          onRefresh={onRefresh}
+        />
+      </div>
+
+      <FilterBar
+        filters={filters}
+        onChange={setFilters}
+        subredditOptions={baseInsights.subreddits}
+        topicOptions={baseInsights.topics}
+        resultCount={filtered.length}
+        totalCount={posts.length}
+      />
+
+      {!hasResults ? (
+        <div className="animate-fade-up mt-16 flex flex-col items-center text-center">
+          <span className="flex h-11 w-11 items-center justify-center rounded-full border border-line bg-surface text-ink-3">
+            <Icon name="filter" className="h-5 w-5" />
+          </span>
+          <h2 className="mt-4 text-[15px] font-semibold text-ink">
+            No discussions match these filters
+          </h2>
+          <p className="mt-1.5 max-w-sm text-[13px] text-ink-3">
+            Try widening the time period or clearing the subreddit, sentiment
+            and topic filters.
+          </p>
+          <Button
+            variant="secondary"
+            size="sm"
+            className="mt-5"
+            onClick={() => setFilters(DEFAULT_FILTERS)}
+          >
+            Clear all filters
+          </Button>
+        </div>
+      ) : (
+        <div className="animate-fade-up mt-7 space-y-4">
+          <StatTiles insights={insights} />
+
+          {/* summary + distribution */}
+          <div className="grid gap-4 xl:grid-cols-12">
+            <div className="xl:col-span-7">
+              <TakeawaysPanel takeaways={insights.takeaways} />
+            </div>
+            <div className="xl:col-span-5">
+              <SentimentDistribution sentiment={insights.sentiment} />
+            </div>
+          </div>
+
+          {/* time series */}
+          <div className="grid gap-4 xl:grid-cols-12">
+            <div className="xl:col-span-7">
+              <Card className="h-full">
+                <CardHeader
+                  title="Sentiment over time"
+                  subtitle={`Average score per ${insights.timeline.granularity}`}
+                  icon={<Icon name="trendUp" className="h-3.5 w-3.5" />}
+                />
+                <CardBody className="px-2 pb-3">
+                  <SentimentTrendChart
+                    buckets={insights.timeline.buckets}
+                    granularity={insights.timeline.granularity}
+                  />
+                </CardBody>
+              </Card>
+            </div>
+            <div className="xl:col-span-5">
+              <Card className="h-full">
+                <CardHeader
+                  title="Discussion volume"
+                  subtitle="Mentions per period, stacked by sentiment"
+                  icon={<Icon name="chat" className="h-3.5 w-3.5" />}
+                />
+                <CardBody className="px-2 pb-3">
+                  <VolumeChart
+                    buckets={insights.timeline.buckets}
+                    granularity={insights.timeline.granularity}
+                  />
+                </CardBody>
+              </Card>
+            </div>
+          </div>
+
+          {/* topics */}
+          <div className="grid gap-4 xl:grid-cols-12">
+            <div className="xl:col-span-7">
+              <TopicPanel
+                topics={insights.topics}
+                activeTopic={filters.topic}
+                onSelectTopic={(topic) => setFilters({ ...filters, topic })}
+              />
+            </div>
+            <div className="xl:col-span-5">
+              <TrendingThemes phrases={insights.trending} />
+            </div>
+          </div>
+
+          {/* praise vs complaints */}
+          <div className="grid gap-4 lg:grid-cols-2">
+            <ThemesPanel
+              themes={insights.praise}
+              polarity="positive"
+              total={insights.totals.mentions}
+            />
+            <ThemesPanel
+              themes={insights.complaints}
+              polarity="negative"
+              total={insights.totals.mentions}
+            />
+          </div>
+
+          {/* competitors + communities */}
+          <div className="grid gap-4 xl:grid-cols-12">
+            <div className="xl:col-span-8">
+              <CompetitorPanel
+                competitors={insights.competitors}
+                company={company}
+                market={insights.market}
+              />
+            </div>
+            <div className="xl:col-span-4">
+              <SubredditPanel
+                subreddits={insights.subreddits}
+                activeSubreddit={filters.subreddit}
+                onSelect={(subreddit) => setFilters({ ...filters, subreddit })}
+              />
+            </div>
+          </div>
+
+          {/* raw discussions */}
+          <DiscussionsPanel
+            posts={filtered}
+            topDiscussions={insights.topDiscussions}
+            onOpenPost={setSelectedPost}
+          />
+        </div>
+      )}
+
+      <PostDetailModal
+        post={selectedPost}
+        open={Boolean(selectedPost)}
+        onClose={() => setSelectedPost(null)}
+      />
+    </main>
+  )
+}
