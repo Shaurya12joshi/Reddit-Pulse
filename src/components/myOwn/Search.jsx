@@ -14,7 +14,7 @@ function Search() {
         console.log(`The company name is ${value}`)
     }
     return (
-        <form className="flex items-center gap-3 max-w-md" onSubmit={(e)=>submitHandler(e)}>
+        <form className="flex items-center gap-3 max-w-md" onSubmit={submitHandler}>
       <input
         type="text"
         placeholder="Enter a company name"
