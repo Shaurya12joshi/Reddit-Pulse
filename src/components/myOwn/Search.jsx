@@ -17,7 +17,12 @@ function Search() {
     async function tryingFetch(){
         try {
             const response = await fetch("https://catfact.ninja/fact")
-            const data = await response.json()
+            const isOk = response.ok
+            if(!isOk){
+                throw new Error("Something went wrong while fetching the data")
+            }
+            const data = response.ok ?  await response.json() : null
+            
             console.log(`The data we Fetched is ${data}`)
         } catch (error) {
             throw error
