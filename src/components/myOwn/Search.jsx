@@ -21,11 +21,11 @@ function Search() {
             if(!isOk){
                 throw new Error("Something went wrong while fetching the data")
             }
-            const data = response.ok ?  await response.json() : null
+            const data = await response.json()
             
-            console.log(`The data we Fetched is ${data}`)
+            console.log("The data we Fetched is", data)
         } catch (error) {
-            throw error
+            console.log("Error while fetching data", error)
         }
     }
     return (
