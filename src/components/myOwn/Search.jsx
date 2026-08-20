@@ -1,9 +1,13 @@
 import React from 'react'
 import { useState } from 'react'
-import { normalizePosts } from './normalize'
+import useCompanyData from './useCompanyData'
 
 function Search() {
     const [name, setName] = useState('')
+    const {status, posts, error, search} = useCompanyData()
+    const isLoading = status === 'loading'
+    const isError  = status === 'error'
+    const isReady = status === 'ready'
     const submitHandler =(e)=>{
         e.preventDefault()
         const value = name.trim()
@@ -13,31 +17,9 @@ function Search() {
         }
         setName(value)
         console.log(`The company name is ${value}`)
-        tryingFetch(value)
+        search(value)
     }
-    async function tryingFetch(companyName){
-        try {
-            const codedName = encodeURIComponent(companyName)
-            const response = await fetch(`http://localhost:3001/api/results?company=${codedName}`)
-            console.log(response)
-            if(response.status===404){
-                console.log(`No data scraped for ${companyName} yet`);
-                return
-            }
-            const isOk = response.ok
-            if(!isOk){
-                console.log(`Something went wrong while fetching the data, status code: ${response.status} `)
-                return 
-            }
-            const data = await response.json()
-            console.log("The data we Fetched is", data)
-            console.log("The Posts we Fetched is", data.posts)
-            const normalizedPosts = normalizePosts(data.posts)
-            console.log("Normalized Posts are", normalizedPosts)
-        } catch (error) {
-            console.log("Error while fetching data", error)
-        }
-    }
+   
     return (
         <form className="flex items-center gap-3 max-w-md" onSubmit={submitHandler} >
       <input
@@ -55,6 +37,9 @@ function Search() {
       >
         Analyze
       </button>
+      {isLoading && <p>Loading…</p>}
+      {isError ? <p>{error}</p> : null}
+      {isReady && <p>Found {posts.length} posts</p>}
     </form>
     )
 }
