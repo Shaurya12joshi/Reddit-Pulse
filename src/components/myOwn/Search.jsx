@@ -1,5 +1,6 @@
 import React from 'react'
 import { useState } from 'react'
+import { normalizePosts } from './normalize'
 
 function Search() {
     const [name, setName] = useState('')
@@ -31,6 +32,8 @@ function Search() {
             const data = await response.json()
             console.log("The data we Fetched is", data)
             console.log("The Posts we Fetched is", data.posts)
+            const normalizedPosts = normalizePosts(data.posts)
+            console.log("Normalized Posts are", normalizedPosts)
         } catch (error) {
             console.log("Error while fetching data", error)
         }

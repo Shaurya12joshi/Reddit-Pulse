@@ -24,6 +24,14 @@ Running log of mistakes made while building this project, with one-sentence corr
 - **Thought 404 was a server error, and that check order was about "server before user" errors** — status families are `2xx` success, `4xx` *client* errors (404 lives here), `5xx` *server* errors; and the actual reason the 404 check must come first is that `response.ok` is false for 404 too, so a generic `!response.ok` check placed above it would swallow the 404 and make the specific message dead code — always check the specific case before the general case that also covers it.
 - **Good call made independently:** replaced `throw new Error(...)` with `console.log` + `return` to match the 404 path — throwing only to catch it a few lines later in the same function is a pointless round-trip when the error is handled right there.
 
+## Mentor phase, Step 3 — Normalizing raw data (complete)
+
+- **Checked `raw.title.length === 0` *before* `raw.title === null`** — `||` evaluates left to right and stops at the first true side, so the `.length` access runs first and throws `TypeError: Cannot read properties of null` before the null check can protect anything; existence checks always go on the left. (Even shorter: `if (!raw.title)` covers `null`, `undefined` and `""` in one go, since all three are falsy.)
+- **Wrote `if` blocks for defaults with no `else` branch** — `let author; if (raw.author === null) author = "Deleted User"` leaves `author` as `undefined` whenever the real data *is* present, silently wiping every valid value; either initialise from the raw value first (`let author = raw.author`) or use `raw.author ?? "Deleted User"`.
+- **`normalizePost` built its result object but never returned it, then called `normalizePosts(...)` from inside itself** — the singular function's only job is to convert one item and hand it back; the plural one calls the singular, never the reverse, and calling `.map()` on a single object throws a `TypeError`.
+- **Named a local variable the same as its enclosing function (`const normalizePost = {...}` inside `function normalizePost`)** — legal but confusing, since the name means two different things depending on where you read it.
+- **Wrote `raw.type === "post" ? true : false`** — a comparison already evaluates to `true`/`false`, so the ternary adds nothing.
+
 ## Step 4 — HTTP requests & APIs (complete)
 
 - **Wasn't sure how to run two functions from one `onSubmit`** — a handler prop only takes one function reference, but that function's body can call as many other functions as needed, one after another, just like it already calls `console.log` and `setName`; call the new function from inside `submitHandler` instead of trying to attach a second handler.
