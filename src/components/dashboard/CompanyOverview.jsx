@@ -37,10 +37,10 @@ export default function CompanyOverview({ company, insights, meta, onRefresh }) 
           <span className="inline-flex items-center gap-1.5">
             <span
               className={`h-1.5 w-1.5 rounded-full ${
-                meta?.source === 'apify' ? 'bg-positive' : 'bg-ink-3'
+                meta?.source === 'live' ? 'bg-positive' : 'bg-ink-3'
               }`}
             />
-            {meta?.source === 'apify' ? 'Live Apify data' : 'Sample dataset'}
+            {meta?.source === 'live' ? 'Live scraped data' : 'Sample dataset'}
           </span>
           <button
             type="button"

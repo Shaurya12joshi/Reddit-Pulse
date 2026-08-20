@@ -12,18 +12,25 @@ function Search() {
         }
         setName(value)
         console.log(`The company name is ${value}`)
-        tryingFetch()
+        tryingFetch(value)
     }
-    async function tryingFetch(){
+    async function tryingFetch(companyName){
         try {
-            const response = await fetch("https://catfact.ninja/fact")
+            const codedName = encodeURIComponent(companyName)
+            const response = await fetch(`http://localhost:3001/api/results?company=${codedName}`)
+            console.log(response)
+            if(response.status===404){
+                console.log(`No data scraped for ${companyName} yet`);
+                return
+            }
             const isOk = response.ok
             if(!isOk){
-                throw new Error("Something went wrong while fetching the data")
+                console.log(`Something went wrong while fetching the data, status code: ${response.status} `)
+                return 
             }
             const data = await response.json()
-            
             console.log("The data we Fetched is", data)
+            console.log("The Posts we Fetched is", data.posts)
         } catch (error) {
             console.log("Error while fetching data", error)
         }

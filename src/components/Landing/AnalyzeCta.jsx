@@ -27,28 +27,10 @@ export default function AnalyzeCta({ onAnalyze, dataSource, onOpenSettings, id }
       </div>
 
       <p className="mt-5 text-[12px] leading-relaxed text-ink-3">
-        {dataSource === 'apify' ? (
-          <>
-            Live mode — results are scraped from Reddit via Apify.{' '}
-            <button
-              type="button"
-              onClick={onOpenSettings}
-              className="text-accent-ink underline underline-offset-2 hover:text-ink"
-            >
-              Change data source
-            </button>
-          </>
+        {dataSource === 'live' ? (
+          <>Live mode — results are loaded from whatever the Reddit scraper extension most recently collected.</>
         ) : (
-          <>
-            Running on a realistic sample dataset — no API key needed.{' '}
-            <button
-              type="button"
-              onClick={onOpenSettings}
-              className="text-accent-ink underline underline-offset-2 hover:text-ink"
-            >
-              Connect Apify for live data
-            </button>
-          </>
+          <>Running on a realistic sample dataset — no scrape needed.</>
         )}
       </p>
     </div>

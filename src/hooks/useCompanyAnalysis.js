@@ -9,7 +9,6 @@
 import { useCallback, useRef, useState } from 'react'
 import { enrichPosts } from '../analysis/aggregate.js'
 import { generateMockPosts } from '../data/mockPosts.js'
-import { resolveToken, scrapeReddit } from '../services/apify.js'
 
 /** Stages shown in the loading screen, in order. */
 export const STAGES = [
@@ -61,22 +60,29 @@ export function useCompanyAnalysis() {
       let rawPosts = []
       let usedSource = source
 
-      if (source === 'apify') {
-        const { token, source: tokenSource } = resolveToken()
-        const result = await scrapeReddit(name, {
-          token,
-          timeRange,
-          signal: controller.signal,
-          onProgress: (update) =>
-            setProgress((prev) => ({ ...prev, ...update })),
-        })
-        rawPosts = result.posts
-        setMeta({
-          source: 'apify',
-          tokenSource,
-          runId: result.runId,
-          datasetId: result.datasetId,
-        })
+      if (source === 'live') {
+        setProgress({ stage: 'scraping', message: `Loading scraped Reddit data for ${name}`, itemCount: 0 })
+
+        const response = await fetch(
+          `http://localhost:3001/api/results?company=${encodeURIComponent(name)}`,
+          { signal: controller.signal },
+        )
+
+        if (!response.ok) {
+          const body = await response.json().catch(() => ({}))
+          const error = new Error(
+            body.error || `No scraped data found for "${name}" (status ${response.status})`,
+          )
+          error.hint =
+            response.status === 404
+              ? 'Run the Reddit scraper extension for this company first, then reopen the dashboard from its popup.'
+              : null
+          throw error
+        }
+
+        const data = await response.json()
+        rawPosts = data.posts
+        setMeta({ source: 'live', tokenSource: 'extension', scrapedAt: data.scrapedAt })
       } else {
         // Mock path — the short waits exist so the progress UI is visible and
         // the app behaves the same way it will with a real run.
