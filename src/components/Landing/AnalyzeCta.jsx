@@ -1,5 +1,5 @@
 import SearchBar from './SearchBar.jsx'
-import { EXAMPLE_COMPANIES } from '../../data/mockPosts.js'
+import { EXAMPLE_COMPANIES } from '../../data/exampleCompanies.js'
 
 /**
  * The destination of the whole journey: the search itself.

@@ -9,31 +9,36 @@ import CompetitorPanel from '../dashboard/CompetitorPanel.jsx'
 import PostCard from '../dashboard/PostCard.jsx'
 import PostDetailModal from '../dashboard/PostDetailModal.jsx'
 import VolumeChart from '../charts/VolumeChart.jsx'
-import {
-  PREVIEW_COMPANY,
-  PREVIEW_INSIGHTS,
-  PREVIEW_POSTS,
-} from '../../data/previewInsights.js'
+import { usePreviewReport } from '../../data/previewReport.js'
 
 /**
- * "What you get" — the real dashboard panels, fed by the real analysis
- * pipeline run once over a sample brand (see previewInsights.js). Every chart
- * here is the exact component a live report renders, not a redrawn mockup, so
- * clicking a topic, expanding a competitor, or opening a post behaves exactly
- * like it will after a real search.
+ * "What you get" — the real dashboard panels, fed by a real report.
+ *
+ * This features whichever company already has the richest collected dataset,
+ * run through the same pipeline a live search uses. Every chart here is the
+ * exact component a live report renders, so clicking a topic, expanding a
+ * competitor, or opening a post behaves exactly as it will after a search.
+ *
+ * Nothing here is fabricated: if no data has been collected yet, the section
+ * renders nothing rather than showing invented placeholder content.
  */
 export default function ProductPreviewSection() {
   const [activeTopic, setActiveTopic] = useState('all')
   const [selectedPost, setSelectedPost] = useState(null)
+  const preview = usePreviewReport()
+
+  if (preview.status !== 'ready') return null
+
+  const { company, insights, posts } = preview
   const { sentiment, topics, praise, complaints, competitors, market, timeline, totals } =
-    PREVIEW_INSIGHTS
+    insights
 
   const filteredTopics =
     activeTopic === 'all'
       ? topics
       : topics.filter((topic) => topic.id === activeTopic)
 
-  const spotlightPosts = PREVIEW_POSTS.slice(0, 2)
+  const spotlightPosts = posts.slice(0, 2)
 
   return (
     <section id="preview" className="mx-auto w-full max-w-6xl scroll-mt-20 px-6 py-24 sm:px-10">
@@ -41,7 +46,7 @@ export default function ProductPreviewSection() {
         <div>
           <span className="eyebrow flex items-center gap-2 text-ink-3">
             <span className="h-1.5 w-1.5 rounded-full bg-accent" />
-            Example report — {PREVIEW_COMPANY}
+            Live report — {company}
           </span>
           <h2 className="display mt-6 text-[11vw] text-ink sm:text-5xl lg:text-[3.6vw]">
             The end of the journey is a <em className="display-serif">real</em>{' '}
@@ -49,9 +54,9 @@ export default function ProductPreviewSection() {
           </h2>
         </div>
         <p className="max-w-md text-[15px] leading-relaxed text-ink-2 lg:pb-3">
-          Everything below runs on the same analysis pipeline a live search
-          uses — nothing here is a screenshot. Click a topic to filter it, open
-          a competitor to read why people compared them, or open a discussion to
+          Everything below is a real report built from real Reddit threads —
+          not a screenshot, not sample data. Click a topic to filter it, open a
+          competitor to read why people compared them, or open a discussion to
           see exactly which words drove its score.
         </p>
       </Reveal>
@@ -83,7 +88,7 @@ export default function ProductPreviewSection() {
           <Reveal className="xl:col-span-8">
             <CompetitorPanel
               competitors={competitors}
-              company={PREVIEW_COMPANY}
+              company={company}
               market={market}
             />
           </Reveal>

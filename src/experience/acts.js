@@ -34,7 +34,7 @@ export const ACTS = [
     eyebrow: 'Signals',
     step: '02',
     title: ['Collect Reddit', 'conversations.'],
-    body: 'Relevant threads are gathered through Apify and connected to each other. What looked like noise starts to show structure.',
+    body: 'Relevant threads are gathered straight from Reddit and connected to each other. What looked like noise starts to show structure.',
     align: 'right',
     start: 0.26,
     end: 0.4,

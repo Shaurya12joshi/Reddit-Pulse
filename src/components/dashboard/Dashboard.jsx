@@ -1,5 +1,5 @@
-import { useMemo, useState } from 'react'
-import { buildInsights } from '../../analysis/aggregate.js'
+import { useState } from 'react'
+import { useReport } from '../../hooks/useReport.js'
 
 import FilterBar from './FilterBar.jsx'
 import { DEFAULT_FILTERS } from './filterOptions.js'
@@ -21,55 +21,46 @@ import Button from '../ui/Button.jsx'
 import SentimentTrendChart from '../charts/SentimentTrendChart.jsx'
 import VolumeChart from '../charts/VolumeChart.jsx'
 
-const DAY_MS = 24 * 60 * 60 * 1000
-
 /**
- * The report. Receives already-enriched posts and does two things:
- * filter them, then re-aggregate whatever survives.
+ * The report.
+ *
+ * Filtering and aggregation happen on the server — this component asks for a
+ * finished report whenever the filters change and renders the result. Nothing
+ * is scored in the browser, so it stays responsive however large the dataset
+ * grows.
  */
-export default function Dashboard({ company, posts, meta, onRefresh }) {
+export default function Dashboard({ company, meta, onRefresh }) {
   const [filters, setFilters] = useState(DEFAULT_FILTERS)
   const [selectedPost, setSelectedPost] = useState(null)
 
-  // Unfiltered aggregate — powers the filter dropdown options so they do not
-  // vanish as soon as you narrow the selection.
-  const baseInsights = useMemo(
-    () => buildInsights(posts, company),
-    [posts, company],
-  )
+  const report = useReport(company, filters)
 
-  // Relative filters are measured from when the report was generated, not from
-  // "now" at render time — that keeps results stable while the page is open.
-  const referenceTime = meta?.analyzedAt ?? posts[0]?.timestamp ?? 0
+  if (report.status === 'loading') {
+    return (
+      <main className="flex min-h-screen items-center justify-center">
+        <span className="h-6 w-6 animate-spin rounded-full border-2 border-line border-t-ink" />
+      </main>
+    )
+  }
 
-  const filtered = useMemo(() => {
-    const cutoff =
-      filters.timeRange === 'all'
-        ? null
-        : referenceTime - Number(filters.timeRange) * DAY_MS
+  if (report.status === 'error') {
+    return (
+      <main className="flex min-h-screen flex-col items-center justify-center gap-3 px-6 text-center">
+        <p className="text-[15px] font-medium text-ink">Couldn't build the report</p>
+        <p className="max-w-sm text-[13px] text-ink-3">{report.error}</p>
+      </main>
+    )
+  }
 
-    return posts.filter((post) => {
-      if (cutoff !== null && post.timestamp < cutoff) return false
-      if (filters.subreddit !== 'all' && post.subreddit !== filters.subreddit) return false
-      if (filters.sentiment !== 'all' && post.sentimentLabel !== filters.sentiment) return false
-      if (filters.topic !== 'all' && !post.topicIds.includes(filters.topic)) return false
-      return true
-    })
-  }, [posts, filters, referenceTime])
-
-  const insights = useMemo(
-    () => buildInsights(filtered, company),
-    [filtered, company],
-  )
-
-  const hasResults = filtered.length > 0
+  const { insights, filterOptions, posts, total, totalUnfiltered, nextOffset, loadMore } = report
+  const hasResults = total > 0
 
   return (
     <main className="mx-auto w-full max-w-[1400px] px-5 pb-20 sm:px-8">
       <div className="pt-8">
         <CompanyOverview
           company={company}
-          insights={baseInsights}
+          insights={insights}
           meta={meta}
           onRefresh={onRefresh}
         />
@@ -78,10 +69,10 @@ export default function Dashboard({ company, posts, meta, onRefresh }) {
       <FilterBar
         filters={filters}
         onChange={setFilters}
-        subredditOptions={baseInsights.subreddits}
-        topicOptions={baseInsights.topics}
-        resultCount={filtered.length}
-        totalCount={posts.length}
+        subredditOptions={filterOptions.subreddits}
+        topicOptions={filterOptions.topics}
+        resultCount={total}
+        totalCount={totalUnfiltered}
       />
 
       {!hasResults ? (
@@ -199,12 +190,20 @@ export default function Dashboard({ company, posts, meta, onRefresh }) {
             </div>
           </div>
 
-          {/* raw discussions */}
+          {/* raw discussions — paged in from the server rather than all at once */}
           <DiscussionsPanel
-            posts={filtered}
+            posts={posts}
             topDiscussions={insights.topDiscussions}
             onOpenPost={setSelectedPost}
           />
+
+          {nextOffset ? (
+            <div className="flex justify-center pt-2">
+              <Button variant="secondary" size="sm" onClick={loadMore}>
+                Load more — {posts.length} of {total}
+              </Button>
+            </div>
+          ) : null}
         </div>
       )}
 

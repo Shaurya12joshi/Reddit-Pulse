@@ -18,4 +18,9 @@ export default defineConfig([
       parserOptions: { ecmaFeatures: { jsx: true } },
     },
   },
+  {
+    // The backend is Node, not a browser: it reads process.env and has no DOM.
+    files: ['server/**/*.js'],
+    languageOptions: { globals: globals.node },
+  },
 ])

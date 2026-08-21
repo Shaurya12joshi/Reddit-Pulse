@@ -1,31 +1,22 @@
 /**
- * Owns the "fetch → analyse" lifecycle for one company.
+ * Owns the "collect data for a company" lifecycle.
  *
- * The component tree only needs to know four things: the status, the progress
- * message, the enriched posts, and any error. Where the data came from (mock
- * generator or live Apify run) is handled entirely in here.
+ * The browser extension gathers from Reddit and posts to the backend, which
+ * scores and stores everything. This hook only orchestrates that and confirms
+ * data exists — the report itself is fetched by `useReport` once the dashboard
+ * mounts, so no post data passes through here.
  */
 
 import { useCallback, useRef, useState } from 'react'
-import { enrichPosts } from '../analysis/aggregate.js'
-import { generateMockPosts } from '../data/mockPosts.js'
+import { isExtensionAvailable, requestScrape } from '../services/extensionBridge.js'
 
-/** Stages shown in the loading screen, in order. */
-export const STAGES = [
-  { id: 'starting', label: 'Connecting to source' },
-  { id: 'scraping', label: 'Collecting Reddit discussions' },
-  { id: 'analysing', label: 'Scoring sentiment & topics' },
-  { id: 'summarising', label: 'Building insights' },
-]
-
-const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms))
+const API = 'http://localhost:3001'
 
 export function useCompanyAnalysis() {
   const [status, setStatus] = useState('idle') // idle | loading | ready | error
   const [company, setCompany] = useState('')
-  const [posts, setPosts] = useState([])
   const [error, setError] = useState(null)
-  const [progress, setProgress] = useState({ stage: 'starting', message: '', itemCount: 0 })
+  const [progress, setProgress] = useState({ stage: 'starting', message: '' })
   const [meta, setMeta] = useState(null)
 
   // Lets a new search cancel an in-flight one.
@@ -36,12 +27,11 @@ export function useCompanyAnalysis() {
     abortRef.current = null
     setStatus('idle')
     setCompany('')
-    setPosts([])
     setError(null)
     setMeta(null)
   }, [])
 
-  const analyze = useCallback(async (rawName, { source = 'mock', timeRange = 'month' } = {}) => {
+  const analyze = useCallback(async (rawName) => {
     const name = rawName.trim()
     if (!name) return
 
@@ -52,89 +42,53 @@ export function useCompanyAnalysis() {
     setCompany(name)
     setStatus('loading')
     setError(null)
-    setPosts([])
     setMeta(null)
-    setProgress({ stage: 'starting', message: 'Preparing analysis', itemCount: 0 })
+    setProgress({ stage: 'starting', message: 'Looking for the collector extension' })
 
     try {
-      let rawPosts = []
-      let usedSource = source
+      const hasExtension = await isExtensionAvailable()
+      if (controller.signal.aborted) return
 
-      if (source === 'live') {
-        setProgress({ stage: 'scraping', message: `Loading scraped Reddit data for ${name}`, itemCount: 0 })
+      if (hasExtension) {
+        setProgress({ stage: 'scraping', message: `Collecting Reddit discussions about ${name}` })
 
-        const response = await fetch(
-          `http://localhost:3001/api/results?company=${encodeURIComponent(name)}`,
-          { signal: controller.signal },
-        )
-
-        if (!response.ok) {
-          const body = await response.json().catch(() => ({}))
-          const error = new Error(
-            body.error || `No scraped data found for "${name}" (status ${response.status})`,
-          )
-          error.hint =
-            response.status === 404
-              ? 'Run the Reddit scraper extension for this company first, then reopen the dashboard from its popup.'
-              : null
-          throw error
-        }
-
-        const data = await response.json()
-        rawPosts = data.posts
-        setMeta({ source: 'live', tokenSource: 'extension', scrapedAt: data.scrapedAt })
-      } else {
-        // Mock path — the short waits exist so the progress UI is visible and
-        // the app behaves the same way it will with a real run.
-        setProgress({ stage: 'starting', message: 'Loading the sample dataset', itemCount: 0 })
-        await wait(450)
-        if (controller.signal.aborted) return
-
-        setProgress({ stage: 'scraping', message: `Collecting Reddit discussions about ${name}`, itemCount: 0 })
-        rawPosts = generateMockPosts(name)
-        await wait(650)
-        if (controller.signal.aborted) return
-
-        setProgress({
-          stage: 'scraping',
-          message: `Collected ${rawPosts.length} Reddit items`,
-          itemCount: rawPosts.length,
+        await requestScrape(name, {
+          signal: controller.signal,
+          onProgress: (job) =>
+            setProgress((prev) => ({ ...prev, stage: 'scraping', message: job.step || prev.message })),
         })
-        await wait(350)
-        setMeta({ source: 'mock', tokenSource: 'none' })
+        if (controller.signal.aborted) return
       }
 
-      if (controller.signal.aborted) return
+      setProgress({ stage: 'summarising', message: 'Building insights' })
 
-      setProgress({
-        stage: 'analysing',
-        message: `Scoring sentiment across ${rawPosts.length} discussions`,
-        itemCount: rawPosts.length,
+      // Confirm something was actually stored before handing over to the
+      // dashboard, so a failure surfaces here rather than as an empty report.
+      const res = await fetch(`${API}/api/report?company=${encodeURIComponent(name)}`, {
+        signal: controller.signal,
       })
-      await wait(200) // let the UI paint before the synchronous analysis pass
 
-      const enriched = enrichPosts(rawPosts, name)
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}))
+        const err = new Error(body.error || `No Reddit data found for "${name}"`)
+        if (res.status === 404) {
+          err.hint = hasExtension
+            ? 'The collector ran but saved nothing — make sure you are signed in to Reddit in this browser.'
+            : 'The collector extension is not installed, so live data cannot be gathered. Load it from chrome://extensions, then search again.'
+        }
+        throw err
+      }
+
+      const data = await res.json()
       if (controller.signal.aborted) return
 
-      setProgress({
-        stage: 'summarising',
-        message: 'Extracting topics, themes and competitors',
-        itemCount: enriched.length,
-      })
-      await wait(350)
-      if (controller.signal.aborted) return
-
-      setPosts(enriched)
-      setStatus('ready')
-      usedSource = source
-      setMeta((prev) => ({
-        ...(prev || {}),
-        source: usedSource,
-        count: enriched.length,
-        // Anchor for relative time filters, so "last 7 days" stays stable for
-        // the life of the report instead of drifting on every re-render.
+      setMeta({
+        source: 'live',
+        count: data.totalUnfiltered,
+        liveScrape: hasExtension,
         analyzedAt: Date.now(),
-      }))
+      })
+      setStatus('ready')
     } catch (caught) {
       if (caught?.name === 'AbortError') return
       setError({
@@ -151,5 +105,5 @@ export function useCompanyAnalysis() {
     setStatus('idle')
   }, [])
 
-  return { status, company, posts, error, progress, meta, analyze, reset, cancel }
+  return { status, company, error, progress, meta, analyze, reset, cancel }
 }

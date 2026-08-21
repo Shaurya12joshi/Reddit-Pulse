@@ -1,0 +1,73 @@
+/**
+ * Fetches a finished report from the backend.
+ *
+ * Filtering and aggregation both run in SQL and Node now, so changing a filter
+ * is a request rather than a full re-scoring pass in the browser. The browser's
+ * only job is rendering — which is what keeps this responsive as datasets grow
+ * past a few thousand posts.
+ */
+
+import { useCallback, useEffect, useRef, useState } from 'react'
+
+const API = 'http://localhost:3001'
+
+function buildQuery(company, filters) {
+  const params = new URLSearchParams({ company })
+  if (filters.subreddit !== 'all') params.set('subreddit', filters.subreddit)
+  if (filters.sentiment !== 'all') params.set('sentiment', filters.sentiment)
+  if (filters.topic !== 'all') params.set('topic', filters.topic)
+  if (filters.timeRange !== 'all') params.set('days', filters.timeRange)
+  return params
+}
+
+export function useReport(company, filters) {
+  const [state, setState] = useState({ status: 'loading' })
+  const [extraPosts, setExtraPosts] = useState([])
+  const requestId = useRef(0)
+
+  useEffect(() => {
+    if (!company) return
+
+    const id = ++requestId.current
+    const controller = new AbortController()
+    setExtraPosts([])
+
+    async function load() {
+      try {
+        const res = await fetch(`${API}/api/report?${buildQuery(company, filters)}`, {
+          signal: controller.signal,
+        })
+        if (!res.ok) {
+          const body = await res.json().catch(() => ({}))
+          throw new Error(body.error || `Report failed (${res.status})`)
+        }
+        const data = await res.json()
+        // Ignore a slow response that a newer filter change has superseded.
+        if (id === requestId.current) setState({ status: 'ready', ...data })
+      } catch (error) {
+        if (error.name === 'AbortError') return
+        if (id === requestId.current) setState({ status: 'error', error: error.message })
+      }
+    }
+
+    load()
+    return () => controller.abort()
+  }, [company, filters])
+
+  const loadMore = useCallback(async () => {
+    if (!state.nextOffset) return
+    const params = buildQuery(company, filters)
+    params.set('offset', String(state.nextOffset))
+
+    const res = await fetch(`${API}/api/posts?${params}`)
+    if (!res.ok) return
+
+    const data = await res.json()
+    setExtraPosts((prev) => [...prev, ...data.posts])
+    setState((prev) => ({ ...prev, nextOffset: data.nextOffset }))
+  }, [company, filters, state.nextOffset])
+
+  const posts = state.posts ? [...state.posts, ...extraPosts] : []
+
+  return { ...state, posts, loadMore }
+}
