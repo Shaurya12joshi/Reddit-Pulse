@@ -7,9 +7,12 @@
     "dev": "vite",
     "build": "vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test": "node server/eval/run.js",
+    "eval": "node server/eval/run.js --verbose"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.120.0",
     "@react-three/drei": "^10.7.8",
     "@react-three/fiber": "^9.7.0",
     "@tailwindcss/vite": "^4.3.3",

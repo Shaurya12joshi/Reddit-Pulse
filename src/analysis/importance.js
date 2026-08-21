@@ -21,7 +21,6 @@ import { escapeRegex } from './topics.js'
 import { analyzeSentiment } from './sentiment.js'
 
 const HOUR_MS = 60 * 60 * 1000
-const DAY_MS = 24 * HOUR_MS
 
 const clamp = (value, min = 0, max = 1) => Math.min(max, Math.max(min, value))
 
@@ -125,10 +124,21 @@ export function scoreThreads({ threads = [], brand, identity = {}, communityScor
   if (!threads.length) return []
 
   const relevanceOf = makeRelevanceTest(brand, identity)
+
+  const ranked = communityScores instanceof Map ? communityScores : new Map(Object.entries(communityScores || {}))
+  const haveRanking = ranked.size > 0
+
   const scoreFor = (name) => {
-    if (!communityScores) return null
-    const value = communityScores instanceof Map ? communityScores.get(name) : communityScores[name]
-    return Number.isFinite(value) ? value / 100 : null
+    // No ranking supplied at all — this runs mid-collection, before communities
+    // have been scored. Genuinely unmeasured, so the weight is renormalised away.
+    if (!haveRanking) return null
+    const value = ranked.get(name)
+    if (Number.isFinite(value)) return value / 100
+    // Ranking exists and this community is not in it: that is a *measurement*
+    // saying the community was rejected or never cleared the bar, not a gap.
+    // Treating it as null let threads from discarded communities compete on
+    // reach alone, which is how r/pettyrevenge reached the top of Tesla.
+    return 0.1
   }
 
   const prepared = threads
@@ -189,7 +199,10 @@ export function scoreThreads({ threads = [], brand, identity = {}, communityScor
 
       const components = {
         reach: round(clamp(Math.log10(1 + entry.engagement) / 5)),
-        velocity: round(clamp(Math.log2(1 + entry.perHour / medianFor(entry.subreddit)) / 2)),
+        // Divided by 5, so saturation needs ~31× the community's median rate.
+        // At /2 almost every candidate scored a flat 1.0 and the signal
+        // discriminated nothing.
+        velocity: round(clamp(Math.log2(1 + entry.perHour / medianFor(entry.subreddit)) / 5)),
         community,
         recency: round(clamp(Math.exp(-entry.ageDays / 14))),
         // Either a strongly-worded thread or an unanswered question earns the
@@ -238,8 +251,23 @@ export function scoreThreads({ threads = [], brand, identity = {}, communityScor
  * thread outranks everything on reach and would otherwise crowd out the
  * three-day-old complaint that a brand could still do something about.
  */
-export function selectForDeepCollection(scored, { limit = 32, freshShare = 0.3, freshDays = 7 } = {}) {
-  const eligible = scored.filter((entry) => entry.relevance > 0 && entry.replies > 0)
+export function selectForDeepCollection(
+  scored,
+  { limit = 32, freshShare = 0.3, freshDays = 7, maxAgeDays = 90 } = {},
+) {
+  /*
+   * The age ceiling is a product decision, stated here rather than buried in a
+   * weight. Comment trees exist so the brand can understand and possibly act
+   * on a conversation; nobody acts on a 485-day-old thread. Without this,
+   * Tesla's selection came back with a median age of 485 days, because reach
+   * accumulates over time and recency is only 15% of the score.
+   *
+   * Old threads still get scored — they inform the corpus — they just do not
+   * spend the collector's most expensive budget.
+   */
+  const eligible = scored.filter(
+    (entry) => entry.relevance > 0 && entry.replies > 0 && entry.ageDays <= maxAgeDays,
+  )
   const freshSlots = Math.round(limit * freshShare)
 
   const picked = []

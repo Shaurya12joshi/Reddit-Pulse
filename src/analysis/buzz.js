@@ -545,6 +545,7 @@ function measureCommunities({
   contextRegexes,
   geoTerms,
   now,
+  history,
 }) {
   const threadsById = new Map()
   for (const post of posts) {
@@ -644,11 +645,49 @@ function measureCommunities({
     }
   }
 
-  return [...rows.values()].map((entry) => finishRow(entry, { geoTerms, now }))
+  return [...rows.values()].map((entry) => finishRow(entry, { geoTerms, now, history }))
+}
+
+/**
+ * Velocity measured between runs, rather than inferred inside one sample.
+ *
+ * Needs three snapshots to produce a ratio: two intervals to compare. With
+ * only two it returns the arrival rate but no ratio, because one interval
+ * compared against nothing is not a trend — the same rule that makes the
+ * in-sample version return null when its coverage is too shallow.
+ */
+function velocityFromSnapshots(history) {
+  if (!Array.isArray(history) || history.length < 2) return null
+
+  const points = [...history].sort((a, b) => a.runAt - b.runAt)
+  const rateBetween = (from, to) => {
+    const days = (to.runAt - from.runAt) / DAY_MS
+    if (days < 0.5) return null // two runs the same afternoon measure nothing
+    return Math.max(0, to.threads - from.threads) / days
+  }
+
+  const latest = rateBetween(points[points.length - 2], points[points.length - 1])
+  if (latest === null) return null
+
+  if (points.length < 3) {
+    return { ratio: null, arrivalRate: round(latest, 2), source: 'snapshots', intervals: 1 }
+  }
+
+  const previous = rateBetween(points[points.length - 3], points[points.length - 2])
+  if (previous === null) {
+    return { ratio: null, arrivalRate: round(latest, 2), source: 'snapshots', intervals: 1 }
+  }
+
+  return {
+    ratio: round((latest + 0.1) / (previous + 0.1), 2),
+    arrivalRate: round(latest, 2),
+    source: 'snapshots',
+    intervals: points.length - 1,
+  }
 }
 
 /** Turn accumulated counters into the measured signals. */
-function finishRow(entry, { geoTerms, now }) {
+function finishRow(entry, { geoTerms, now, history }) {
   const items = entry.threads + entry.comments
   const ages = entry.timestamps.map((t) => (now - t) / DAY_MS)
 
@@ -663,8 +702,14 @@ function finishRow(entry, { geoTerms, now }) {
   // comparison window. A capped sample of 100 recent items would otherwise
   // show a fake spike, because its "previous month" is empty by construction.
   const coversPriorWindow = Math.min(oldest, entry.coverageStart ?? oldest) <= now - 2 * WINDOW_MS
-  const velocity =
+  const inSampleVelocity =
     coversPriorWindow && items >= 4 ? round((recent30 + 1) / (prior30 + 1), 2) : null
+
+  // Between-run measurement beats in-sample inference whenever it exists: it
+  // survives a capped sample, which the inference cannot.
+  const measured = velocityFromSnapshots(history?.get(entry.name))
+  const velocity = measured?.ratio ?? inSampleVelocity
+  const velocitySource = measured?.ratio ? 'snapshots' : inSampleVelocity !== null ? 'sample' : null
 
   // Consistency: in how many of the last 12 months did this community talk
   // about the brand at all? A sub that flares once scores far below one that
@@ -699,7 +744,9 @@ function finishRow(entry, { geoTerms, now }) {
     medianAgeDays: Math.round(median(ages)),
     newestAgeDays: ages.length ? Math.round(Math.min(...ages)) : null,
     velocity,
+    velocitySource,
     velocityMeasurable: velocity !== null,
+    arrivalRate: measured?.arrivalRate ?? null,
     engagementMedian: Math.round(median(entry.engagements)),
     commentsPerThread: entry.threads ? round(entry.comments / entry.threads, 1) : 0,
     repliesPerThread: round(median(entry.commentCounts), 1),
@@ -926,7 +973,14 @@ function keySignals(row) {
  * @param {object}   [input.brandContext] aliases/context terms from the collector
  * @param {number}   [input.now]
  */
-export function rankCommunities({ posts, communities = [], brand, brandContext, now = Date.now() }) {
+export function rankCommunities({
+  posts,
+  communities = [],
+  brand,
+  brandContext,
+  history,
+  now = Date.now(),
+}) {
   if (!posts?.length) {
     return {
       brand,
@@ -976,6 +1030,7 @@ export function rankCommunities({ posts, communities = [], brand, brandContext, 
     contextRegexes,
     geoTerms,
     now,
+    history,
   })
   if (!measured.length) {
     return {
@@ -1094,6 +1149,8 @@ export function rankCommunities({ posts, communities = [], brand, brandContext, 
           prior30: row.prior30,
           share90: row.share90,
           velocity: row.velocity,
+          velocitySource: row.velocitySource,
+          arrivalRate: row.arrivalRate,
           engagementMedian: row.engagementMedian,
           commentsPerThread: row.commentsPerThread,
           medianCommentChars: row.medianCommentChars,

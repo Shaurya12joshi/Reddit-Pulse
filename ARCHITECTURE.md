@@ -551,6 +551,25 @@ thread gained comments. Everything else is a cache hit costing nothing.
 
 ## 9. Implementation plan
 
+> **Status: phases 1–7 are built.** What follows is the plan as written; each
+> phase now carries what actually happened, including where the acceptance
+> criterion was met differently than expected. The LLM half is written and
+> wired but has never executed — no credentials are configured in this
+> environment — so everything runs on the deterministic fallbacks and reports
+> `degraded: true`.
+>
+> | Priority | Built | Where |
+> |---|---|---|
+> | 1. Comment coverage via prescore | ✅ | `src/analysis/importance.js`, `/api/collection-plan` |
+> | 2. `collect(target, depth)` | ✅ | `reddit-scraper-extension/background.js` |
+> | 3. Stage 0 + negative markers | ✅ (LLM untested) | `server/intelligence/resolve.js` |
+> | 4. Competitor origin | ✅ | `mineCompetitors()` + LLM path |
+> | 5. Snapshots / real velocity | ✅ | `snapshots` table, `velocityFromSnapshots()` |
+> | 6. Evaluation framework | ✅ | `server/eval/`, `npm test` |
+> | 7. Compliance gate | ✅ | `server/intelligence/compliance.js` |
+> | 8. LLM-written classifier | ✅ (induction untested) | `taxonomy.js` + `src/analysis/classify.js` |
+
+
 Ordered by dependency, with acceptance criteria that are checkable rather than
 aspirational.
 
