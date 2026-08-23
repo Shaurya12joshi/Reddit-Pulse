@@ -45,7 +45,6 @@ function ActBlock({ act, index, isFirst, children }) {
       const visible = opacity > 0.01
       root.style.opacity = String(opacity)
       root.style.visibility = visible ? 'visible' : 'hidden'
-      root.style.pointerEvents = opacity > 0.6 ? 'auto' : 'none'
       root.setAttribute('aria-hidden', visible ? 'false' : 'true')
       if (!visible) return
 
@@ -113,7 +112,11 @@ function ActBlock({ act, index, isFirst, children }) {
           {act.body}
         </p>
 
-        {children ? <div className="mt-9">{children}</div> : null}
+        {/* The one interactive island in the overlay — the search box. Marked
+            auto explicitly because its ancestor is deliberately inert. */}
+        {children ? (
+          <div className="pointer-events-auto mt-9">{children}</div>
+        ) : null}
       </div>
     </div>
   )
@@ -132,12 +135,28 @@ function renderLine(line, serifWord) {
   )
 }
 
-export default function ActOverlay({ finalSlot }) {
+/**
+ * @param {object} props
+ * @param {Record<string, import('react').ReactNode>} [props.slots] extra
+ *   content keyed by act id — the search box under the closing act, and
+ *   anything else that has to be a real, focusable control rather than
+ *   geometry.
+ */
+export default function ActOverlay({ slots = {} }) {
   return (
-    <div className="absolute inset-0 z-10">
+    /*
+     * Inert by default, all the way down.
+     *
+     * Every layer here is a full-viewport box sitting on top of the canvas,
+     * so anything left interactive is an invisible sheet over the whole 3D
+     * scene — which is exactly why nothing could be hovered during an act
+     * that had visible copy. Only real controls opt back in, one element at
+     * a time.
+     */
+    <div className="pointer-events-none absolute inset-0 z-10">
       {ACTS.map((act, index) => (
         <ActBlock key={act.id} act={act} index={index} isFirst={index === 0}>
-          {index === ACTS.length - 1 ? finalSlot : null}
+          {slots[act.id] ?? null}
         </ActBlock>
       ))}
     </div>

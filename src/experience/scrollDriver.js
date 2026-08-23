@@ -81,6 +81,29 @@ function frame(time) {
   rafId = requestAnimationFrame(frame)
 }
 
+/**
+ * Jump the page to a given progress value through the pinned section.
+ *
+ * The inverse of `readProgress`: that turns a scroll position into 0..1, this
+ * turns 0..1 back into a scroll position. Nothing is written to the driver
+ * itself — the rAF loop reads the new scroll position on its next frame, so
+ * the scene animates through the journey rather than teleporting.
+ */
+export function scrollToProgress(progress) {
+  if (!targetEl || typeof window === 'undefined') return
+
+  const total = targetEl.offsetHeight - window.innerHeight
+  if (total <= 0) return
+
+  const sectionTop = targetEl.getBoundingClientRect().top + window.scrollY
+  const prefersReducedMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
+
+  window.scrollTo({
+    top: sectionTop + clamp01(progress) * total,
+    behavior: prefersReducedMotion ? 'auto' : 'smooth',
+  })
+}
+
 export function startDriver() {
   if (rafId !== null || typeof window === 'undefined') return () => {}
   window.addEventListener('pointermove', onPointerMove, { passive: true })

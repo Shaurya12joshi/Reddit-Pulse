@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { lazy, Suspense, useState } from 'react'
 import Reveal from './Reveal.jsx'
 import Icon from '../ui/Icon.jsx'
 import { Card, CardBody, CardHeader } from '../ui/Card.jsx'
@@ -10,22 +10,37 @@ import PostCard from '../dashboard/PostCard.jsx'
 import PostDetailModal from '../dashboard/PostDetailModal.jsx'
 import VolumeChart from '../charts/VolumeChart.jsx'
 import { usePreviewReport } from '../../data/previewReport.js'
+import useInView from '../../hooks/useInView.js'
+import useEnvironment from '../../experience/useEnvironment.js'
+
+// The heaviest thing in the section, and useless on the flat route.
+const ReportCanvas = lazy(() => import('../../experience/report/ReportCanvas.jsx'))
 
 /**
- * "What you get" — the real dashboard panels, fed by a real report.
+ * "What you get" — the report itself, built as an object.
  *
- * This features whichever company already has the richest collected dataset,
- * run through the same pipeline a live search uses. Every chart here is the
- * exact component a live report renders, so clicking a topic, expanding a
- * competitor, or opening a post behaves exactly as it will after a search.
+ * The journey above ends with fragments flattening into dashboard panels;
+ * this is what those panels contain. Sentiment, topics, volume and
+ * competitors are rendered as geometry in the same world — same paper, same
+ * hairlines, same light — so the page never drops out of three dimensions
+ * between the hero and the proof.
  *
- * Nothing here is fabricated: if no data has been collected yet, the section
- * renders nothing rather than showing invented placeholder content.
+ * The measurements are real. This features whichever company has the richest
+ * collected dataset, run through the same pipeline a live search uses, and if
+ * nothing has been collected the section removes itself rather than showing
+ * invented content.
+ *
+ * Where WebGL is unavailable or motion is unwelcome, the original dashboard
+ * panels render instead: the same numbers, laid out flat. That path is not a
+ * degraded placeholder — it is the exact set of components a live report
+ * uses, so clicking a topic or opening a discussion behaves identically.
  */
 export default function ProductPreviewSection() {
   const [activeTopic, setActiveTopic] = useState('all')
   const [selectedPost, setSelectedPost] = useState(null)
   const preview = usePreviewReport()
+  const [sceneRef, sceneInView] = useInView({ threshold: 0.12 })
+  const { ready, webgl, reducedMotion, mobile } = useEnvironment()
 
   if (preview.status !== 'ready') return null
 
@@ -39,6 +54,9 @@ export default function ProductPreviewSection() {
       : topics.filter((topic) => topic.id === activeTopic)
 
   const spotlightPosts = posts.slice(0, 2)
+  // Phones get the flat report too: a second WebGL context plus a hero canvas
+  // is a lot to ask of a handset, and the panels are easier to read small.
+  const immersive = ready && webgl && !reducedMotion && !mobile
 
   return (
     <section id="preview" className="mx-auto w-full max-w-6xl scroll-mt-20 px-6 py-24 sm:px-10">
@@ -55,75 +73,127 @@ export default function ProductPreviewSection() {
         </div>
         <p className="max-w-md text-[15px] leading-relaxed text-ink-2 lg:pb-3">
           Everything below is a real report built from real Reddit threads —
-          not a screenshot, not sample data. Click a topic to filter it, open a
-          competitor to read why people compared them, or open a discussion to
-          see exactly which words drove its score.
+          not a screenshot, not sample data.{' '}
+          {immersive
+            ? 'Every bar is a measurement: column height is share of mentions, colour is how that subject is going, and distance from the centre is how often a rival gets named alongside.'
+            : 'Click a topic to filter it, open a competitor to read why people compared them, or open a discussion to see exactly which words drove its score.'}
         </p>
       </Reveal>
 
-      <div className="mt-12 space-y-4">
-        <div className="grid gap-4 xl:grid-cols-12">
-          <Reveal className="xl:col-span-7">
-            <TopicPanel
-              topics={filteredTopics.length ? filteredTopics : topics}
-              activeTopic={activeTopic}
-              onSelectTopic={setActiveTopic}
-            />
-          </Reveal>
-          <Reveal delayMs={60} className="xl:col-span-5">
-            <SentimentDistribution sentiment={sentiment} />
-          </Reveal>
-        </div>
-
-        <div className="grid gap-4 lg:grid-cols-2">
-          <Reveal>
-            <ThemesPanel themes={praise} polarity="positive" total={totals.mentions} />
-          </Reveal>
-          <Reveal delayMs={60}>
-            <ThemesPanel themes={complaints} polarity="negative" total={totals.mentions} />
-          </Reveal>
-        </div>
-
-        <div className="grid gap-4 xl:grid-cols-12">
-          <Reveal className="xl:col-span-8">
-            <CompetitorPanel
-              competitors={competitors}
-              company={company}
-              market={market}
-            />
-          </Reveal>
-          <Reveal delayMs={60} className="xl:col-span-4">
-            <Card className="h-full">
-              <CardHeader
-                title="Discussion volume"
-                subtitle="Mentions per period, stacked by sentiment"
-                icon={<Icon name="chat" className="h-3.5 w-3.5" />}
+      {immersive ? (
+        <>
+          <div
+            ref={sceneRef}
+            className="relative mt-12 h-[70vh] min-h-[460px] w-full lg:h-[78vh]"
+          >
+            <Suspense fallback={null}>
+              <ReportCanvas
+                insights={insights}
+                company={company}
+                active={sceneInView}
               />
-              <CardBody className="px-2 pb-3">
-                <VolumeChart
-                  buckets={timeline.buckets}
-                  granularity={timeline.granularity}
+            </Suspense>
+
+            {/* Dissolves the canvas into the page top and bottom, so the WebGL
+                band has no hard edge against the copy around it. */}
+            <div
+              aria-hidden="true"
+              className="pointer-events-none absolute inset-0 bg-gradient-to-b from-canvas via-transparent to-canvas"
+            />
+          </div>
+
+          {/* The words behind the numbers. Kept flat on purpose: quotations
+              and theme names are read, not looked at, and rendering running
+              text as geometry would make it worse, not more impressive. */}
+          <div className="mt-4 grid gap-4 lg:grid-cols-2">
+            <Reveal>
+              <ThemesPanel themes={praise} polarity="positive" total={totals.mentions} />
+            </Reveal>
+            <Reveal delayMs={60}>
+              <ThemesPanel themes={complaints} polarity="negative" total={totals.mentions} />
+            </Reveal>
+          </div>
+
+          <Reveal className="mt-4">
+            <Card>
+              <CardHeader
+                title="Representative discussions"
+                subtitle="Every measurement above traces back to real threads like these"
+                icon={<Icon name="quote" className="h-3.5 w-3.5" />}
+              />
+              <CardBody className="grid gap-1 p-2 sm:grid-cols-2 sm:divide-x sm:divide-line">
+                {spotlightPosts.map((post) => (
+                  <PostCard key={post.id} post={post} onOpen={setSelectedPost} />
+                ))}
+              </CardBody>
+            </Card>
+          </Reveal>
+        </>
+      ) : (
+        <div className="mt-12 space-y-4">
+          <div className="grid gap-4 xl:grid-cols-12">
+            <Reveal className="xl:col-span-7">
+              <TopicPanel
+                topics={filteredTopics.length ? filteredTopics : topics}
+                activeTopic={activeTopic}
+                onSelectTopic={setActiveTopic}
+              />
+            </Reveal>
+            <Reveal delayMs={60} className="xl:col-span-5">
+              <SentimentDistribution sentiment={sentiment} />
+            </Reveal>
+          </div>
+
+          <div className="grid gap-4 lg:grid-cols-2">
+            <Reveal>
+              <ThemesPanel themes={praise} polarity="positive" total={totals.mentions} />
+            </Reveal>
+            <Reveal delayMs={60}>
+              <ThemesPanel themes={complaints} polarity="negative" total={totals.mentions} />
+            </Reveal>
+          </div>
+
+          <div className="grid gap-4 xl:grid-cols-12">
+            <Reveal className="xl:col-span-8">
+              <CompetitorPanel
+                competitors={competitors}
+                company={company}
+                market={market}
+              />
+            </Reveal>
+            <Reveal delayMs={60} className="xl:col-span-4">
+              <Card className="h-full">
+                <CardHeader
+                  title="Discussion volume"
+                  subtitle="Mentions per period, stacked by sentiment"
+                  icon={<Icon name="chat" className="h-3.5 w-3.5" />}
                 />
+                <CardBody className="px-2 pb-3">
+                  <VolumeChart
+                    buckets={timeline.buckets}
+                    granularity={timeline.granularity}
+                  />
+                </CardBody>
+              </Card>
+            </Reveal>
+          </div>
+
+          <Reveal>
+            <Card>
+              <CardHeader
+                title="Representative discussions"
+                subtitle="Every insight above traces back to real threads like these"
+                icon={<Icon name="quote" className="h-3.5 w-3.5" />}
+              />
+              <CardBody className="grid gap-1 p-2 sm:grid-cols-2 sm:divide-x sm:divide-line">
+                {spotlightPosts.map((post) => (
+                  <PostCard key={post.id} post={post} onOpen={setSelectedPost} />
+                ))}
               </CardBody>
             </Card>
           </Reveal>
         </div>
-
-        <Reveal>
-          <Card>
-            <CardHeader
-              title="Representative discussions"
-              subtitle="Every insight above traces back to real threads like these"
-              icon={<Icon name="quote" className="h-3.5 w-3.5" />}
-            />
-            <CardBody className="grid gap-1 p-2 sm:grid-cols-2 sm:divide-x sm:divide-line">
-              {spotlightPosts.map((post) => (
-                <PostCard key={post.id} post={post} onOpen={setSelectedPost} />
-              ))}
-            </CardBody>
-          </Card>
-        </Reveal>
-      </div>
+      )}
 
       <PostDetailModal
         post={selectedPost}

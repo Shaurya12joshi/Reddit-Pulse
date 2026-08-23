@@ -1,43 +1,48 @@
 /**
  * The narrative spine.
  *
- * Eight acts, each owning a slice of scroll progress and a corresponding 3D
- * layout. The four "How it works" steps are woven into the same timeline
- * rather than living in a separate section — walking the journey *is* reading
- * how the product works.
+ * Twelve acts, each owning a slice of scroll progress and a corresponding 3D
+ * layout. This is the whole landing page, not an intro to it: the report, the
+ * evidence behind it, who it is for and the call to action are all acts of the
+ * same timeline, so the visitor travels through one continuous world instead
+ * of a 3D section followed by a website.
+ *
+ * The four "How it works" steps are woven into the same timeline rather than
+ * living in a separate section — walking the journey *is* reading how the
+ * product works.
  */
 
 export const ACTS = [
   {
     id: 'raw',
-    eyebrow: 'Raw conversations',
+    eyebrow: 'Noise',
     step: null,
     title: ['Your customers are', 'already talking.'],
     serifWord: 'already',
     body: 'Discover what Reddit really thinks about your company, your competitors, and everything in between.',
     align: 'center',
     start: 0.0,
-    end: 0.13,
+    end: 0.085,
   },
   {
     id: 'enter',
-    eyebrow: 'Raw conversations',
+    eyebrow: 'Search',
     step: '01',
     title: ['Enter a company.'],
     body: 'Thousands of unstructured posts and comments exist for almost every brand. Scattered across hundreds of subreddits, none of it is organised, and none of it was written for you.',
     align: 'left',
-    start: 0.13,
-    end: 0.26,
+    start: 0.085,
+    end: 0.17,
   },
   {
     id: 'signals',
-    eyebrow: 'Signals',
+    eyebrow: 'Collect',
     step: '02',
     title: ['Collect Reddit', 'conversations.'],
     body: 'Relevant threads are gathered straight from Reddit and connected to each other. What looked like noise starts to show structure.',
     align: 'right',
-    start: 0.26,
-    end: 0.4,
+    start: 0.17,
+    end: 0.26,
   },
   {
     id: 'sentiment',
@@ -46,8 +51,8 @@ export const ACTS = [
     title: ['Analyze the', 'conversation.'],
     body: 'Every sentence is scored, with negation and intensifiers handled properly, then split into positive, neutral and negative.',
     align: 'left',
-    start: 0.4,
-    end: 0.53,
+    start: 0.26,
+    end: 0.35,
   },
   {
     id: 'topics',
@@ -57,44 +62,91 @@ export const ACTS = [
     serifWord: 'emerge',
     body: 'Pricing, reliability, support, design. Discussions organise into the subjects people actually keep returning to.',
     align: 'right',
-    start: 0.53,
-    end: 0.65,
+    start: 0.35,
+    end: 0.44,
   },
   {
     id: 'competitors',
-    eyebrow: 'Competitors',
+    eyebrow: 'Rivals',
     step: null,
     title: ['Rivals take shape.'],
     body: 'The brands people mention in the same breath form a relationship network — and the reason behind each comparison comes with it.',
     align: 'left',
-    start: 0.65,
-    end: 0.78,
+    start: 0.44,
+    end: 0.53,
   },
   {
     id: 'insights',
-    eyebrow: 'Insights',
+    eyebrow: 'Signal',
     step: '04',
     title: ['Discover the signal.'],
     serifWord: 'signal',
     body: 'The chaos resolves into structure: sentiment shares, ranked topics, praise and complaints, competitor mentions, momentum over time.',
     align: 'center',
-    start: 0.78,
-    end: 0.9,
+    start: 0.53,
+    end: 0.62,
   },
   {
-    id: 'action',
-    eyebrow: 'Action',
+    id: 'report',
+    eyebrow: 'Report',
+    step: null,
+    title: ['The end of the journey', 'is a real report.'],
+    serifWord: 'real',
+    body: 'Not a mockup. Column height is share of mentions, colour is how a subject is going, and distance from the centre is how often a rival gets named alongside you.',
+    align: 'left',
+    start: 0.62,
+    end: 0.71,
+  },
+  {
+    id: 'evidence',
+    eyebrow: 'Evidence',
+    step: null,
+    title: ['Every number traces', 'back to a thread.'],
+    serifWord: 'thread',
+    body: 'Nothing here is inferred from a summary. Open any measurement and the actual Reddit conversations behind it are still there, with the words that drove the score.',
+    align: 'right',
+    start: 0.71,
+    end: 0.79,
+  },
+  {
+    id: 'audience',
+    eyebrow: 'Audience',
+    step: null,
+    title: ['For anyone who needs', 'the truth, not a survey.'],
+    serifWord: 'truth',
+    body: 'Founders validating an idea, product teams hunting complaints, marketers borrowing the language customers already use, researchers who would rather not read threads by hand.',
+    align: 'left',
+    start: 0.79,
+    end: 0.87,
+  },
+  {
+    id: 'rest',
+    eyebrow: 'Rest',
+    step: null,
+    title: ['The conversation', "doesn't stop."],
+    serifWord: 'stop',
+    body: 'It carries on after you close the tab. Come back and the world has moved — new threads, new complaints, new comparisons.',
+    align: 'center',
+    start: 0.87,
+    end: 0.94,
+  },
+  {
+    id: 'start',
+    eyebrow: 'Start',
     step: null,
     title: ['See what Reddit', 'is saying.'],
     serifWord: 'Reddit',
     body: 'Pick any company and read its Reddit reputation in a couple of minutes.',
     align: 'center',
-    start: 0.9,
+    start: 0.94,
     end: 1.0001,
   },
 ]
 
 export const LAST_ACT = ACTS.length - 1
+
+/** Act ids that mount their own data-driven scene contents. */
+export const ACT_INDEX = Object.fromEntries(ACTS.map((act, index) => [act.id, index]))
 
 const clamp01 = (v) => (v < 0 ? 0 : v > 1 ? 1 : v)
 
@@ -111,10 +163,45 @@ export function actIndexAt(progress) {
   return LAST_ACT
 }
 
+/**
+ * Where to land when jumping to an act.
+ *
+ * Not the act's `start`: `copyEnvelope` ramps its text in over the first 30%
+ * of an act and begins fading it out at 72%, so the boundary itself is the
+ * one place the copy is invisible. 35% in is past the reveal and well before
+ * the exit — the act at rest, showing what it says.
+ */
+export function actAnchor(index) {
+  const act = ACTS[index]
+  if (!act) return 0
+  return act.start + 0.35 * (act.end - act.start)
+}
+
 /** 0..1 position within a given act. */
 export function actLocalProgress(progress, index) {
   const act = ACTS[index]
   return clamp01((progress - act.start) / (act.end - act.start))
+}
+
+/**
+ * How present a stage is at this progress — 0 outside its act, 1 through the
+ * middle of it, easing at both edges.
+ *
+ * Data-driven scene contents (the report, the evidence panels) use this to
+ * fade themselves in and out, so only the stage that belongs to the current
+ * moment is ever drawing.
+ */
+export function stagePresence(progress, index, { lead = 0.35, tail = 0.35 } = {}) {
+  const act = ACTS[index]
+  if (!act) return 0
+  const span = act.end - act.start
+  const from = act.start - span * lead
+  const to = act.end + span * tail
+  if (progress <= from || progress >= to) return 0
+
+  const rampIn = clamp01((progress - from) / (span * lead + span * 0.25))
+  const rampOut = clamp01((to - progress) / (span * tail + span * 0.25))
+  return easeInOutCubic(Math.min(rampIn, rampOut))
 }
 
 /**

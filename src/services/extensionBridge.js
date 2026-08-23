@@ -10,8 +10,18 @@
 const EXT_SOURCE = 'reddit-scraper-extension'
 const PAGE_SOURCE = 'reddit-dashboard'
 
-/** Overall ceiling for one scrape, so a wedged run can't hang the UI forever. */
-const SCRAPE_TIMEOUT_MS = 180_000
+/**
+ * Overall ceiling for one scrape, so a wedged run can't hang the UI forever.
+ *
+ * This covers the extension's own Reddit fetching *and* every /api/ingest
+ * call it makes along the way — and ingest now classifies relevance before
+ * it stores anything, so that an off-topic post never reaches the report at
+ * all. That is an LLM round trip per batch of threads, and on a free tier
+ * with a per-minute request cap it is sometimes backoff rather than work: a
+ * ~300-thread corpus spent 73 of 90 seconds waiting out rate limits. Three
+ * minutes was a ceiling for scraping alone and cut those runs off mid-flight.
+ */
+const SCRAPE_TIMEOUT_MS = 600_000
 
 /**
  * Is the extension installed and injected into this page?

@@ -3,7 +3,7 @@ import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
 
 import { driver } from '../scrollDriver.js'
-import { actIndexAt, actLocalProgress } from '../acts.js'
+import { ACT_INDEX, stagePresence } from '../acts.js'
 import { PAPER_3D } from '../palette.js'
 
 /**
@@ -88,17 +88,22 @@ export default function DashboardAssembly({ reducedMotion = false }) {
       revealRef.current = 1
       return
     }
-    const progress = driver.damped
-    const index = actIndexAt(progress)
 
-    // Panels build during INSIGHTS (act 6) and stay for ACTION (act 7).
-    if (index < 6) {
-      // Start easing in over the tail of COMPETITORS so they never pop.
-      const local = index === 5 ? actLocalProgress(progress, 5) : 0
-      revealRef.current = Math.max(0, (local - 0.55) / 0.45)
-    } else {
-      revealRef.current = Math.min(1, revealRef.current + 0.06)
-    }
+    /*
+     * These panels belong to SIGNAL — the moment the data becomes a
+     * dashboard — and to nothing after it. They used to clamp to 1 for every
+     * later act and never come down, so they hung around as grey rectangles
+     * behind the report, the audience columns and the call to action, in a
+     * world that had long since moved on.
+     *
+     * The long lead keeps the original build-in over the tail of RIVALS; the
+     * short tail gets them out before the report draws its own sheets in the
+     * same space.
+     */
+    revealRef.current = stagePresence(driver.damped, ACT_INDEX.insights, {
+      lead: 0.55,
+      tail: 0.1,
+    })
   })
 
   return (

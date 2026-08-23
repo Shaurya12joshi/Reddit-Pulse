@@ -1,32 +1,9 @@
-/**
- * Community buzz ranking — "if we could only watch a few subreddits for this
- * brand, which ones, and why?"
- *
- * Two rules shape everything here:
- *
- *   1. **Nothing about the brand is known in advance.** The context vocabulary
- *      ("flight", "baggage", "delay" for an airline; "sneakers", "colourway"
- *      for a shoe brand) is mined from the collected corpus at runtime, so the
- *      same code path works for a brand nobody anticipated.
- *
- *   2. **Signals stay separate.** Relevance, volume, recency, engagement,
- *      velocity, community size and consistency are measured independently and
- *      reported independently. They are combined only at the last step, and
- *      relevance acts as a *gate* — a huge subreddit where the brand name
- *      merely appears cannot outrank a small one where it is genuinely
- *      discussed.
- *
- * Pure module: no DOM, no database, no network. The server imports it so the
- * numbers can never drift from what the browser would compute.
- */
-
 import { escapeRegex, extractTrendingPhrases, topicLabel } from './topics.js'
 import { tokenize } from './sentiment.js'
 
 const DAY_MS = 24 * 60 * 60 * 1000
 const WINDOW_MS = 30 * DAY_MS
 
-/* ------------------------------------------------------------- small tools */
 
 const clamp = (value, min = 0, max = 1) => Math.min(max, Math.max(min, value))
 
@@ -184,12 +161,45 @@ export function deriveAliases(posts, brand, communities = []) {
  * Unknowns are counted separately rather than guessed at: a news headline is
  * capitalised throughout, so it carries no evidence either way.
  */
+/**
+ * Two syntactic tells that a word is being used as the *ordinary* noun, not
+ * the brand — decisive on their own, independent of capitalisation:
+ *
+ *   "in the Amazon", "fires near the Amazon"  — locative preposition
+ *   "Amazon rainforest", "apple orchard"       — common-noun descriptor
+ *
+ * Brand-agnostic — the same pair of patterns disambiguates Java the language
+ * from Java the island, Turkey the country from turkey the bird, or Apple
+ * the company from an apple orchard, without knowing anything about the
+ * brand in advance.
+ *
+ * "from" and "at" are deliberately excluded from the preposition list:
+ * "package from Amazon" and "works at Amazon" are two of the most common
+ * ways to talk about the *company*, so including them would reintroduce the
+ * false positive this test exists to remove. The article is required, not
+ * optional, for the same reason — "in the Amazon" is reliably a place, "in
+ * Amazon" alone is closer to "in Amazon's warehouse".
+ */
+export function makeOtherSenseTell(brand) {
+  const escaped = escapeRegex(String(brand).trim()).replace(/\\?\s+/g, '[\\s-]?')
+  const locative = new RegExp(
+    `\\b(?:in|near|around|across|through|over)\\s+the\\s+${escaped}\\b`,
+    'i',
+  )
+  const descriptorNoun = new RegExp(
+    `\\b${escaped}\\s+(?:rain ?forest|forest|river|basin|jungle|delta|valley|tributary|biome|wilderness|orchard|grove|tree|blossom|pie|sauce|juice|cider|seed|core)\\b`,
+    'i',
+  )
+  return (text) => locative.test(text) || descriptorNoun.test(text)
+}
+
 export function makeCapitalisationTest(brand) {
   const escaped = escapeRegex(String(brand).trim()).replace(/\\?\s+/g, '[\\s-]?')
   // Case-insensitive match, capitalisation checked on the capture — the brand
   // arrives here lowercased (it is a storage key), so baking the user's casing
   // into the pattern would test nothing at all.
   const midSentence = new RegExp(`\\S\\s+(${escaped})\\b`, 'gi')
+  const otherSenseTell = makeOtherSenseTell(brand)
 
   const isTitleCase = (title) => {
     const words = String(title || '').split(/\s+/).filter((word) => /^[A-Za-z]/.test(word))
@@ -199,7 +209,10 @@ export function makeCapitalisationTest(brand) {
   }
 
   return (post) => {
-    const prose = isTitleCase(post.title) ? post.body || '' : textOf(post)
+    const fullText = textOf(post)
+    if (otherSenseTell(fullText)) return 'other'
+
+    const prose = isTitleCase(post.title) ? post.body || '' : fullText
     const hits = [...prose.matchAll(midSentence)]
     if (!hits.length) return 'unknown'
     return hits.some((match) => /^[A-Z]/.test(match[1])) ? 'brand' : 'other'
@@ -211,10 +224,103 @@ export function makeSenseClassifier(brand) {
   const capitalisation = makeCapitalisationTest(brand)
 
   return (post) => {
+    // The locative/geo-descriptor tells inside makeCapitalisationTest are
+    // decisive on their own, so they run *before* the community-name
+    // shortcut below — otherwise a community merely named after the brand
+    // (r/AmazonRainforest, r/AmazonBasin) would have every post inside it
+    // rubber-stamped 'brand' regardless of what the post actually says.
+    const sense = capitalisation(post)
+    if (sense === 'other') return 'other'
+
     const name = String(post.subreddit || '').toLowerCase()
     if (tokens.some((token) => name.includes(token))) return 'brand'
-    return capitalisation(post)
+    return sense
   }
+}
+
+/**
+ * Is capitalisation trustworthy evidence for this brand? Same calibration
+ * `rankCommunities` runs corpus-wide (a brand's own community is the most
+ * reliable read: if people writing *about the product* capitalise it, lower
+ * case elsewhere really does mean the ordinary word), pulled out standalone
+ * so ingest-time filtering can use it without going through the full
+ * community-measurement pipeline.
+ */
+export function calibrateSenseUsable(posts, brand) {
+  const capitalisationOf = makeCapitalisationTest(brand)
+  const tokens = brandTokens(brand)
+  let brandSense = 0
+  let otherSense = 0
+  let ownCap = 0
+  let ownEvidence = 0
+
+  for (const post of posts) {
+    const sense = capitalisationOf(post)
+    if (sense === 'brand') brandSense += 1
+    else if (sense === 'other') otherSense += 1
+    if (sense === 'unknown') continue
+
+    const inOwn = tokens.some((token) => String(post.subreddit || '').toLowerCase().includes(token))
+    if (inOwn) {
+      ownEvidence += 1
+      if (sense === 'brand') ownCap += 1
+    }
+  }
+
+  const senseEvidence = brandSense + otherSense
+  return ownEvidence >= 8
+    ? ownCap / ownEvidence >= 0.5
+    : senseEvidence >= 20 && brandSense / senseEvidence >= 0.25
+}
+
+/**
+ * Which of these posts/comments are actually about the brand, as opposed to
+ * merely containing its name? This is the gate storage and the report list
+ * were missing: `matchesBrand` alone is a bare regex, so "apple orchard" and
+ * a science post about literally injecting sodium into a piece of fruit both
+ * satisfied it. Meant to run once, at ingest — the same evidence
+ * `measureCommunities` uses for community ranking, so a post never counts as
+ * brand discussion in one view and not the other.
+ *
+ * Two tiers of evidence, the first unconditional and the second calibrated:
+ *
+ *   1. locative/descriptor tell ("apple orchard", "in the Amazon") — always
+ *      excludes, brand-agnostic and has no false-positive risk against a real
+ *      brand mention.
+ *   2. lowercase mid-sentence ("into an apple") — excludes only when
+ *      capitalisation has been calibrated as trustworthy for this brand,
+ *      since some brands are genuinely written lower case.
+ *
+ * A comment inherits its parent thread's verdict when it says nothing on its
+ * own (most replies never repeat the brand name), but only from a parent that
+ * itself passes both tiers.
+ */
+export function filterRelevantPosts(posts, brand) {
+  if (!posts.length) return posts
+
+  const matchesBrand = buildBrandMatcher(brand)
+  const tellOf = makeOtherSenseTell(brand)
+  const senseOf = makeSenseClassifier(brand)
+  const senseUsable = calibrateSenseUsable(posts, brand)
+
+  const threadsById = new Map()
+  for (const post of posts) {
+    if (post.type === 'post') threadsById.set(post.id, post)
+  }
+
+  const relevant = (post) => {
+    const text = textOf(post)
+    if (!matchesBrand(text)) return false
+    if (tellOf(text)) return false
+    if (senseUsable && senseOf(post) === 'other') return false
+    return true
+  }
+
+  return posts.filter((post) => {
+    if (post.type === 'post') return relevant(post)
+    const parent = threadsById.get(threadIdFromPermalink(post.permalink))
+    return (parent && relevant(parent)) || relevant(post)
+  })
 }
 
 export function deriveAnchorPosts(posts, brand) {
@@ -228,12 +334,19 @@ export function deriveAnchorPosts(posts, brand) {
   const repeated = []
 
   for (const post of posts) {
+    const sense = senseOf(post)
+    // Confidently the other sense (a locative/geo-descriptor tell) — not
+    // anchor evidence at any tier, not even "named": a community merely
+    // named after the brand (r/AmazonRainforest) does not make every post
+    // inside it about the brand.
+    if (sense === 'other') continue
+
     const name = String(post.subreddit || '').toLowerCase()
     if (tokens.some((token) => name.includes(token))) {
       named.push(post)
       continue
     }
-    if (senseOf(post) === 'brand') {
+    if (sense === 'brand') {
       proper.push(post)
       continue
     }
@@ -317,6 +430,14 @@ export function deriveContextTerms(posts, brand, { limit = 20, anchors, window =
     })
   }
 
+  // How much of the corpus contains this term at all. Cheap, and it is what
+  // separates a usable search term from an unusable one further down.
+  const allTexts = posts.map((post) => textOf(post).toLowerCase())
+  const docFrequency = (phrase) => {
+    const regex = new RegExp(`\\b${escapeRegex(phrase)}\\b`)
+    return round(allTexts.filter((text) => regex.test(text)).length / (allTexts.length || 1), 3)
+  }
+
   const scored = candidates
     .map(({ phrase, count, type }) => {
       const beside = near.get(phrase) || 0
@@ -327,6 +448,7 @@ export function deriveContextTerms(posts, brand, { limit = 20, anchors, window =
         type,
         besideBrand: beside,
         collocation: everywhere ? round(beside / everywhere, 2) : 0,
+        docFrequency: docFrequency(phrase),
       }
     })
     .filter((entry) => entry.besideBrand >= 3 && entry.collocation >= 0.15)
@@ -343,6 +465,7 @@ export function deriveContextTerms(posts, brand, { limit = 20, anchors, window =
         type,
         besideBrand: near.get(phrase) || 0,
         collocation: null,
+        docFrequency: docFrequency(phrase),
       }))
 }
 
@@ -414,13 +537,34 @@ export function groupContextFacets(contextTerms, posts, { threshold = 0.4, max =
  * `exclude` carries the terms an earlier round already searched, so a second
  * pass over the enlarged corpus explores what the first pass could not see.
  */
-export function expansionQueries(facets, { limit = 8, exclude = [] } = {}) {
+export function expansionQueries(facets, { limit = 8, exclude = [], maxDocFrequency = 0.15, terms = [] } = {}) {
   const used = new Set(exclude.map((term) => String(term).toLowerCase()))
+
+  /*
+   * A term can genuinely belong to the brand and still be a terrible thing to
+   * search for. People really do write "Notion is free" and "everyone uses
+   * Notion", so "free" and "everyone" score well on collocation — but
+   * searching Reddit for "notion free" returns all of Reddit.
+   *
+   * Measured on a live run: those two, plus "small" and "etc", pulled
+   * r/BestofRedditorUpdates and r/HFY into Notion's corpus and left it with
+   * 480 communities. Document frequency separates them cleanly — the junk sat
+   * at 15-23% of all posts, the useful terms ("project management" at 1.2%,
+   * "management" at 4.4%) an order of magnitude below.
+   *
+   * This gate applies to *queries only*. The same generic terms remain useful
+   * for relevance gating, where breadth helps rather than hurts.
+   */
+  const frequency = new Map(terms.map((entry) => [entry.term, entry.docFrequency ?? 0]))
+  const specific = (term) =>
+    // A multi-word term is specific by construction — "project management" is
+    // never the generic-search problem, whatever its frequency.
+    term.includes(' ') || (frequency.get(term) ?? 0) <= maxDocFrequency
 
   const queues = facets
     .map((facet) => ({
       label: facet.label,
-      terms: facet.terms.filter((term) => !used.has(term.toLowerCase())),
+      terms: facet.terms.filter((term) => !used.has(term.toLowerCase()) && specific(term)),
       untouched: facet.terms.every((term) => !used.has(term.toLowerCase())),
     }))
     .filter((queue) => queue.terms.length)
@@ -486,7 +630,7 @@ export function deriveBrandContext(posts, brand, communities = [], { alreadySear
     aliases: deriveAliases(anchors.length >= 15 ? anchors : posts, brand, communities),
     contextTerms,
     facets,
-    queries: expansionQueries(facets, { exclude: alreadySearched }),
+    queries: expansionQueries(facets, { exclude: alreadySearched, terms: contextTerms }),
     geoTerms: [...deriveGeoTerms(anchors.length >= 15 ? anchors : posts, contextTerms)],
     anchors: {
       count: anchors.length,
@@ -542,6 +686,7 @@ function measureCommunities({
   matchesBrand,
   senseOf,
   capitalisationOf,
+  otherSenseTellOf,
   contextRegexes,
   geoTerms,
   now,
@@ -593,11 +738,24 @@ function measureCommunities({
     const text = textOf(post)
     const isThread = post.type === 'post'
 
+    // A locative/descriptor tell ("apple orchard", "in the Amazon") is
+    // decisive on its own: this item's own words are the ordinary word, not
+    // the brand, whatever thread it sits under. Checked before the raw regex
+    // below, which cannot tell "Apple Watch" from "apple orchard" apart —
+    // both merely contain the word "apple".
+    if (otherSenseTellOf(text)) continue
+
     // A comment counts as brand discussion if it names the brand *or* sits
-    // under a thread that does — most replies never repeat the name.
+    // under a thread that does — most replies never repeat the name. The
+    // parent must itself pass the same tell, or a comment under an
+    // off-topic thread ("apple orchard" post) would inherit relevance it
+    // never earned.
     if (!isThread) {
       const parent = threadsById.get(threadIdFromPermalink(post.permalink))
-      const underBrandThread = Boolean(parent && matchesBrand(textOf(parent)))
+      const parentText = parent ? textOf(parent) : ''
+      const underBrandThread = Boolean(
+        parent && matchesBrand(parentText) && !otherSenseTellOf(parentText),
+      )
       if (!underBrandThread && !matchesBrand(text)) continue
     } else if (!matchesBrand(text)) {
       continue // a search result that never actually names the brand
@@ -1027,6 +1185,7 @@ export function rankCommunities({
     matchesBrand,
     senseOf,
     capitalisationOf: makeCapitalisationTest(brand),
+    otherSenseTellOf: makeOtherSenseTell(brand),
     contextRegexes,
     geoTerms,
     now,

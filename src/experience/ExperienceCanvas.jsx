@@ -5,6 +5,8 @@ import { AdaptiveDpr, PerformanceMonitor, Preload } from '@react-three/drei'
 import ConversationField from './scene/ConversationField.jsx'
 import CameraRig from './scene/CameraRig.jsx'
 import DashboardAssembly from './scene/DashboardAssembly.jsx'
+import ReportStage from './scene/ReportStage.jsx'
+import EvidenceStage from './scene/EvidenceStage.jsx'
 import { PAPER_3D } from './palette.js'
 
 /**
@@ -18,7 +20,14 @@ import { PAPER_3D } from './palette.js'
  * fragments into the canvas colour so the WebGL layer has no visible edge
  * against the HTML around it.
  */
-export default function ExperienceCanvas({ count, reducedMotion }) {
+export default function ExperienceCanvas({
+  count,
+  reducedMotion,
+  insights,
+  company,
+  posts,
+  onOpenPost,
+}) {
   // Drop resolution rather than frame rate when the GPU struggles.
   const [dpr, setDpr] = useState(1.5)
 
@@ -44,6 +53,13 @@ export default function ExperienceCanvas({ count, reducedMotion }) {
         <CameraRig reducedMotion={reducedMotion} />
         <ConversationField count={count} reducedMotion={reducedMotion} />
         <DashboardAssembly reducedMotion={reducedMotion} />
+
+        {/* The data-driven acts. Both read the scroll driver themselves and
+            stop rendering outside their own stretch of the journey, so the
+            world only ever draws the stage the camera is actually at. */}
+        <ReportStage insights={insights} company={company} reducedMotion={reducedMotion} />
+        <EvidenceStage posts={posts} onOpenPost={onOpenPost} reducedMotion={reducedMotion} />
+
         <Preload all />
       </Suspense>
 

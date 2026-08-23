@@ -3,7 +3,7 @@ import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
 
 import { driver } from '../scrollDriver.js'
-import { layoutBlend } from '../acts.js'
+import { ACTS, layoutBlend } from '../acts.js'
 import { buildLayouts } from '../layouts.js'
 
 /**
@@ -23,9 +23,13 @@ import { buildLayouts } from '../layouts.js'
 const dummy = new THREE.Object3D()
 const CARD_GEOMETRY_ARGS = [0.66, 0.42, 0.03]
 
+// REST — the act where the field is meant to read as still turning.
+const ACT_REST = 10
+
 export default function ConversationField({ count = 620, reducedMotion = false }) {
   const meshRef = useRef(null)
   const lineRef = useRef(null)
+  const groupRef = useRef(null)
   const lastBlend = useRef({ from: -1, to: -1, t: -1 })
 
   const { layouts, edges, meta } = useMemo(() => buildLayouts(count), [count])
@@ -81,6 +85,23 @@ export default function ConversationField({ count = 620, reducedMotion = false }
 
     const time = reducedMotion ? 0 : state.clock.elapsedTime
     const progress = reducedMotion ? 0.84 : driver.damped
+
+    /*
+     * The closing acts turn.
+     *
+     * By REST the fragments have stopped drifting — `align` is high, so the
+     * per-fragment idle motion has faded out by design — and the world went
+     * completely still under copy that says the conversation does not stop.
+     * A slow rotation of the whole field gives those acts life without
+     * reintroducing the chaos-era jitter the acts before them earned their
+     * way out of.
+     */
+    if (groupRef.current) {
+      const restStart = ACTS[ACT_REST]?.start ?? 0.87
+      const spinIn = Math.max(0, Math.min(1, (progress - restStart + 0.06) / 0.12))
+      groupRef.current.rotation.y = reducedMotion ? 0 : time * 0.035 * spinIn
+      groupRef.current.rotation.x = reducedMotion ? 0 : Math.sin(time * 0.08) * 0.05 * spinIn
+    }
 
     const { from, to, t } = layoutBlend(progress)
     const a = layouts[from]
@@ -164,7 +185,7 @@ export default function ConversationField({ count = 620, reducedMotion = false }
   })
 
   return (
-    <group>
+    <group ref={groupRef}>
       <instancedMesh
         ref={meshRef}
         args={[null, null, count]}

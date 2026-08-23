@@ -61,6 +61,25 @@ const COMPETITOR_COLORS = [
   PAPER_3D.muted,
 ]
 
+/*
+ * The accents only, with no muted grey in the list.
+ *
+ * `TOPIC_COLORS` ends in a grey so a sixth *topic* has somewhere to go, but
+ * the decorative layouts are not labelling topics — reaching for that list
+ * just dulls them.
+ *
+ * Index these with `Math.floor(i / stride)`, never `i`: picking every third
+ * fragment out of a six-colour list means `i % 6` only ever lands on 0 and 3,
+ * which is why the closing sphere came out entirely orange and yellow.
+ */
+const VIVID_COLORS = [
+  ACCENT_3D.orange,
+  ACCENT_3D.blue,
+  ACCENT_3D.green,
+  ACCENT_3D.yellow,
+  ACCENT_3D.purple,
+]
+
 /** Paper tones used while the data is still unread. */
 const NEUTRAL_TONES = [PAPER_3D.card, PAPER_3D.card2, PAPER_3D.rule]
 
@@ -248,16 +267,115 @@ export function buildLayouts(count) {
     }
   }
 
-  /* ---- 7 · SETTLE — the dashboard recedes so the CTA can breathe ---- */
-  const settle = makeLayout({ align: 1, lineOpacity: 0.06, spread: 0.35 })
-  for (let i = 0; i < count * 3; i += 3) {
-    settle.positions[i] = dashboard.positions[i] * 0.86
-    settle.positions[i + 1] = dashboard.positions[i + 1] * 0.86 + 0.6
-    settle.positions[i + 2] = dashboard.positions[i + 2] - 5.5
+  /* ---- 7 · SETTLE — the field clears out so the real report can be read ----
+     The REPORT act draws an actual dashboard from actual measurements. If the
+     fragments stayed in their own dashboard shape they would be a second,
+     fictional chart drawn straight through it — which is exactly how it
+     looked. So they retreat a long way back and desaturate into paper,
+     becoming the corpus the report was built from rather than a rival to it. */
+  const settle = makeLayout({ align: 1, lineOpacity: 0.03, spread: 0.35 })
+  for (let i = 0; i < count; i += 1) {
+    const i3 = i * 3
+    settle.positions[i3] = dashboard.positions[i3] * 1.55
+    settle.positions[i3 + 1] = dashboard.positions[i3 + 1] * 1.25 + 1.2
+    settle.positions[i3 + 2] = dashboard.positions[i3 + 2] - 19
+    writeColor(settle.colors, i, NEUTRAL_TONES[i % NEUTRAL_TONES.length])
   }
-  settle.colors.set(dashboard.colors)
 
-  const layouts = [chaos, drift, lattice, sentiment, topics, competitors, dashboard, settle]
+  /* ---- 8 · BACKDROP — the field steps back behind the evidence ----
+     Fragments form a loose, slightly concave wall well behind the camera
+     focus, so the real conversation panels in front of it read as picked out
+     *of* the corpus rather than floating in empty space. */
+  const backdrop = makeLayout({ align: 0.92, lineOpacity: 0.14, spread: 0.4 })
+  for (let i = 0; i < count; i += 1) {
+    const col = i % 30
+    const row = Math.floor(i / 30)
+    const x = (col - 14.5) * 1.15 + (random() - 0.5) * 0.5
+    const y = 5.5 - row * 1.15 + (random() - 0.5) * 0.5
+    backdrop.positions[i * 3] = x
+    backdrop.positions[i * 3 + 1] = y
+    // Curved inward at the edges — a wall that wraps rather than a flat sheet.
+    backdrop.positions[i * 3 + 2] = -9 - (x * x) * 0.022 + (random() - 0.5) * 0.6
+    // Enough colour to read as the corpus the threads were drawn from,
+    // still quiet enough that the panels in front stay the subject.
+    writeColor(
+      backdrop.colors,
+      i,
+      i % 3 === 0
+        ? VIVID_COLORS[Math.floor(i / 3) % VIVID_COLORS.length]
+        : NEUTRAL_TONES[i % NEUTRAL_TONES.length],
+    )
+  }
+
+  /* ---- 9 · COLUMNS — one stack per kind of reader ----
+     Five vertical columns, each a group the product is for. The population
+     splits by the same competitor grouping used earlier, which keeps a
+     fragment's identity consistent instead of reshuffling the crowd. */
+  const columns = makeLayout({ align: 0.9, lineOpacity: 0.1, spread: 0.42 })
+  const COLUMN_COLORS = [
+    ACCENT_3D.orange,
+    ACCENT_3D.blue,
+    ACCENT_3D.yellow,
+    ACCENT_3D.green,
+    ACCENT_3D.purple,
+  ]
+  for (let i = 0; i < count; i += 1) {
+    const group = i % 5
+    const inColumn = Math.floor(i / 5)
+    columns.positions[i * 3] = (group - 2) * 4.6 + (random() - 0.5) * 1.6
+    // Deep enough that the columns run off the bottom of frame rather
+    // than hanging in mid-air with a visible end.
+    columns.positions[i * 3 + 1] = -13 + (inColumn % 34) * 0.72 + (random() - 0.5) * 0.5
+    columns.positions[i * 3 + 2] = -2 + (random() - 0.5) * 2.2
+    writeColor(columns.colors, i, COLUMN_COLORS[group])
+  }
+
+  /* ---- 10 · SPHERE — the corpus at rest ---- */
+  const sphere = makeLayout({ align: 0.72, lineOpacity: 0.2, spread: 0.5 })
+  for (let i = 0; i < count; i += 1) {
+    const y = 1 - (i / (count - 1)) * 2
+    const r = Math.sqrt(Math.max(0, 1 - y * y))
+    const theta = golden * i
+    const shell = 7.4 + (random() - 0.5) * 1.4
+    sphere.positions[i * 3] = Math.cos(theta) * r * shell * 1.25
+    sphere.positions[i * 3 + 1] = y * shell * 0.7
+    sphere.positions[i * 3 + 2] = Math.sin(theta) * r * shell
+    writeColor(
+      sphere.colors,
+      i,
+      i % 2 === 0 ? VIVID_COLORS[Math.floor(i / 2) % VIVID_COLORS.length] : PAPER_3D.card,
+    )
+  }
+
+  /* ---- 11 · RECEDE — the world clears so the call to action can breathe ---- */
+  const recede = makeLayout({ align: 0.6, lineOpacity: 0.04, spread: 0.6 })
+  for (let i = 0; i < count; i += 1) {
+    recede.positions[i * 3] = sphere.positions[i * 3] * 1.9
+    recede.positions[i * 3 + 1] = sphere.positions[i * 3 + 1] * 1.7
+    recede.positions[i * 3 + 2] = sphere.positions[i * 3 + 2] * 1.5 - 12
+    writeColor(
+      recede.colors,
+      i,
+      i % 4 === 0
+        ? VIVID_COLORS[Math.floor(i / 4) % VIVID_COLORS.length]
+        : NEUTRAL_TONES[i % NEUTRAL_TONES.length],
+    )
+  }
+
+  const layouts = [
+    chaos,
+    drift,
+    lattice,
+    sentiment,
+    topics,
+    competitors,
+    dashboard,
+    settle,
+    backdrop,
+    columns,
+    sphere,
+    recede,
+  ]
 
   return {
     layouts,

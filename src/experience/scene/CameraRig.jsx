@@ -23,7 +23,17 @@ const KEYFRAMES = [
   { pos: [1.8, -1.4, 22], look: [0, 0.6, 0] }, // topics
   { pos: [-2.4, 3.2, 23], look: [0, 0.2, 0] }, // competitors
   { pos: [0, -0.6, 20.5], look: [-1.2, -0.4, 0] }, // insights — square to dashboard
-  { pos: [0, -0.2, 17], look: [-0.6, 0.2, 0] }, // action
+  // report — pushed in and offset right, framing the report object that
+  // occupies the left of the world while the copy sits opposite it.
+  { pos: [3.4, 0.4, 16], look: [-1.6, -0.2, 0] },
+  // evidence — closer still, angled across the floating conversation panels.
+  { pos: [-3.6, 0.8, 12.5], look: [1.4, -0.3, -1] },
+  // audience — lifted, looking down the columns.
+  { pos: [0, 4.2, 19], look: [0, -1.4, 0] },
+  // rest — back out to see the whole corpus turning.
+  { pos: [0, 0.6, 24], look: [0, 0, 0] },
+  // start — settled square-on, the world far behind the call to action.
+  { pos: [0, 0, 18], look: [0, 0, 0] },
 ]
 
 const targetPos = new THREE.Vector3()

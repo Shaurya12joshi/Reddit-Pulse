@@ -3,12 +3,17 @@ import { ACTS } from './acts.js'
 /**
  * The no-WebGL / reduced-motion route.
  *
- * Not a degraded stub — the same eight acts, the same words, the same order,
+ * Not a degraded stub — the same twelve acts, the same words, the same order,
  * laid out as an editorial page instead of a camera move. Someone who never
  * sees the 3D still gets the whole argument, which is the actual requirement
  * behind "provide a usable fallback".
+ *
+ * `fallbackSections` carries the content that exists as geometry on the
+ * immersive route — the report panels and the discussion list. Those are
+ * measurements and quotations, and a reader on this route needs them just as
+ * much; they simply arrive as charts and cards instead of as objects.
  */
-export default function StaticExperience({ children }) {
+export default function StaticExperience({ children, fallbackSections }) {
   return (
     <section className="mx-auto w-full max-w-5xl px-6 pt-24 pb-16 sm:px-10">
       {ACTS.map((act, index) => {
@@ -48,6 +53,12 @@ export default function StaticExperience({ children }) {
             </p>
 
             {isLast && children ? <div className="mt-9">{children}</div> : null}
+
+            {/* The report's own numbers, shown where the immersive route
+                builds them out of geometry. */}
+            {act.id === 'report' && fallbackSections ? (
+              <div className="mt-10">{fallbackSections}</div>
+            ) : null}
           </article>
         )
       })}
