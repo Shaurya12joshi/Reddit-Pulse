@@ -1,6 +1,7 @@
 import React from 'react'
 import { useState } from 'react'
 import useCompanyData from './useCompanyData'
+import PostList from './PostList'
 
 function Search() {
     const [name, setName] = useState('')
@@ -21,7 +22,9 @@ function Search() {
     }
    
     return (
-        <form className="flex items-center gap-3 max-w-md" onSubmit={submitHandler} >
+
+<div className="flex flex-col gap-6">
+    <form className="flex items-center gap-3 max-w-md" onSubmit={submitHandler}>
       <input
         type="text"
         placeholder="Enter a company name"
@@ -34,13 +37,19 @@ function Search() {
         type="submit"
         className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white
                    hover:bg-indigo-700 transition-colors"
-      >
-        Analyze
-      </button>
+      > Analyze </button>
+    </form>
+
+    <div className="max-w-md text-sm text-slate-600">
       {isLoading && <p>Loading…</p>}
       {isError ? <p>{error}</p> : null}
       {isReady && <p>Found {posts.length} posts</p>}
-    </form>
+    </div>
+
+    <div className="w-full">
+      {<PostList posts={posts}/>}
+    </div>
+  </div>
     )
 }
 
