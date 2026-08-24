@@ -1,20 +1,5 @@
-/**
- * Target states for the conversation field.
- *
- * One population of fragments is reused for the entire journey — the same
- * index is the same "conversation" in every act. Each layout is just a new set
- * of target positions and colours for that population, so the world evolves by
- * morphing rather than by swapping scenes. That continuity is the whole point:
- * the viewer should believe they are watching their data get organised, not
- * watching eight different animations.
- *
- * Everything is generated once into flat Float32Arrays so the per-frame loop
- * only ever does arithmetic — no allocation, no object churn.
- */
 
 import { PAPER_3D, ACCENT_3D, hexToRgbTriplet } from './palette.js'
-
-/* --------------------------------------------------------- seeded randomness */
 
 function createRandom(seed) {
   let state = seed
@@ -27,14 +12,11 @@ function createRandom(seed) {
   }
 }
 
-/** Roughly-normal distribution from two uniforms — gives soft cluster blobs. */
 function gaussian(random) {
   return (random() + random() + random() - 1.5) * 1.4
 }
 
-/* --------------------------------------------------------------- structure */
-
-const SENTIMENT_SPLIT = [0.44, 0.19, 0.37] // positive / neutral / negative
+const SENTIMENT_SPLIT = [0.44, 0.19, 0.37]
 const TOPIC_COUNT = 6
 const COMPETITOR_COUNT = 5
 
@@ -61,17 +43,6 @@ const COMPETITOR_COLORS = [
   PAPER_3D.muted,
 ]
 
-/*
- * The accents only, with no muted grey in the list.
- *
- * `TOPIC_COLORS` ends in a grey so a sixth *topic* has somewhere to go, but
- * the decorative layouts are not labelling topics — reaching for that list
- * just dulls them.
- *
- * Index these with `Math.floor(i / stride)`, never `i`: picking every third
- * fragment out of a six-colour list means `i % 6` only ever lands on 0 and 3,
- * which is why the closing sphere came out entirely orange and yellow.
- */
 const VIVID_COLORS = [
   ACCENT_3D.orange,
   ACCENT_3D.blue,
@@ -80,7 +51,6 @@ const VIVID_COLORS = [
   ACCENT_3D.purple,
 ]
 
-/** Paper tones used while the data is still unread. */
 const NEUTRAL_TONES = [PAPER_3D.card, PAPER_3D.card2, PAPER_3D.rule]
 
 function writeColor(array, index, hex) {
@@ -90,17 +60,12 @@ function writeColor(array, index, hex) {
   array[index * 3 + 2] = b
 }
 
-/**
- * @param {number} count how many fragments to place
- * @returns {{layouts: object[], edges: Uint16Array, meta: object}}
- */
 export function buildLayouts(count) {
   const random = createRandom(0x5eed1234)
 
-  // Stable per-fragment identity, shared across every layout.
   const sentimentGroup = new Uint8Array(count)
   const topicGroup = new Uint8Array(count)
-  const competitorGroup = new Uint8Array(count) // 0 = the company core
+  const competitorGroup = new Uint8Array(count)
   const scales = new Float32Array(count)
   const phases = new Float32Array(count)
   const spins = new Float32Array(count)
@@ -111,7 +76,6 @@ export function buildLayouts(count) {
     sentimentGroup[i] =
       roll < SENTIMENT_SPLIT[0] ? 0 : roll < SENTIMENT_SPLIT[0] + SENTIMENT_SPLIT[1] ? 1 : 2
     topicGroup[i] = Math.floor(random() * TOPIC_COUNT)
-    // A third of the population belongs to the company itself.
     competitorGroup[i] = random() < 0.34 ? 0 : 1 + Math.floor(random() * COMPETITOR_COUNT)
     scales[i] = 0.55 + random() * 0.85
     phases[i] = random() * Math.PI * 2
@@ -127,10 +91,8 @@ export function buildLayouts(count) {
     ...config,
   })
 
-  /* ---- 0 · CHAOS — the viewer is inside the noise ---- */
   const chaos = makeLayout({ align: 0, lineOpacity: 0, spread: 1 })
   for (let i = 0; i < count; i += 1) {
-    // Hollow shell so the camera sits in a clearing rather than inside solid mass.
     const radius = 7 + random() * 15
     const theta = random() * Math.PI * 2
     const phi = Math.acos(2 * random() - 1)
@@ -140,7 +102,6 @@ export function buildLayouts(count) {
     writeColor(chaos.colors, i, NEUTRAL_TONES[i % NEUTRAL_TONES.length])
   }
 
-  /* ---- 1 · DRIFT — the noise acknowledges a centre ---- */
   const drift = makeLayout({ align: 0.12, lineOpacity: 0.05, spread: 0.85 })
   for (let i = 0; i < count; i += 1) {
     const radius = 6 + random() * 10
@@ -149,7 +110,6 @@ export function buildLayouts(count) {
     drift.positions[i * 3] = Math.cos(theta) * radius
     drift.positions[i * 3 + 1] = y
     drift.positions[i * 3 + 2] = Math.sin(theta) * radius * 0.8
-    // A few fragments already carry a hint of colour — the first signals.
     const tinted = i % 11 === 0
     writeColor(
       drift.colors,
@@ -158,11 +118,9 @@ export function buildLayouts(count) {
     )
   }
 
-  /* ---- 2 · LATTICE — relationships become visible ---- */
   const lattice = makeLayout({ align: 0.55, lineOpacity: 0.55, spread: 0.7 })
   const golden = Math.PI * (3 - Math.sqrt(5))
   for (let i = 0; i < count; i += 1) {
-    // Fibonacci sphere: even coverage, no clumping, reads as a built structure.
     const y = 1 - (i / (count - 1)) * 2
     const r = Math.sqrt(Math.max(0, 1 - y * y))
     const theta = golden * i
@@ -177,7 +135,6 @@ export function buildLayouts(count) {
     )
   }
 
-  /* ---- 3 · SENTIMENT — three clusters ---- */
   const sentiment = makeLayout({ align: 0.68, lineOpacity: 0.3, spread: 0.6 })
   for (let i = 0; i < count; i += 1) {
     const anchor = SENTIMENT_ANCHORS[sentimentGroup[i]]
@@ -187,7 +144,6 @@ export function buildLayouts(count) {
     writeColor(sentiment.colors, i, anchor.color)
   }
 
-  /* ---- 4 · TOPICS — six subject groups in a ring ---- */
   const topics = makeLayout({ align: 0.74, lineOpacity: 0.22, spread: 0.55 })
   for (let i = 0; i < count; i += 1) {
     const group = topicGroup[i]
@@ -199,7 +155,6 @@ export function buildLayouts(count) {
     writeColor(topics.colors, i, TOPIC_COLORS[group])
   }
 
-  /* ---- 5 · COMPETITORS — company core plus satellites ---- */
   const competitors = makeLayout({ align: 0.8, lineOpacity: 0.42, spread: 0.5 })
   for (let i = 0; i < count; i += 1) {
     const group = competitorGroup[i]
@@ -218,10 +173,6 @@ export function buildLayouts(count) {
     }
   }
 
-  /* ---- 6 · DASHBOARD — the data flattens into panels ----
-     Fragments are dealt into three readable widgets: a donut, a bar chart and
-     a tile grid. They face the camera and sit on one plane, so the field
-     literally becomes the product. */
   const dashboard = makeLayout({ align: 1, lineOpacity: 0.12, spread: 0.4 })
   const donutShare = 0.34
   const barShare = 0.38
@@ -231,7 +182,6 @@ export function buildLayouts(count) {
 
   for (let i = 0; i < count; i += 1) {
     if (i < donutCount) {
-      // Donut ring, split by sentiment so the colours still mean something.
       const t = i / donutCount
       const angle = t * Math.PI * 2 - Math.PI / 2
       const ringRadius = 3.5 + (random() - 0.5) * 0.5
@@ -241,7 +191,6 @@ export function buildLayouts(count) {
       const band = t < SENTIMENT_SPLIT[0] ? 0 : t < SENTIMENT_SPLIT[0] + SENTIMENT_SPLIT[1] ? 1 : 2
       writeColor(dashboard.colors, i, SENTIMENT_ANCHORS[band].color)
     } else if (i < donutCount + barCount) {
-      // Bar chart columns.
       const n = i - donutCount
       const column = n % BAR_HEIGHTS.length
       const height = BAR_HEIGHTS[column]
@@ -255,7 +204,6 @@ export function buildLayouts(count) {
         column % 3 === 0 ? ACCENT_3D.orange : column % 3 === 1 ? ACCENT_3D.blue : ACCENT_3D.green,
       )
     } else {
-      // A strip of small tiles along the bottom — the "recent discussions" row.
       const n = i - donutCount - barCount
       const perRow = 16
       const col = n % perRow
@@ -267,12 +215,6 @@ export function buildLayouts(count) {
     }
   }
 
-  /* ---- 7 · SETTLE — the field clears out so the real report can be read ----
-     The REPORT act draws an actual dashboard from actual measurements. If the
-     fragments stayed in their own dashboard shape they would be a second,
-     fictional chart drawn straight through it — which is exactly how it
-     looked. So they retreat a long way back and desaturate into paper,
-     becoming the corpus the report was built from rather than a rival to it. */
   const settle = makeLayout({ align: 1, lineOpacity: 0.03, spread: 0.35 })
   for (let i = 0; i < count; i += 1) {
     const i3 = i * 3
@@ -282,10 +224,6 @@ export function buildLayouts(count) {
     writeColor(settle.colors, i, NEUTRAL_TONES[i % NEUTRAL_TONES.length])
   }
 
-  /* ---- 8 · BACKDROP — the field steps back behind the evidence ----
-     Fragments form a loose, slightly concave wall well behind the camera
-     focus, so the real conversation panels in front of it read as picked out
-     *of* the corpus rather than floating in empty space. */
   const backdrop = makeLayout({ align: 0.92, lineOpacity: 0.14, spread: 0.4 })
   for (let i = 0; i < count; i += 1) {
     const col = i % 30
@@ -294,10 +232,7 @@ export function buildLayouts(count) {
     const y = 5.5 - row * 1.15 + (random() - 0.5) * 0.5
     backdrop.positions[i * 3] = x
     backdrop.positions[i * 3 + 1] = y
-    // Curved inward at the edges — a wall that wraps rather than a flat sheet.
     backdrop.positions[i * 3 + 2] = -9 - (x * x) * 0.022 + (random() - 0.5) * 0.6
-    // Enough colour to read as the corpus the threads were drawn from,
-    // still quiet enough that the panels in front stay the subject.
     writeColor(
       backdrop.colors,
       i,
@@ -307,10 +242,6 @@ export function buildLayouts(count) {
     )
   }
 
-  /* ---- 9 · COLUMNS — one stack per kind of reader ----
-     Five vertical columns, each a group the product is for. The population
-     splits by the same competitor grouping used earlier, which keeps a
-     fragment's identity consistent instead of reshuffling the crowd. */
   const columns = makeLayout({ align: 0.9, lineOpacity: 0.1, spread: 0.42 })
   const COLUMN_COLORS = [
     ACCENT_3D.orange,
@@ -323,14 +254,11 @@ export function buildLayouts(count) {
     const group = i % 5
     const inColumn = Math.floor(i / 5)
     columns.positions[i * 3] = (group - 2) * 4.6 + (random() - 0.5) * 1.6
-    // Deep enough that the columns run off the bottom of frame rather
-    // than hanging in mid-air with a visible end.
     columns.positions[i * 3 + 1] = -13 + (inColumn % 34) * 0.72 + (random() - 0.5) * 0.5
     columns.positions[i * 3 + 2] = -2 + (random() - 0.5) * 2.2
     writeColor(columns.colors, i, COLUMN_COLORS[group])
   }
 
-  /* ---- 10 · SPHERE — the corpus at rest ---- */
   const sphere = makeLayout({ align: 0.72, lineOpacity: 0.2, spread: 0.5 })
   for (let i = 0; i < count; i += 1) {
     const y = 1 - (i / (count - 1)) * 2
@@ -347,7 +275,6 @@ export function buildLayouts(count) {
     )
   }
 
-  /* ---- 11 · RECEDE — the world clears so the call to action can breathe ---- */
   const recede = makeLayout({ align: 0.6, lineOpacity: 0.04, spread: 0.6 })
   for (let i = 0; i < count; i += 1) {
     recede.positions[i * 3] = sphere.positions[i * 3] * 1.9
@@ -384,13 +311,6 @@ export function buildLayouts(count) {
   }
 }
 
-/**
- * Connect each fragment to its nearest neighbours in the lattice state.
- *
- * Edges are computed once against a single layout and then simply follow the
- * fragments wherever they travel, so the network stretches and reforms with
- * the data instead of being rebuilt every frame.
- */
 function buildEdges(positions, count, random, maxEdges = 260) {
   const pairs = []
   const step = Math.max(1, Math.floor(count / 150))

@@ -1,61 +1,14 @@
-/**
- * Turns a finished report into the numbers a 3D scene needs.
- *
- * Kept apart from the rendering for the same reason the analysis modules are
- * kept apart from the dashboard: this is arithmetic over real measurements,
- * and it should be readable — and checkable — without a WebGL context.
- *
- * Every value here traces to something the pipeline actually measured. A bar
- * that is twice as tall represents twice as many posts; nothing is scaled for
- * looks alone.
- */
 
 import { ACCENT_3D, PAPER_3D, hexToRgbTriplet } from '../palette.js'
 
-/**
- * Semantic colours, mirroring the CSS tokens the 2D report uses so a green
- * bar in the scene is the same green as a positive badge in the dashboard.
- * Declared here rather than added to `palette.js` because that file is the
- * hero scene's palette and is shared with the acts — this is report-specific.
- */
 export const SENTIMENT_3D = {
-  positive: '#5d9b72', // --color-positive
-  neutral: '#9a968c', // --color-neutral
-  negative: '#c25a3f', // --color-negative
+  positive: '#5d9b72',
+  neutral: '#9a968c',
+  negative: '#c25a3f',
 }
 
 const SENTIMENT_ORDER = ['positive', 'neutral', 'negative']
 
-/*
- * Identity colours, reused from the hero's topics and rivals acts so a
- * subject keeps the same colour it had when it first emerged out of the
- * noise.
- *
- * Sentiment alone could not carry this: most topics come out neutral, so
- * colouring columns by sentiment rendered nearly the whole report grey and
- * threw away the one thing colour is good at here — telling six subjects
- * apart at a glance. Sentiment moves to a cap on top of each column, where
- * it still reads but no longer flattens the palette.
- */
-/*
- * Real brand colours, muted to sit inside this palette.
- *
- * A rival is recognisable before its label is legible when it carries the
- * colour people already associate with it — Netflix red, Spotify green — and
- * "why is Netflix grey?" is a fair question to ask of a chart. The vivid
- * originals would shout against warm paper, so each is taken down toward the
- * editorial range rather than used at full strength.
- *
- * Matched on the lowercased name; anything unknown falls back to the
- * identity palette below, so this is a nicety, never a requirement.
- */
-/*
- * Brands whose identity is more than one colour.
- *
- * Google is the obvious case — four colours *are* the logo, and flattening it
- * to one blue throws away the thing that makes it recognisable at a glance.
- * Rendered as bands rather than a single fill.
- */
 const BRAND_PALETTES = {
   google: ['#4a7fd6', '#cf4a3f', '#e0b03c', '#4f9d69'],
   microsoft: ['#d2543f', '#4f9d69', '#5aa1d8', '#e0b03c'],
@@ -71,9 +24,9 @@ const BRAND_COLORS = {
   facebook: '#5b7fc7',
   meta: '#5b7fc7',
   microsoft: '#5aa1d8',
-  walmart: '#e0a93c', // the spark, not the wordmark — see resolveCollisions
+  walmart: '#e0a93c',
   amazon: '#e08b3c',
-  'prime video': '#3fa2ad', // Prime's teal, distinct from Walmart and Google blue
+  'prime video': '#3fa2ad',
   apple: '#7d7d82',
   samsung: '#4a6fb5',
   tesla: '#c9403a',
@@ -100,20 +53,14 @@ const BRAND_COLORS = {
   lego: '#d2543f',
 }
 
-/** A rival's own colour where we know it, otherwise its slot in the palette. */
 export function brandColor(name, fallback) {
   return BRAND_COLORS[String(name || '').trim().toLowerCase()] ?? fallback
 }
 
-/** The multi-colour identity for a brand that has one. */
 export function brandPalette(name) {
   return BRAND_PALETTES[String(name || '').trim().toLowerCase()] ?? null
 }
 
-/**
- * Hue of a hex colour, 0-360. Used only to notice when two rivals have
- * landed on near-identical colours.
- */
 function hueOf(hex) {
   const v = hex.replace('#', '')
   const r = parseInt(v.slice(0, 2), 16) / 255
@@ -128,15 +75,6 @@ function hueOf(hex) {
   return h * 60
 }
 
-/**
- * Pull apart rivals that happen to share a hue.
- *
- * Real brand colours cluster hard — Walmart, Prime Video and Google are all
- * blue — and three blue cubes in a row stop telling anyone apart, which is
- * the entire job of colouring them. Later collisions fall back to the
- * identity palette, picking the accent furthest in hue from what is already
- * on screen. Nothing is dropped or reordered; only the paint changes.
- */
 function resolveCollisions(nodes, tolerance = 26) {
   const used = []
 
@@ -175,15 +113,8 @@ const IDENTITY_COLORS = [
   PAPER_3D.muted,
 ]
 
-/** Largest value in a list, floored at 1 so an all-zero series can't divide by 0. */
 const peak = (values) => Math.max(1, ...values)
 
-/**
- * The three sentiment columns.
- *
- * Heights come from the share of mentions, not the raw count, so the shape
- * reads the same for a brand with 200 posts and one with 2000.
- */
 export function sentimentBars(sentiment) {
   if (!sentiment) return []
 
@@ -199,7 +130,6 @@ export function sentimentBars(sentiment) {
     label: key,
     pct: shares[key],
     count: sentiment[key] ?? 0,
-    // 0.35 keeps a near-zero share visible as a sliver rather than vanishing.
     height: 0.35 + (shares[key] / tallest) * 3.6,
     x: (index - 1) * 1.5,
     color: SENTIMENT_3D[key],
@@ -207,19 +137,11 @@ export function sentimentBars(sentiment) {
   }))
 }
 
-/**
- * The topic ridge — one column per subject people keep returning to.
- *
- * Tinted by whichever sentiment dominates that topic, which is the single
- * most useful thing to know at a glance: not just "pricing comes up a lot"
- * but "pricing comes up a lot, and it is going badly".
- */
 export function topicColumns(topics, limit = 6) {
   const shown = (topics ?? []).slice(0, limit)
   if (!shown.length) return []
 
   const tallest = peak(shown.map((topic) => topic.count ?? 0))
-  // Wide enough that two full-length captions cannot touch.
   const span = 2.15
 
   return shown.map((topic, index) => {
@@ -242,13 +164,6 @@ export function topicColumns(topics, limit = 6) {
   })
 }
 
-/**
- * The volume ribbon — mentions over time, each bucket stacked by sentiment.
- *
- * Only the most recent `limit` buckets: a two-year corpus would otherwise
- * compress into a comb too fine to read, and the recent end is the part
- * anyone monitoring a brand actually looks at.
- */
 export function volumeStacks(timeline, limit = 30) {
   const buckets = (timeline?.buckets ?? []).slice(-limit)
   if (!buckets.length) return { stacks: [], granularity: timeline?.granularity ?? 'day' }
@@ -267,8 +182,6 @@ export function volumeStacks(timeline, limit = 30) {
         key,
         value,
         height,
-        // Boxes are centred on their origin, so a stacked segment sits half
-        // its own height above the running total.
         y: base + height / 2,
         rgb: hexToRgbTriplet(SENTIMENT_3D[key]),
       }
@@ -282,14 +195,6 @@ export function volumeStacks(timeline, limit = 30) {
   return { stacks, granularity: timeline?.granularity ?? 'day' }
 }
 
-/**
- * The competitor constellation — the brand at the centre, rivals in orbit.
- *
- * Distance is inverse to how often the two are named together: a competitor
- * mentioned in the same breath constantly sits close in, one mentioned twice
- * sits out at the edge. That makes proximity mean something rather than
- * being decorative placement.
- */
 export function competitorNodes(competitors, limit = 5) {
   const shown = (competitors ?? []).slice(0, limit)
   if (!shown.length) return []
@@ -311,8 +216,6 @@ export function competitorNodes(competitors, limit = 5) {
       angle,
       x: Math.cos(angle) * radius,
       y: Math.sin(angle) * radius * 0.62,
-      // Node size carries the same signal as distance, doubled up on purpose:
-      // depth makes size ambiguous, so proximity alone would be misread.
       scale: 0.24 + share * 0.3,
     }
   })

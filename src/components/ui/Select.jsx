@@ -1,9 +1,5 @@
 import Icon from './Icon.jsx'
 
-/**
- * A styled native <select>. Native is deliberate: it is accessible, keyboard
- * friendly and works on mobile without any extra code.
- */
 export default function Select({ label, value, onChange, options, className = '' }) {
   return (
     <label className={`group relative block ${className}`}>

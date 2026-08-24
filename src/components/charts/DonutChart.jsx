@@ -5,17 +5,9 @@ const STROKE = 22
 const RADIUS = (SIZE - STROKE) / 2
 const CIRCUMFERENCE = 2 * Math.PI * RADIUS
 
-/**
- * Donut showing how a total splits across a few segments.
- * Hovering a segment swaps the centre label to that segment's numbers.
- *
- * @param {{segments:{key:string,label:string,value:number,color:string}[],
- *          total:number, centerLabel:string}} props
- */
 export default function DonutChart({ segments, total, centerLabel = 'mentions' }) {
   const [active, setActive] = useState(null)
 
-  // Pre-compute each arc's start offset so the render pass stays pure.
   const usable = segments
     .filter((segment) => segment.value > 0)
     .reduce((acc, segment) => {
@@ -51,7 +43,6 @@ export default function DonutChart({ segments, total, centerLabel = 'mentions' }
             strokeWidth={STROKE}
           />
           {usable.map((segment) => {
-            // A 2px visual gap between segments.
             const drawn = Math.max(0, segment.length - 2)
             return (
               <circle

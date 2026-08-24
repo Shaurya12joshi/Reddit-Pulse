@@ -4,7 +4,6 @@ import { tokenize } from './sentiment.js'
 const DAY_MS = 24 * 60 * 60 * 1000
 const WINDOW_MS = 30 * DAY_MS
 
-
 const clamp = (value, min = 0, max = 1) => Math.min(max, Math.max(min, value))
 
 function median(values) {
@@ -14,7 +13,6 @@ function median(values) {
   return sorted.length % 2 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2
 }
 
-/** Min–max normalise, guarding the all-equal case (which would divide by 0). */
 function minMax(values) {
   const min = Math.min(...values)
   const max = Math.max(...values)
@@ -26,20 +24,11 @@ const round = (value, places = 3) => Number(value.toFixed(places))
 
 const textOf = (post) => post.text || [post.title, post.body].filter(Boolean).join('. ')
 
-/**
- * Reddit puts the *thread* id in every comment permalink:
- *   /r/sub/comments/<thread>/slug/<comment>/
- * That lets a comment inherit the relevance of the post it sits under, which
- * matters because most comments never repeat the brand name.
- */
 export function threadIdFromPermalink(permalink) {
   const match = /\/comments\/([a-z0-9]+)/i.exec(permalink || '')
   return match ? `t3_${match[1]}` : null
 }
 
-/* --------------------------------------------------- brand understanding */
-
-/** The distinctive word(s) of the brand itself — excluded from context mining. */
 export function brandTokens(brand) {
   return String(brand)
     .toLowerCase()
@@ -47,17 +36,10 @@ export function brandTokens(brand) {
     .filter((token) => token.length > 1)
 }
 
-/**
- * A matcher for the brand and any aliases, anchored on word boundaries so
- * "indigo" does not match "indigogo" and "nike" does not match "nikes"…
- * (well, "nikes" is wanted — a trailing plural is allowed, other suffixes are
- * not).
- */
 export function buildBrandMatcher(brand, aliases = []) {
   const forms = [String(brand), ...aliases]
     .map((form) => String(form).trim())
     .filter(Boolean)
-    // Multi-word brands are written inconsistently: "Air India", "AirIndia".
     .map((form) => escapeRegex(form).replace(/\\?\s+/g, '[\\s-]?'))
 
   if (!forms.length) return () => false
@@ -65,18 +47,6 @@ export function buildBrandMatcher(brand, aliases = []) {
   return (text) => regex.test(text || '')
 }
 
-/**
- * Mine abbreviation candidates from the corpus rather than assuming them.
- *
- * Three evidence patterns, all brand-agnostic:
- *   "IndiGo (6E)"            — parenthetical shorthand
- *   "IndiGo aka 6E"          — spelled-out alias
- *   r/IndiGo6E               — a community named after brand + suffix
- *
- * A candidate survives only if the corpus writes it the way abbreviations get
- * written: mostly in capitals, or carrying a digit. Without that test, "Slack
- * or Discord" nominates "discord", and "Slack (teams)" nominates "teams".
- */
 export function deriveAliases(posts, brand, communities = []) {
   const tokens = brandTokens(brand)
   if (!tokens.length) return []
@@ -93,7 +63,7 @@ export function deriveAliases(posts, brand, communities = []) {
     const value = String(raw || '').trim().toLowerCase()
     if (value.length < 2 || value.length > 12) return
     if (tokens.includes(value)) return
-    if (/^\d+$/.test(value)) return // "Brand (2024)" is a year, not an alias
+    if (/^\d+$/.test(value)) return
     candidates.set(value, (candidates.get(value) || 0) + 1)
   }
 
@@ -103,7 +73,6 @@ export function deriveAliases(posts, brand, communities = []) {
     for (const match of text.matchAll(spelledOut)) propose(match[1])
   }
 
-  // r/IndiGo6E → "6e"; r/Nike → nothing left over, so nothing proposed.
   for (const community of communities) {
     const name = String(community?.name || '').toLowerCase()
     for (const token of tokens) {
@@ -126,60 +95,12 @@ export function deriveAliases(posts, brand, communities = []) {
       }
     })
     .filter((entry) => entry.mentions >= 3)
-    // An abbreviation is written in caps ("6E", "AA") or carries a digit.
     .filter((entry) => entry.capitalisedShare >= 0.5 || /\d/.test(entry.alias))
-    // …and it has to be specific. "Claude (AI)" nominates "AI", which would
-    // then match every post in the corpus and make the brand look ubiquitous.
     .filter((entry) => entry.mentions <= posts.length * 0.2)
     .sort((a, b) => b.mentions - a.mentions)
     .slice(0, 5)
 }
 
-/**
- * Posts we are confident are about *this* brand rather than a word that
- * happens to be spelled the same.
- *
- * This matters more than anything else in the file. Searching Reddit for
- * "slack" returns people slacking off; for "indigo", the colour. If the
- * context vocabulary is mined from that mixture, the mixture then validates
- * itself and the ranking fills with nonsense.
- *
- * Three brand-agnostic anchors, in descending order of confidence:
- *   1. the post lives in a community named after the brand (r/Slack)
- *   2. the brand is named repeatedly — incidental word-use says it once
- *   3. the brand appears capitalised mid-sentence, i.e. as a proper noun
- *      (title-case headlines are ignored, since they capitalise everything)
- */
-/**
- * Which sense of the word is this post using — the brand, or the ordinary
- * English word that shares its spelling?
- *
- *   'brand'   — capitalised mid-sentence, or posted in the brand's own community
- *   'other'   — appears mid-sentence but always lowercase ("cut her some slack")
- *   'unknown' — only in a title-case headline, where capitalisation says nothing
- *
- * Unknowns are counted separately rather than guessed at: a news headline is
- * capitalised throughout, so it carries no evidence either way.
- */
-/**
- * Two syntactic tells that a word is being used as the *ordinary* noun, not
- * the brand — decisive on their own, independent of capitalisation:
- *
- *   "in the Amazon", "fires near the Amazon"  — locative preposition
- *   "Amazon rainforest", "apple orchard"       — common-noun descriptor
- *
- * Brand-agnostic — the same pair of patterns disambiguates Java the language
- * from Java the island, Turkey the country from turkey the bird, or Apple
- * the company from an apple orchard, without knowing anything about the
- * brand in advance.
- *
- * "from" and "at" are deliberately excluded from the preposition list:
- * "package from Amazon" and "works at Amazon" are two of the most common
- * ways to talk about the *company*, so including them would reintroduce the
- * false positive this test exists to remove. The article is required, not
- * optional, for the same reason — "in the Amazon" is reliably a place, "in
- * Amazon" alone is closer to "in Amazon's warehouse".
- */
 export function makeOtherSenseTell(brand) {
   const escaped = escapeRegex(String(brand).trim()).replace(/\\?\s+/g, '[\\s-]?')
   const locative = new RegExp(
@@ -195,9 +116,6 @@ export function makeOtherSenseTell(brand) {
 
 export function makeCapitalisationTest(brand) {
   const escaped = escapeRegex(String(brand).trim()).replace(/\\?\s+/g, '[\\s-]?')
-  // Case-insensitive match, capitalisation checked on the capture — the brand
-  // arrives here lowercased (it is a storage key), so baking the user's casing
-  // into the pattern would test nothing at all.
   const midSentence = new RegExp(`\\S\\s+(${escaped})\\b`, 'gi')
   const otherSenseTell = makeOtherSenseTell(brand)
 
@@ -224,11 +142,6 @@ export function makeSenseClassifier(brand) {
   const capitalisation = makeCapitalisationTest(brand)
 
   return (post) => {
-    // The locative/geo-descriptor tells inside makeCapitalisationTest are
-    // decisive on their own, so they run *before* the community-name
-    // shortcut below — otherwise a community merely named after the brand
-    // (r/AmazonRainforest, r/AmazonBasin) would have every post inside it
-    // rubber-stamped 'brand' regardless of what the post actually says.
     const sense = capitalisation(post)
     if (sense === 'other') return 'other'
 
@@ -238,14 +151,6 @@ export function makeSenseClassifier(brand) {
   }
 }
 
-/**
- * Is capitalisation trustworthy evidence for this brand? Same calibration
- * `rankCommunities` runs corpus-wide (a brand's own community is the most
- * reliable read: if people writing *about the product* capitalise it, lower
- * case elsewhere really does mean the ordinary word), pulled out standalone
- * so ingest-time filtering can use it without going through the full
- * community-measurement pipeline.
- */
 export function calibrateSenseUsable(posts, brand) {
   const capitalisationOf = makeCapitalisationTest(brand)
   const tokens = brandTokens(brand)
@@ -273,28 +178,6 @@ export function calibrateSenseUsable(posts, brand) {
     : senseEvidence >= 20 && brandSense / senseEvidence >= 0.25
 }
 
-/**
- * Which of these posts/comments are actually about the brand, as opposed to
- * merely containing its name? This is the gate storage and the report list
- * were missing: `matchesBrand` alone is a bare regex, so "apple orchard" and
- * a science post about literally injecting sodium into a piece of fruit both
- * satisfied it. Meant to run once, at ingest — the same evidence
- * `measureCommunities` uses for community ranking, so a post never counts as
- * brand discussion in one view and not the other.
- *
- * Two tiers of evidence, the first unconditional and the second calibrated:
- *
- *   1. locative/descriptor tell ("apple orchard", "in the Amazon") — always
- *      excludes, brand-agnostic and has no false-positive risk against a real
- *      brand mention.
- *   2. lowercase mid-sentence ("into an apple") — excludes only when
- *      capitalisation has been calibrated as trustworthy for this brand,
- *      since some brands are genuinely written lower case.
- *
- * A comment inherits its parent thread's verdict when it says nothing on its
- * own (most replies never repeat the brand name), but only from a parent that
- * itself passes both tiers.
- */
 export function filterRelevantPosts(posts, brand) {
   if (!posts.length) return posts
 
@@ -335,10 +218,6 @@ export function deriveAnchorPosts(posts, brand) {
 
   for (const post of posts) {
     const sense = senseOf(post)
-    // Confidently the other sense (a locative/geo-descriptor tell) — not
-    // anchor evidence at any tier, not even "named": a community merely
-    // named after the brand (r/AmazonRainforest) does not make every post
-    // inside it about the brand.
     if (sense === 'other') continue
 
     const name = String(post.subreddit || '').toLowerCase()
@@ -353,10 +232,6 @@ export function deriveAnchorPosts(posts, brand) {
     if ((textOf(post).match(anyCase) || []).length >= 3) repeated.push(post)
   }
 
-  // Repetition is the weakest of the three: a rant about slacking off says
-  // "slack" five times too, and those posts are what dragged the idioms "cut
-  // me some slack" and "pick up the slack" into Slack's vocabulary. Only reach
-  // for that tier when the confident evidence is too thin to work with.
   const confident = [...named, ...proper]
   const anchors = confident.length >= 15 ? confident : [...confident, ...repeated]
   anchors.tiers = { named: named.length, proper: proper.length, repeated: repeated.length }
@@ -364,14 +239,6 @@ export function deriveAnchorPosts(posts, brand) {
   return anchors
 }
 
-/**
- * The vocabulary that surrounds this brand on Reddit — the contexts people
- * actually discuss it in. Document frequency, counted once per post, so one
- * long rant cannot invent a context.
- *
- * Mined from anchor posts where there are enough of them, so the vocabulary
- * describes the brand rather than whatever else shares its name.
- */
 export function deriveContextTerms(posts, brand, { limit = 20, anchors, window = 5 } = {}) {
   if (!posts.length) return []
 
@@ -381,20 +248,11 @@ export function deriveContextTerms(posts, brand, { limit = 20, anchors, window =
   const candidates = extractTrendingPhrases(
     source.map(textOf),
     { limit: limit * 3, minCount, exclude: brandTokens(brand) },
-  ).filter(({ phrase }) => !phrase.includes("'")) // the tokenizer keeps "i'm", "don't"
+  ).filter(({ phrase }) => !phrase.includes("'"))
 
   const unigrams = new Set(candidates.filter((c) => c.type === 'word').map((c) => c.phrase))
   const bigrams = new Set(candidates.filter((c) => c.type === 'phrase').map((c) => c.phrase))
 
-  /*
-   * Frequency alone picks up the genre, not the brand: Slack's anchors are
-   * full of "work", "company" and "trying", which say nothing about Slack.
-   *
-   * Collocation is the sharper test — how often does a term appear within a
-   * few words of the brand name itself? "Slack channel", "Tesla owners",
-   * "IndiGo flight" pass; conversational filler does not, because it is spread
-   * evenly through the text instead of clustering around the name.
-   */
   const near = new Map()
   const total = new Map()
   const bump = (map, key) => map.set(key, (map.get(key) || 0) + 1)
@@ -430,8 +288,6 @@ export function deriveContextTerms(posts, brand, { limit = 20, anchors, window =
     })
   }
 
-  // How much of the corpus contains this term at all. Cheap, and it is what
-  // separates a usable search term from an unusable one further down.
   const allTexts = posts.map((post) => textOf(post).toLowerCase())
   const docFrequency = (phrase) => {
     const regex = new RegExp(`\\b${escapeRegex(phrase)}\\b`)
@@ -455,8 +311,6 @@ export function deriveContextTerms(posts, brand, { limit = 20, anchors, window =
     .sort((a, b) => b.besideBrand - a.besideBrand)
     .slice(0, limit)
 
-  // Too few collocates to work with means the corpus is thin, not that the
-  // brand has no context — fall back to plain frequency rather than to nothing.
   return scored.length >= 6
     ? scored
     : candidates.slice(0, limit).map(({ phrase, count, type }) => ({
@@ -469,22 +323,6 @@ export function deriveContextTerms(posts, brand, { limit = 20, anchors, window =
       }))
 }
 
-/**
- * Group the mined context terms into the *facets* of the brand.
- *
- * This is what stops the search collapsing into one corner. Amazon's terms
- * come out as delivery, prime, driver, ordered, package, sent — six phrasings
- * of a single subject. Spending the whole query budget on those searches the
- * same room six times over, while warehouse work, AWS, sellers and the share
- * price go unasked. YouTube would do the same: six creator-economy terms and
- * nothing about jobs, moderation policy or the app itself.
- *
- * Terms are clustered by how often they appear in the *same posts*: words
- * belonging to one subject co-occur, words from different subjects do not.
- * Overlap is measured against the smaller term's post set, so a rare, specific
- * term ("layoffs") is not swallowed by a common one ("games") merely because
- * the common one is everywhere.
- */
 export function groupContextFacets(contextTerms, posts, { threshold = 0.4, max = 6 } = {}) {
   if (!contextTerms.length) return []
 
@@ -529,36 +367,11 @@ export function groupContextFacets(contextTerms, posts, { threshold = 0.4, max =
   return facets
 }
 
-/**
- * The terms to actually search, spread across facets rather than taken from
- * the top of one list — one query per facet first, then a second from each,
- * and so on until the budget is spent.
- *
- * `exclude` carries the terms an earlier round already searched, so a second
- * pass over the enlarged corpus explores what the first pass could not see.
- */
 export function expansionQueries(facets, { limit = 8, exclude = [], maxDocFrequency = 0.15, terms = [] } = {}) {
   const used = new Set(exclude.map((term) => String(term).toLowerCase()))
 
-  /*
-   * A term can genuinely belong to the brand and still be a terrible thing to
-   * search for. People really do write "Notion is free" and "everyone uses
-   * Notion", so "free" and "everyone" score well on collocation — but
-   * searching Reddit for "notion free" returns all of Reddit.
-   *
-   * Measured on a live run: those two, plus "small" and "etc", pulled
-   * r/BestofRedditorUpdates and r/HFY into Notion's corpus and left it with
-   * 480 communities. Document frequency separates them cleanly — the junk sat
-   * at 15-23% of all posts, the useful terms ("project management" at 1.2%,
-   * "management" at 4.4%) an order of magnitude below.
-   *
-   * This gate applies to *queries only*. The same generic terms remain useful
-   * for relevance gating, where breadth helps rather than hurts.
-   */
   const frequency = new Map(terms.map((entry) => [entry.term, entry.docFrequency ?? 0]))
   const specific = (term) =>
-    // A multi-word term is specific by construction — "project management" is
-    // never the generic-search problem, whatever its frequency.
     term.includes(' ') || (frequency.get(term) ?? 0) <= maxDocFrequency
 
   const queues = facets
@@ -568,7 +381,6 @@ export function expansionQueries(facets, { limit = 8, exclude = [], maxDocFreque
       untouched: facet.terms.every((term) => !used.has(term.toLowerCase())),
     }))
     .filter((queue) => queue.terms.length)
-    // A facet nothing has been asked about yet goes first.
     .sort((a, b) => Number(b.untouched) - Number(a.untouched))
 
   const picked = []
@@ -582,11 +394,6 @@ export function expansionQueries(facets, { limit = 8, exclude = [], maxDocFreque
   return picked
 }
 
-/**
- * Which context terms are *places*? Detected by grammar, not by a gazetteer:
- * a place name usually follows a locative preposition ("flights to Mumbai",
- * "based in Austin"), while a product term rarely does.
- */
 export function deriveGeoTerms(posts, contextTerms) {
   const corpus = posts.map(textOf).join('\n')
   const lower = corpus.toLowerCase()
@@ -597,15 +404,11 @@ export function deriveGeoTerms(posts, contextTerms) {
     const total = (lower.match(new RegExp(`\\b${escaped}\\b`, 'g')) || []).length
     if (total < 4) continue
 
-    // "to" is excluded: it introduces infinitives ("to pick") far more often
-    // than destinations, and one false positive mislabels a whole community.
     const locative = (
       lower.match(new RegExp(`\\b(?:in|from|at|near|around)\\s+${escaped}\\b`, 'g')) || []
     ).length
     if (locative / total < 0.4) continue
 
-    // Place names are proper nouns. This is the same test the alias miner uses,
-    // and it is what separates "Mumbai" from "pick".
     const written = corpus.match(new RegExp(`\\b${escaped}\\b`, 'gi')) || []
     const capitalised = written.filter((hit) => /^[A-Z]/.test(hit)).length
     if (written.length && capitalised / written.length >= 0.5) geo.add(term)
@@ -614,13 +417,6 @@ export function deriveGeoTerms(posts, contextTerms) {
   return geo
 }
 
-/**
- * Everything the ranker needs to know about a brand, derived from its corpus.
- *
- * `alreadySearched` lets a second pass build on the first: the collector sends
- * back the enlarged corpus and the terms it already used, and gets queries for
- * the facets that only became visible once those first searches landed.
- */
 export function deriveBrandContext(posts, brand, communities = [], { alreadySearched = [] } = {}) {
   const anchors = deriveAnchorPosts(posts, brand)
   const contextTerms = deriveContextTerms(posts, brand, { anchors })
@@ -637,27 +433,19 @@ export function deriveBrandContext(posts, brand, communities = [], { alreadySear
       share: posts.length ? round(anchors.length / posts.length) : 0,
       tiers: anchors.tiers,
       usedRepeated: Boolean(anchors.usedRepeated),
-      // Below this the vocabulary falls back to the whole corpus, which is
-      // worth surfacing: it means disambiguation is running on thin evidence.
       sufficient: anchors.length >= 15,
     },
   }
 }
 
-/* -------------------------------------------------------- per-subreddit signals */
-
-// Deliberately narrow. An earlier, looser version matched r/comics on
-// "Everything about comics!" and labelled it a place.
 const GEO_DESCRIPTION = /\b(?:residents|locals|metro area|city of|county|province|prefecture|subreddit (?:for|about) (?:the )?(?:city|town|state|country|region|island))\b/i
 
-/** Is this community a place rather than a topic? */
 function isGeographic(meta, geoTerms) {
   const name = String(meta?.name || '').toLowerCase()
   if ([...geoTerms].some((term) => name === term.replace(/\s+/g, ''))) return true
   return GEO_DESCRIPTION.test(meta?.title || '')
 }
 
-/** Coarse label for what kind of conversation this is. */
 function discussionType(entry) {
   const { threads, questionThreads, sentiment, topics } = entry
   const parts = []
@@ -676,10 +464,6 @@ function discussionType(entry) {
 
 const QUESTION = /^(?:how|why|what|which|when|where|who|is|are|do|does|did|can|should|would|any(?:one|body))\b|\?/i
 
-/**
- * Collapse a company's collected items into one row per subreddit, with every
- * signal measured separately. No scoring happens here.
- */
 function measureCommunities({
   posts,
   metaByName,
@@ -738,18 +522,8 @@ function measureCommunities({
     const text = textOf(post)
     const isThread = post.type === 'post'
 
-    // A locative/descriptor tell ("apple orchard", "in the Amazon") is
-    // decisive on its own: this item's own words are the ordinary word, not
-    // the brand, whatever thread it sits under. Checked before the raw regex
-    // below, which cannot tell "Apple Watch" from "apple orchard" apart —
-    // both merely contain the word "apple".
     if (otherSenseTellOf(text)) continue
 
-    // A comment counts as brand discussion if it names the brand *or* sits
-    // under a thread that does — most replies never repeat the name. The
-    // parent must itself pass the same tell, or a comment under an
-    // off-topic thread ("apple orchard" post) would inherit relevance it
-    // never earned.
     if (!isThread) {
       const parent = threadsById.get(threadIdFromPermalink(post.permalink))
       const parentText = parent ? textOf(parent) : ''
@@ -758,7 +532,7 @@ function measureCommunities({
       )
       if (!underBrandThread && !matchesBrand(text)) continue
     } else if (!matchesBrand(text)) {
-      continue // a search result that never actually names the brand
+      continue
     }
 
     const entry = row(post.subreddit)
@@ -780,9 +554,6 @@ function measureCommunities({
       if (sense === 'brand') entry.brandSense += 1
       else if (sense === 'other') entry.otherSense += 1
 
-      // Raw capitalisation evidence, without the "it's the brand's own
-      // subreddit" shortcut — this is what calibrates whether the whole test
-      // means anything for this brand.
       const written = capitalisationOf(post)
       if (written === 'brand') entry.capBrand += 1
       else if (written === 'other') entry.capOther += 1
@@ -806,21 +577,13 @@ function measureCommunities({
   return [...rows.values()].map((entry) => finishRow(entry, { geoTerms, now, history }))
 }
 
-/**
- * Velocity measured between runs, rather than inferred inside one sample.
- *
- * Needs three snapshots to produce a ratio: two intervals to compare. With
- * only two it returns the arrival rate but no ratio, because one interval
- * compared against nothing is not a trend — the same rule that makes the
- * in-sample version return null when its coverage is too shallow.
- */
 function velocityFromSnapshots(history) {
   if (!Array.isArray(history) || history.length < 2) return null
 
   const points = [...history].sort((a, b) => a.runAt - b.runAt)
   const rateBetween = (from, to) => {
     const days = (to.runAt - from.runAt) / DAY_MS
-    if (days < 0.5) return null // two runs the same afternoon measure nothing
+    if (days < 0.5) return null
     return Math.max(0, to.threads - from.threads) / days
   }
 
@@ -844,7 +607,6 @@ function velocityFromSnapshots(history) {
   }
 }
 
-/** Turn accumulated counters into the measured signals. */
 function finishRow(entry, { geoTerms, now, history }) {
   const items = entry.threads + entry.comments
   const ages = entry.timestamps.map((t) => (now - t) / DAY_MS)
@@ -856,22 +618,14 @@ function finishRow(entry, { geoTerms, now, history }) {
   const recent90 = entry.timestamps.filter((t) => t >= now - 3 * WINDOW_MS).length
 
   const oldest = entry.timestamps.length ? Math.min(...entry.timestamps) : now
-  // Velocity is only honest when the sample actually reaches back past the
-  // comparison window. A capped sample of 100 recent items would otherwise
-  // show a fake spike, because its "previous month" is empty by construction.
   const coversPriorWindow = Math.min(oldest, entry.coverageStart ?? oldest) <= now - 2 * WINDOW_MS
   const inSampleVelocity =
     coversPriorWindow && items >= 4 ? round((recent30 + 1) / (prior30 + 1), 2) : null
 
-  // Between-run measurement beats in-sample inference whenever it exists: it
-  // survives a capped sample, which the inference cannot.
   const measured = velocityFromSnapshots(history?.get(entry.name))
   const velocity = measured?.ratio ?? inSampleVelocity
   const velocitySource = measured?.ratio ? 'snapshots' : inSampleVelocity !== null ? 'sample' : null
 
-  // Consistency: in how many of the last 12 months did this community talk
-  // about the brand at all? A sub that flares once scores far below one that
-  // shows up every month.
   const monthKeys = new Set()
   for (const timestamp of entry.timestamps) {
     if (timestamp < now - 365 * DAY_MS) continue
@@ -911,9 +665,6 @@ function finishRow(entry, { geoTerms, now, history }) {
     medianCommentChars: Math.round(median(entry.commentChars)),
     activeMonths: monthKeys.size,
     consistency: round(Math.min(1, monthKeys.size / monthsCovered)),
-    // What share of everything this community posts is about the brand? This is
-    // the signal that separates real buzz from a big room the brand is barely
-    // mentioned in — and it is independent of subscriber count.
     brandShare:
       entry.subPostRate && entry.subPostRate > 0
         ? round(Math.min(1, threadsPerDay / entry.subPostRate), 4)
@@ -928,8 +679,6 @@ function finishRow(entry, { geoTerms, now, history }) {
   return finished
 }
 
-/* ------------------------------------------------------------------ scoring */
-
 const WEIGHTS = {
   volume: 0.24,
   recency: 0.15,
@@ -941,35 +690,16 @@ const WEIGHTS = {
   size: 0.05,
 }
 
-/**
- * Velocity as a 0–1 component: flat (ratio 1) sits at 0.5, a quadrupling
- * reaches 1, a collapse to a quarter reaches 0.
- */
 const velocityComponent = (ratio) => clamp((Math.log2(ratio) + 2) / 4)
 
-/** Shrink a rate toward the corpus average, so tiny samples cannot claim 100%. */
 const smooth = (hits, n, prior, strength = 2) => (hits + strength * prior) / (n + strength)
 
 function scoreCommunities(rows, corpus) {
-  // Volume counts *threads*, never comments. Comments are pulled from a couple
-  // of dozen sampled threads, so counting them as volume would just rank
-  // whichever thread the collector happened to open — one viral thread with 30
-  // replies would outrank a community posting about the brand every week.
   const volumeScale = minMax(rows.map((row) => Math.log1p(row.threads)))
   const engagementScale = minMax(rows.map((row) => Math.log1p(row.engagementMedian)))
   const depthScale = minMax(rows.map((row) => Math.log1p(row.repliesPerThread)))
 
   return rows.map((row) => {
-    /*
-     * Relevance combines two independent tests:
-     *
-     *   context — do the threads use the brand's vocabulary?
-     *   sense   — is the word written as a name, or as an ordinary word?
-     *
-     * Neither is sufficient alone. Vocabulary could not separate Slack from
-     * r/antiwork, because a workplace-chat tool and a subreddit about hating
-     * work share every word. Capitalisation could, and does.
-     */
     const senseEvidence = row.brandSense + row.otherSense
     const context = smooth(row.relevantThreads, row.threads, corpus.contextRate)
     const sense =
@@ -979,8 +709,6 @@ function scoreCommunities(rows, corpus) {
 
     const relevance = round(sense === null ? context : 0.5 * context + 0.5 * sense)
 
-    // A median over one or two threads is not a measurement. Shrinking by
-    // sample size stops a single viral post from carrying a whole subreddit.
     const confidence = row.threads / (row.threads + 3)
 
     const components = {
@@ -994,8 +722,6 @@ function scoreCommunities(rows, corpus) {
       size: row.subscribers ? round(clamp(Math.log10(row.subscribers) / 7)) : null,
     }
 
-    // Signals we could not measure are dropped and the remaining weights
-    // renormalised, rather than being scored as zero or silently as average.
     let weighted = 0
     let available = 0
     for (const [key, weight] of Object.entries(WEIGHTS)) {
@@ -1005,8 +731,6 @@ function scoreCommunities(rows, corpus) {
     }
     const base = available ? weighted / available : 0
 
-    // Relevance gates the whole score: it multiplies rather than adds, so a
-    // 30-million-member subreddit where the brand is incidental cannot climb.
     const gate = round(0.25 + 0.75 * relevance)
 
     return {
@@ -1021,8 +745,6 @@ function scoreCommunities(rows, corpus) {
     }
   })
 }
-
-/* --------------------------------------------------------- categorisation */
 
 function categorise(row, stats) {
   const badges = []
@@ -1041,8 +763,6 @@ function categorise(row, stats) {
   if (row.velocity !== null && row.velocity >= 1.6 && row.recent30 >= 4) {
     badges.push({ id: 'trending', label: '📈 Trending', why: `×${row.velocity} vs the previous 30 days` })
   }
-  // Reddit's own reply counts, not our sampled comments — the sample says more
-  // about which threads the collector opened than about the community.
   if (row.threads >= 3 && row.repliesPerThread >= Math.max(8, stats.medianRepliesPerThread * 1.4)) {
     badges.push({ id: 'discussion', label: '💬 High Discussion Volume', why: `median ${row.repliesPerThread} replies per brand thread` })
   }
@@ -1074,9 +794,6 @@ function buzzStatus(badges, row) {
   return row.newestAgeDays !== null && row.newestAgeDays > 180 ? '💤 Dormant' : '· Low activity'
 }
 
-/* ---------------------------------------------------------------- narrative */
-
-/** One evidence-backed sentence per row. Every clause is a measured number. */
 function whyItMatters(row, stats) {
   const clauses = []
 
@@ -1107,7 +824,6 @@ function formatMembers(count) {
   return String(count)
 }
 
-/** The compact "key signals" cell — raw numbers, no interpretation. */
 function keySignals(row) {
   const signals = [
     `${row.items} items`,
@@ -1121,16 +837,6 @@ function keySignals(row) {
   return signals.join(' · ')
 }
 
-/* -------------------------------------------------------------- the ranking */
-
-/**
- * @param {object} input
- * @param {object[]} input.posts        enriched posts *and* comments for one brand
- * @param {object[]} input.communities  per-subreddit metadata captured at collection
- * @param {string}   input.brand
- * @param {object}   [input.brandContext] aliases/context terms from the collector
- * @param {number}   [input.now]
- */
 export function rankCommunities({
   posts,
   communities = [],
@@ -1153,9 +859,6 @@ export function rankCommunities({
     }
   }
 
-  // Prefer the vocabulary the collector derived while it was searching; fall
-  // back to deriving it here, so datasets collected before this existed still
-  // rank without a re-run.
   const context =
     brandContext?.contextTerms?.length
       ? {
@@ -1171,7 +874,6 @@ export function rankCommunities({
   const matchesBrand = buildBrandMatcher(brand, aliasList)
   const geoTerms = new Set(context.geoTerms)
 
-  // Only the strongest context terms gate relevance — the tail is noise.
   const contextRegexes = context.contextTerms
     .slice(0, 18)
     .map(({ term }) => new RegExp(`\\b${escapeRegex(term)}\\b`, 'i'))
@@ -1211,15 +913,6 @@ export function rankCommunities({
   const otherSense = sum('otherSense')
   const senseEvidence = brandSense + otherSense
 
-  /*
-   * Is capitalisation informative for this brand?
-   *
-   * Reading it corpus-wide alone gets Notion exactly backwards: "notion" is a
-   * common English word, so the corpus rate is low — which is precisely when
-   * the test matters most, not least. The reliable calibration is the brand's
-   * own community: if people writing *about the product* capitalise it, then
-   * lower case elsewhere really does mean the ordinary word.
-   */
   const tokens = brandTokens(brand)
   const own = measured.filter((row) => tokens.some((token) => row.name.toLowerCase().includes(token)))
   const ownCap = own.reduce((total, row) => total + row.capBrand, 0)
@@ -1228,9 +921,6 @@ export function rankCommunities({
   const corpus = {
     contextRate: corpusThreads ? sum('relevantThreads') / corpusThreads : 0.5,
     senseRate: senseEvidence ? brandSense / senseEvidence : 0.5,
-    // Some brands are simply written in lower case (all-lowercase logos and
-    // wordmarks). Where nothing indicates the name is normally capitalised,
-    // the test is switched off rather than penalising every community equally.
     senseUsable:
       ownEvidence >= 8
         ? ownCap / ownEvidence >= 0.5
@@ -1245,9 +935,6 @@ export function rankCommunities({
     medianRepliesPerThread: Math.max(1, median(scored.map((row) => row.repliesPerThread))),
   }
 
-  // The brand name appearing is not the same as the brand being discussed.
-  // These are set aside rather than ranked, and reported so the exclusion is
-  // auditable instead of invisible.
   const excluded = []
   const eligible = []
   for (const row of scored) {
@@ -1255,15 +942,6 @@ export function rankCommunities({
     const senseVerdict =
       corpus.senseUsable && senseEvidenceHere >= 5 && row.senseRaw !== null ? row.senseRaw : null
 
-    // Five threads before calling a community the wrong sense of the word.
-    // At three it fired on r/dashcams and r/politics for Tesla, where the
-    // discussion is real and merely phrased unusually; a low rank says that
-    // better than an exclusion does.
-    //
-    // A confident sense reading overrides the vocabulary test, because the
-    // mined vocabulary only ever covers the brand's *dominant* facet. Amazon's
-    // came out as delivery and packages, which excluded r/technology — where
-    // the same company is discussed as AWS, antitrust and layoffs.
     if (row.threads >= 5 && row.relevanceRaw < 0.2 && !(senseVerdict >= 0.6)) {
       excluded.push({
         name: row.name,
@@ -1282,7 +960,7 @@ export function rankCommunities({
       })
       continue
     }
-    if (row.items < 3) continue // a stray item or two is not evidence of anything
+    if (row.items < 3) continue
     eligible.push(row)
   }
 
@@ -1334,7 +1012,6 @@ export function rankCommunities({
     .sort((a, b) => b.score - a.score)
     .map((row, index) => ({ ...row, rank: index + 1 }))
 
-  /* Emerging: young or accelerating, and not already in the headline set. */
   const topNames = new Set(ranked.slice(0, 5).map((row) => row.name))
   const emerging = ranked
     .filter((row) => !topNames.has(row.name))
@@ -1367,10 +1044,6 @@ export function rankCommunities({
   }
 }
 
-/**
- * What did expansion buy us? Anything found only through the context sweep
- * would have been invisible to a plain search for the brand name.
- */
 function discoveryInsights(ranked, context, brand) {
   const tokens = brandTokens(brand)
   const viaExpansion = ranked.filter(
@@ -1380,8 +1053,6 @@ function discoveryInsights(ranked, context, brand) {
       !row.discoveredVia.includes('named'),
   )
 
-  // Datasets collected before discovery was tracked still get a usable answer:
-  // communities carrying real brand talk without the brand in their name.
   const nonObvious = ranked
     .filter((row) => !tokens.some((token) => row.name.toLowerCase().includes(token)))
     .filter((row) => row.relevance >= 0.5 && row.signals.items >= 5)

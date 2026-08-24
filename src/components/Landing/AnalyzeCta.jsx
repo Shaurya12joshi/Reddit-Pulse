@@ -1,12 +1,6 @@
 import SearchBar from './SearchBar.jsx'
 import { EXAMPLE_COMPANIES } from '../../data/exampleCompanies.js'
 
-/**
- * The destination of the whole journey: the search itself.
- *
- * Rendered inside the final act of the 3D experience *and* at the foot of the
- * page, so the same component is the payoff either route the visitor took.
- */
 export default function AnalyzeCta({ onAnalyze, dataSource, onOpenSettings, id }) {
   return (
     <div id={id} className="w-full max-w-xl scroll-mt-24">

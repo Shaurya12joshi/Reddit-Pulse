@@ -7,13 +7,10 @@ import {
 
 const WORD_SCORES = { ...POSITIVE_WORDS, ...NEGATIVE_WORDS }
 
-/** How many words back we look for a negation ("not really that great"). */
 const NEGATION_WINDOW = 3
 
-/** Anything within ±this of zero is treated as neutral. */
 export const NEUTRAL_THRESHOLD = 0.08
 
-/** Split text into lowercase word tokens, keeping apostrophes. */
 export function tokenize(text) {
   if (!text) return []
   return text
@@ -24,13 +21,6 @@ export function tokenize(text) {
     .filter(Boolean)
 }
 
-/**
- * Split text into clauses on sentence and comma boundaries.
- *
- * Negation must not leak across a boundary: in "This never crashes, honestly
- * reliable" the "never" applies to "crashes" but emphatically not to
- * "reliable" three words later.
- */
 function toClauses(text) {
   return text
     .split(/[.!?;:,—–\n]+/)
@@ -38,7 +28,6 @@ function toClauses(text) {
     .filter(Boolean)
 }
 
-/** Split text into sentences. Good enough for Reddit prose. */
 export function splitSentences(text) {
   if (!text) return []
   return text
@@ -48,16 +37,11 @@ export function splitSentences(text) {
     .filter((s) => s.length > 2)
 }
 
-/**
- * Score a single piece of text.
- * @returns {{score:number,label:string,positiveHits:string[],negativeHits:string[],hitCount:number}}
- */
 export function analyzeSentiment(text) {
   const positiveHits = []
   const negativeHits = []
   let total = 0
 
-  // Score clause by clause so negation and intensifiers stay in their scope.
   toClauses(text || '').forEach((clause) => {
     const tokens = tokenize(clause)
 
@@ -67,17 +51,15 @@ export function analyzeSentiment(text) {
 
       let score = base
 
-      // "very good" / "slightly annoying"
       const previous = tokens[index - 1]
       if (previous && INTENSIFIERS[previous] !== undefined) {
         score *= INTENSIFIERS[previous]
       }
 
-      // "not good" / "never crashes"
       for (let back = 1; back <= NEGATION_WINDOW; back += 1) {
         const candidate = tokens[index - back]
         if (candidate && NEGATIONS.has(candidate)) {
-          score *= -0.85 // negation weakens as well as flips
+          score *= -0.85
           break
         }
       }
@@ -88,7 +70,6 @@ export function analyzeSentiment(text) {
     })
   })
 
-  // Emphasis: shouting and exclamation marks amplify whatever tone exists.
   if (text) {
     const exclamations = Math.min((text.match(/!/g) || []).length, 4)
     if (exclamations) total *= 1 + exclamations * 0.05
@@ -96,7 +77,6 @@ export function analyzeSentiment(text) {
     if (shouted) total *= 1 + Math.min(shouted, 3) * 0.06
   }
 
-  // Squash to -1..1. The constant controls how quickly strong texts saturate.
   const score = total / Math.sqrt(total * total + 15)
 
   return {
@@ -108,17 +88,12 @@ export function analyzeSentiment(text) {
   }
 }
 
-/** Turn a -1..1 score into a positive / neutral / negative label. */
 export function labelFor(score) {
   if (score >= NEUTRAL_THRESHOLD) return 'positive'
   if (score <= -NEUTRAL_THRESHOLD) return 'negative'
   return 'neutral'
 }
 
-/**
- * Score every sentence in a text. Used to attribute praise and complaints to
- * specific themes — a post can praise the design and slate the price at once.
- */
 export function analyzeSentences(text) {
   return splitSentences(text).map((sentence) => ({
     sentence,

@@ -2,18 +2,6 @@ import Reveal from './Reveal.jsx'
 import { ACTS, actAnchor } from '../../experience/acts.js'
 import { scrollToProgress } from '../../experience/scrollDriver.js'
 
-/**
- * The foot of the page.
- *
- * Built from the same parts as the sections above it: hairline rules, an
- * eyebrow, tabular numerals and a single accent chip — the editorial index
- * treatment the audience act uses, not a card grid.
- *
- * Every link here goes somewhere real. The chapter column drives the same
- * `scrollToProgress` the rail uses, so the journey is navigable from the
- * bottom of the page as well as from inside it.
- */
-
 const SCROLL_TOP = { top: 0 }
 
 function goTop() {
@@ -103,9 +91,7 @@ export default function Footer() {
 
         <div className="mt-14 flex flex-col gap-3 border-t border-line pt-6 sm:flex-row sm:items-center sm:justify-between">
           <p className="tnum text-[12px] text-ink-3">© {year} Reddit Pulse</p>
-          {/* Stated plainly rather than buried: the data is other people's
-              public writing, and the name is not ours to imply endorsement
-              from. */}
+          {}
           <p className="max-w-md text-[12px] leading-relaxed text-ink-3 sm:text-right">
             Built on public Reddit posts and comments. Not affiliated with,
             endorsed by, or connected to Reddit, Inc.

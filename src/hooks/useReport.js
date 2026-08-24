@@ -1,11 +1,3 @@
-/**
- * Fetches a finished report from the backend.
- *
- * Filtering and aggregation both run in SQL and Node now, so changing a filter
- * is a request rather than a full re-scoring pass in the browser. The browser's
- * only job is rendering — which is what keeps this responsive as datasets grow
- * past a few thousand posts.
- */
 
 import { useCallback, useEffect, useRef, useState } from 'react'
 
@@ -42,7 +34,6 @@ export function useReport(company, filters) {
           throw new Error(body.error || `Report failed (${res.status})`)
         }
         const data = await res.json()
-        // Ignore a slow response that a newer filter change has superseded.
         if (id === requestId.current) setState({ status: 'ready', ...data })
       } catch (error) {
         if (error.name === 'AbortError') return

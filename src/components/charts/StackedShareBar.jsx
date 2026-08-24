@@ -1,9 +1,5 @@
 import { CHART_COLORS } from '../../utils/chartColors.js'
 
-/**
- * A single 100%-width bar split into sentiment shares.
- * Used wherever a compact "how does this break down" cue is needed.
- */
 export default function StackedShareBar({
   positive = 0,
   neutral = 0,

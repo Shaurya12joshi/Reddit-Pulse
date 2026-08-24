@@ -3,7 +3,6 @@ import Icon from '../ui/Icon.jsx'
 import DonutChart from '../charts/DonutChart.jsx'
 import { SENTIMENT_SERIES } from '../../utils/chartColors.js'
 
-/** Overall split of positive / neutral / negative discussions. */
 export default function SentimentDistribution({ sentiment }) {
   return (
     <Card className="h-full">

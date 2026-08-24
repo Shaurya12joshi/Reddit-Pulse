@@ -1,12 +1,4 @@
-/**
- * Word lists that power the text analysis.
- *
- * Everything here is plain data so it is easy to read, tweak and extend.
- * Scores run from -3 (very negative) to +3 (very positive), the same scale
- * used by well-known lexicons like AFINN/VADER.
- */
 
-/* ------------------------------------------------------------------ tone */
 
 export const POSITIVE_WORDS = {
   amazing: 3, awesome: 3, excellent: 3, fantastic: 3, outstanding: 3,
@@ -20,8 +12,6 @@ export const POSITIVE_WORDS = {
   affordable: 2, generous: 2, thoughtful: 2, elegant: 2, clean: 2,
   powerful: 2, robust: 2, delightful: 2, refreshing: 2, wins: 2,
 
-  // NB: "works"/"working" are deliberately absent — they are far more often
-  // neutral ("has anyone got this working?") than praise.
   nice: 1, fine: 1, decent: 1, okay: 1, ok: 1,
   better: 1, improved: 1, improving: 1, easy: 1, simple: 1, handy: 1,
   convenient: 1, cheap: 1, quick: 1, friendly: 1, sleek: 1, neat: 1,
@@ -52,7 +42,6 @@ export const NEGATIVE_WORDS = {
   cluttered: -1, dated: -1, stale: -1, wait: -1, waiting: -1,
 }
 
-/** Words that flip the polarity of whatever follows them. */
 export const NEGATIONS = new Set([
   'not', 'no', 'never', 'none', 'nothing', 'neither', 'nor', 'cannot',
   "can't", 'cant', "won't", 'wont', "doesn't", 'doesnt', "didn't", 'didnt',
@@ -61,7 +50,6 @@ export const NEGATIONS = new Set([
   'hardly', 'barely', 'rarely', 'lacks', 'lack',
 ])
 
-/** Words that scale the intensity of the next sentiment word. */
 export const INTENSIFIERS = {
   very: 1.4, really: 1.35, extremely: 1.6, incredibly: 1.6, absolutely: 1.5,
   completely: 1.4, totally: 1.4, super: 1.35, so: 1.25, quite: 1.15,
@@ -71,7 +59,6 @@ export const INTENSIFIERS = {
   a: 1, bit: 0.65, little: 0.7, mildly: 0.6, fairly: 0.85, pretty: 1.1,
 }
 
-/** Common words that carry no topical meaning — filtered out of phrase mining. */
 export const STOPWORDS = new Set([
   'a','about','above','after','again','all','also','am','an','and','any','are',
   'as','at','be','been','before','being','below','between','both','but','by',
@@ -91,18 +78,11 @@ export const STOPWORDS = new Set([
   'well','back','around','something','anything','everything','someone','people',
   'guy','guys','edit','tldr','yeah','yes','okay','ok','maybe','probably','sure',
   'every','since','though','although','because','anyone','ever','never','always',
-  // generic time and size words that add noise to trending phrases
   'new','last','first','next','old','day','days','week','weeks','month',
   'months','year','years','time','times','today','long','short','big',
   'able','give','gives','takes','take','come','comes','put','keep','keeps',
 ])
 
-/* ---------------------------------------------------------------- topics */
-
-/**
- * Topic taxonomy. Each topic is matched by any of its keywords appearing in
- * the text. Keywords may be single words or multi-word phrases.
- */
 export const TOPIC_TAXONOMY = [
   {
     id: 'pricing',
@@ -181,13 +161,6 @@ export const TOPIC_TAXONOMY = [
   },
 ]
 
-/* ----------------------------------------------------------- competitors */
-
-/**
- * Known brands grouped by market. When the searched company belongs to a
- * group, the other members become likely comparison targets. Brands outside
- * any group can still be discovered from "X vs Y" phrasing at runtime.
- */
 export const BRAND_GROUPS = [
   {
     market: 'Productivity & Notes',
@@ -251,13 +224,8 @@ export const BRAND_GROUPS = [
   },
 ]
 
-/** Flat list of every known brand, used for quick mention detection. */
 export const ALL_BRANDS = [...new Set(BRAND_GROUPS.flatMap((g) => g.brands))]
 
-/**
- * Phrases that signal an explicit comparison. Used both to find competitors
- * that are not in BRAND_GROUPS and to label *why* a comparison was made.
- */
 export const COMPARISON_PATTERNS = [
   { id: 'versus', label: 'Direct comparison', regex: /\b(?:vs\.?|versus)\b/i },
   { id: 'switched', label: 'Switched away', regex: /\b(?:switched|moved|migrated|jumped)\s+(?:from|to|over to)\b/i },
@@ -267,10 +235,6 @@ export const COMPARISON_PATTERNS = [
   { id: 'cheaper', label: 'Price comparison', regex: /\b(?:cheaper|pricier|more expensive|less expensive|costs? (?:more|less))\b/i },
 ]
 
-/**
- * Praise/complaint theme buckets. Each theme is credited when one of its
- * keywords appears in a sentence carrying the matching sentiment.
- */
 export const THEME_BUCKETS = [
   { id: 'ease-of-use', label: 'Ease of use', keywords: ['intuitive', 'easy', 'simple', 'straightforward', 'learning curve', 'onboarding', 'confusing', 'clunky', 'complicated'] },
   { id: 'speed', label: 'Speed', keywords: ['fast', 'quick', 'snappy', 'slow', 'lag', 'laggy', 'sluggish', 'load time', 'performance'] },

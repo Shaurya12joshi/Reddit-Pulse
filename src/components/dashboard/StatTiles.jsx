@@ -1,15 +1,6 @@
 import Icon from '../ui/Icon.jsx'
 import { formatCompact, formatNumber, formatPercent } from '../../utils/format.js'
 
-/**
- * Icon tint per tile, giving each metric its own meaning at a glance:
- * orange = the headline figure, green/red = sentiment, amber = engagement,
- * purple = a secondary data category.
- *
- * Small colourful accents against a lot of paper — the icons are the only
- * place these hues appear at tile scale, which is what keeps them feeling
- * like punctuation rather than decoration.
- */
 const TONE_ICON = {
   positive: 'text-positive-ink',
   negative: 'text-negative-ink',
@@ -19,11 +10,9 @@ const TONE_ICON = {
   default: 'text-ink-3',
 }
 
-/** Five headline numbers, plus a momentum delta where one can be computed. */
 export default function StatTiles({ insights }) {
   const { sentiment, totals, timeline, competitors } = insights
 
-  // Momentum: mean score of the recent half vs the earlier half.
   const buckets = timeline.buckets
   let delta = null
   if (buckets.length >= 4) {

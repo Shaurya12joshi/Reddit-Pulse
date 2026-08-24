@@ -3,7 +3,6 @@ import Icon from '../ui/Icon.jsx'
 import StackedShareBar from '../charts/StackedShareBar.jsx'
 import { formatNumber, formatSigned } from '../../utils/format.js'
 
-/** Report header: who we analysed, from what, and the single headline number. */
 export default function CompanyOverview({ company, insights, meta, onRefresh }) {
   const { sentiment, totals, market } = insights
 
@@ -53,7 +52,7 @@ export default function CompanyOverview({ company, insights, meta, onRefresh }) 
         </div>
       </div>
 
-      {/* headline sentiment */}
+      {}
       <div className="w-full shrink-0 rounded-[14px] border border-line bg-surface p-5 lg:w-[330px]">
         <div className="flex items-start justify-between gap-3">
           <div>

@@ -3,13 +3,6 @@ import { useEffect, useRef } from 'react'
 import { ACTS, actAnchor, actIndexAt } from './acts.js'
 import { scrollToProgress, subscribe } from './scrollDriver.js'
 
-/**
- * Chapter rail — a fixed index of the journey down the right edge.
- *
- * Doubles as the progress indicator, as orientation, and as navigation: at
- * any point the viewer can see how far through the data they are, what comes
- * next, and jump straight to it.
- */
 export default function ScrollRail() {
   const fillRef = useRef(null)
   const itemsRef = useRef([])
@@ -27,8 +20,6 @@ export default function ScrollRail() {
         const isActive = index === active
         item.style.opacity = isActive ? '1' : '0.35'
         item.style.transform = `translateX(${isActive ? -6 : 0}px)`
-        // Written imperatively alongside the visual state, so assistive tech
-        // tracks the active chapter without the rAF loop re-rendering React.
         item.setAttribute('aria-current', isActive ? 'true' : 'false')
       })
 
@@ -40,9 +31,7 @@ export default function ScrollRail() {
 
   return (
     <>
-      {/* The rail is clickable, so it takes pointer events — but only on the
-          buttons themselves, leaving the gaps around them transparent to the
-          canvas underneath, which tracks the pointer for its parallax. */}
+      {}
       <nav
         aria-label="Journey progress"
         className="pointer-events-none absolute top-1/2 right-5 z-20 hidden -translate-y-1/2 lg:block"
@@ -66,7 +55,7 @@ export default function ScrollRail() {
             ))}
           </ul>
 
-          {/* the rail itself */}
+          {}
           <div className="relative w-px bg-line">
             <div
               ref={fillRef}

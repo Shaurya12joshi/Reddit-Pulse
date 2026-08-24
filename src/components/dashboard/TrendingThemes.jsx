@@ -1,10 +1,6 @@
 import { Card, CardBody, CardHeader } from '../ui/Card.jsx'
 import Icon from '../ui/Icon.jsx'
 
-/**
- * Repeated words and phrases mined straight from the text — the themes the
- * fixed taxonomy would never have predicted. Size encodes frequency.
- */
 export default function TrendingThemes({ phrases }) {
   if (phrases.length === 0) {
     return (
@@ -25,7 +21,6 @@ export default function TrendingThemes({ phrases }) {
   const peak = phrases[0].count
   const floor = phrases[phrases.length - 1].count
 
-  /** Map frequency onto a small, deliberate type scale. */
   const sizeFor = (count) => {
     if (peak === floor) return 'text-[13px]'
     const t = (count - floor) / (peak - floor)

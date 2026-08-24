@@ -5,18 +5,7 @@ import { AdaptiveDpr, PerformanceMonitor } from '@react-three/drei'
 import ReportObject from './ReportObject.jsx'
 import { PAPER_3D } from '../palette.js'
 
-/**
- * The WebGL layer for the report.
- *
- * Deliberately a copy of the hero canvas's setup rather than a variation on
- * it: same field of view, same flat bright paper lighting, same fog matched
- * to the page background. A shared look here is not incidental polish — it
- * is what makes the report read as the *same world* the journey ended in,
- * rather than a second 3D thing that happens to follow the first.
- */
 export default function ReportCanvas({ insights, company, active }) {
-  // Drop resolution rather than frame rate when the GPU struggles — the same
-  // trade the hero makes.
   const [dpr, setDpr] = useState(1.4)
 
   return (

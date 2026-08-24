@@ -10,44 +10,8 @@ import { ACCENT_3D, PAPER_3D } from '../palette.js'
 import { SENTIMENT_3D } from '../report/reportGeometry.js'
 import { formatCompact, truncate } from '../../utils/format.js'
 
-/**
- * The threads themselves, as objects in the world.
- *
- * Every measurement in the report is an aggregate; this is the act where the
- * aggregate is taken apart again and the actual conversations are visible.
- * They hang in a shallow arc in front of the corpus wall — picked out of it,
- * not floating in empty space.
- *
- * A post is a paper sheet with a coloured spine marking its sentiment, and
- * its text is real DOM through drei's `Html`. That is deliberate rather than
- * a shortcut: a Reddit post is prose, and prose has to be selectable,
- * legible at any zoom and reachable by a screen reader. Rendering it into a
- * texture would look like a post without being one.
- */
-
 const SHEET = { w: 4.7, h: 2.9 }
 
-/*
- * A colour per panel, so five threads read as five distinct objects.
- *
- * Sentiment cannot do this job: a brand's threads are overwhelmingly
- * positive-or-neutral, so colouring the frames by sentiment produced a wall
- * of green and grey. Sentiment still appears, as a word on the panel, where
- * it is unambiguous. The frame carries identity instead.
- */
-/*
- * Panel text sizing.
- *
- * Transform-mode Html maps CSS pixels to world units, so a hard-coded pixel
- * width silently outgrows its panel the moment the scale changes — which is
- * exactly what happened when the scale went from 0.19 to 0.25 and the text
- * started hanging off the sheets.
- *
- * The ratio is taken from the one configuration observed to fit: at scale
- * 0.19 a 780px-wide block spanned the 4.4-unit sheet. Deriving the pixel size
- * from the sheet keeps the text inside the frame whatever the panel is
- * resized to, instead of needing to be re-guessed each time.
- */
 const PANEL_SCALE = 0.19
 const PX_PER_WORLD = 780 / 4.4
 
@@ -60,14 +24,6 @@ const PANEL_ACCENTS = [
   PAPER_3D.muted,
 ]
 
-/**
- * A wide, shallow arc sweeping away to the left.
- *
- * The arc used to end mid-frame, leaving the right of the screen empty while
- * the act's copy sat in the bottom-right corner — the composition had a hole
- * in it. It now runs the full width and climbs as it goes right, so the
- * panels fill the upper right and hand off to the headline below them.
- */
 function arrange(count) {
   return Array.from({ length: count }, (_, index) => {
     const t = count === 1 ? 0.5 : index / (count - 1)
@@ -76,7 +32,6 @@ function arrange(count) {
 
     return {
       x: Math.sin(angle) * radius,
-      // Staggered rows, tilted upward toward the right of the arc.
       y: (index % 2 === 0 ? 1.15 : -1.55) + t * 1.5,
       z: -Math.cos(angle) * radius + radius - 1.2,
       rotationY: -angle * 0.85,
@@ -100,7 +55,6 @@ function ThreadPanel({ post, slot, revealRef, index, total, onOpen }) {
     if (!group) return
 
     const reveal = revealRef.current
-    // Staggered, so the arc assembles left to right instead of appearing whole.
     const local = THREE.MathUtils.clamp(reveal * 1.5 - (index / total) * 0.45, 0, 1)
     const eased = local * local * (3 - 2 * local)
 
@@ -110,7 +64,6 @@ function ThreadPanel({ post, slot, revealRef, index, total, onOpen }) {
     const time = state.clock.elapsedTime
     const lift = hovered ? 0.32 : 0
 
-    // Rises into place from below and behind, then breathes.
     group.position.set(
       slot.x,
       slot.y + (1 - eased) * -2.6 + Math.sin(time * 0.5 + slot.phase) * 0.09 + lift,
@@ -122,8 +75,7 @@ function ThreadPanel({ post, slot, revealRef, index, total, onOpen }) {
 
   return (
     <group ref={groupRef}>
-      {/* The sheet, and a coloured spine down its left edge carrying the
-          sentiment — the same encoding the report columns use. */}
+      {}
       <mesh geometry={geometry}>
         <meshStandardMaterial
           color={PAPER_3D.card}
@@ -133,8 +85,7 @@ function ThreadPanel({ post, slot, revealRef, index, total, onOpen }) {
           opacity={0.97}
         />
       </mesh>
-      {/* The frame itself carries the panel's colour — a chunky bar bolted
-          across the top read as a mis-drawn edge rather than as trim. */}
+      {}
       <lineSegments geometry={edges}>
         <lineBasicMaterial color={accent} transparent opacity={0.95} depthWrite={false} />
       </lineSegments>
@@ -143,21 +94,12 @@ function ThreadPanel({ post, slot, revealRef, index, total, onOpen }) {
         <meshBasicMaterial color={accent} />
       </mesh>
 
-      {/*
-        Width and height are pinned to the sheet's own dimensions rather than
-        guessed: transform-mode Html maps CSS pixels to world units through
-        `scale`, so a fixed 780px block silently grew past the panel edge the
-        moment the scale went up. Deriving both from SHEET keeps the text
-        inside the frame whatever the panel is resized to, and the flex column
-        centres it vertically instead of letting it hang from the top.
-      */}
+      {}
       <Html
         transform
         scale={PANEL_SCALE}
         position={[0, 0, 0.02]}
         zIndexRange={[8, 0]}
-        // Only the panel itself is interactive; the surrounding transparent
-        // box would otherwise swallow scroll and pointer events over the canvas.
         style={{
           width: `${SHEET.w * PX_PER_WORLD}px`,
           height: `${SHEET.h * PX_PER_WORLD}px`,
@@ -171,8 +113,7 @@ function ThreadPanel({ post, slot, revealRef, index, total, onOpen }) {
           onPointerLeave={() => setHovered(false)}
           className="flex h-full w-full cursor-pointer flex-col justify-center overflow-hidden py-9 pr-10 pl-12 text-left"
         >
-          {/* The community is the label that orients you, so it gets the
-              eyebrow treatment the rest of the page uses for exactly that. */}
+          {}
           <div className="flex items-baseline gap-4">
             <span
               className="shrink-0 text-[22px] font-semibold tracking-[0.08em] uppercase"
@@ -186,10 +127,7 @@ function ThreadPanel({ post, slot, revealRef, index, total, onOpen }) {
             </span>
           </div>
 
-          {/* `display` is the page's headline treatment — tight tracking and
-              a short leading. A thread title is a headline, and setting it in
-              plain sans was the reason these panels read as form fields
-              rather than as conversations. */}
+          {}
           <h3 className="display mt-5 text-[42px] text-ink">
             {truncate(post.title || post.body, 54)}
           </h3>
@@ -216,15 +154,9 @@ export default function EvidenceStage({ posts, onOpenPost, reducedMotion = false
   const revealRef = useRef(0)
   const groupRef = useRef(null)
 
-  // Coalesced rather than defaulted: the preview report is null until the
-  // backend answers, and a default parameter only fills in for `undefined`.
   const shown = useMemo(() => (posts ?? []).slice(0, 6), [posts])
   const slots = useMemo(() => arrange(shown.length), [shown.length])
 
-  // Each panel's text is drei `Html` — real DOM outside the canvas, which
-  // goes on rendering even when its group is hidden. Unmounting the stage is
-  // what actually removes it, and without this the threads were legible over
-  // the opening act.
   const active = useStageActive(ACT_INDEX.evidence, { lead: 0.25, tail: 0.08 })
 
   useFrame((_, delta) => {

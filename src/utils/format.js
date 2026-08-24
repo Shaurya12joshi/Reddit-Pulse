@@ -1,6 +1,4 @@
-/** Small formatting helpers shared across the UI. */
 
-/** 1234 → "1.2k", 1234567 → "1.2M" */
 export function formatCompact(value) {
   const n = Number(value) || 0
   if (Math.abs(n) >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`
@@ -8,7 +6,6 @@ export function formatCompact(value) {
   return String(Math.round(n))
 }
 
-/** 1234 → "1,234" */
 export function formatNumber(value) {
   return new Intl.NumberFormat('en-US').format(Math.round(Number(value) || 0))
 }
@@ -17,7 +14,6 @@ export function formatPercent(value, digits = 0) {
   return `${(Number(value) || 0).toFixed(digits)}%`
 }
 
-/** Signed sentiment score, e.g. "+0.42" */
 export function formatSigned(value, digits = 2) {
   const n = Number(value) || 0
   return `${n > 0 ? '+' : ''}${n.toFixed(digits)}`
@@ -25,7 +21,6 @@ export function formatSigned(value, digits = 2) {
 
 const DAY_MS = 24 * 60 * 60 * 1000
 
-/** "3 days ago", "2 months ago" */
 export function formatRelative(input) {
   const time = new Date(input).getTime()
   if (Number.isNaN(time)) return ''
@@ -45,14 +40,12 @@ export function formatRelative(input) {
   return `${months}mo ago`
 }
 
-/** "12 Mar" — compact axis label. */
 export function formatShortDate(input) {
   const date = new Date(input)
   if (Number.isNaN(date.getTime())) return ''
   return date.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })
 }
 
-/** "12 March 2026" */
 export function formatLongDate(input) {
   const date = new Date(input)
   if (Number.isNaN(date.getTime())) return ''
@@ -72,16 +65,6 @@ export function clamp(value, min, max) {
   return Math.min(max, Math.max(min, value))
 }
 
-/* ------------------------------------------------------- sentiment styling */
-
-/**
- * Tailwind classes per sentiment label, kept in one place.
- *
- * These are class names rather than colour values on purpose: the underlying
- * hex lives in the theme tokens, so the same class renders the right colour in
- * both light and dark. For chart values that need an actual colour string, see
- * `utils/chartColors.js`.
- */
 export const SENTIMENT_STYLES = {
   positive: {
     label: 'Positive',

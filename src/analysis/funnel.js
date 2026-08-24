@@ -1,17 +1,3 @@
-/**
- * The funnel: 1,600 stored items → ~50 thread digests.
- *
- * Everything here is deterministic. Its job is to make sure the expensive
- * layer only ever sees threads that are (a) genuinely about the brand, (b) not
- * duplicates of each other, (c) recent enough to act on, and (d) worth the
- * attention — and to hand each one over in a compact form rather than as raw
- * Reddit output.
- *
- * The cost argument for this is real but secondary: a full corpus is ~120k
- * tokens, which is not expensive, it is just *bad input* — most of it is not
- * about the brand, and burying fifty useful threads in nine hundred mediocre
- * ones produces worse analysis, not more of it.
- */
 
 import { scoreThreads } from './importance.js'
 import { threadIdFromPermalink } from './buzz.js'
@@ -19,22 +5,12 @@ import { tokenize } from './sentiment.js'
 
 const DAY_MS = 24 * 60 * 60 * 1000
 
-/* --------------------------------------------------------- near-duplicates */
-
-/**
- * A 32-bit simhash over title tokens.
- *
- * Crossposts, reposted news and "X announces Y" threads arrive many times over
- * from different facet queries. Exact-id dedup does not catch them because
- * they are genuinely different threads carrying the same conversation.
- */
 export function simhash(text) {
   const tokens = tokenize(text)
   if (!tokens.length) return 0
 
   const bits = new Array(32).fill(0)
   for (const token of tokens) {
-    // Cheap deterministic string hash (FNV-1a, 32-bit).
     let hash = 0x811c9dc5
     for (let i = 0; i < token.length; i++) {
       hash ^= token.charCodeAt(i)
@@ -60,11 +36,6 @@ const hammingDistance = (a, b) => {
   return count
 }
 
-/**
- * Collapse near-identical threads, keeping the highest-scoring representative
- * and recording what it stood in for — the duplicate count is itself a signal
- * that a story is spreading.
- */
 export function collapseDuplicates(scored, { threshold = 3 } = {}) {
   const kept = []
 
@@ -87,9 +58,6 @@ export function collapseDuplicates(scored, { threshold = 3 } = {}) {
   }))
 }
 
-/* -------------------------------------------------------------- cache keys */
-
-/** Deterministic 32-bit hash of a string, rendered hex. */
 function hashString(value) {
   let hash = 0x811c9dc5
   for (let i = 0; i < value.length; i++) {
@@ -99,17 +67,8 @@ function hashString(value) {
   return hash.toString(16).padStart(8, '0')
 }
 
-/**
- * Buckets grow by ~50% before they move, so ordinary score drift never
- * invalidates an analysis while a genuinely bigger thread always does.
- */
 const bucket = (n) => Math.floor(Math.log(Math.max(0, n) + 1) / Math.log(1.5))
 
-/**
- * The cache key for a thread's analysis. Changes only when something that
- * would change the *analysis* changes: the body, which comments are on top, or
- * a real jump in size.
- */
 export function analysisCacheKey(thread, comments = []) {
   const top = [...comments]
     .sort((a, b) => (b.score ?? 0) - (a.score ?? 0))
@@ -126,21 +85,11 @@ export function analysisCacheKey(thread, comments = []) {
   ].join('.')
 }
 
-/* ---------------------------------------------------------------- digests */
-
 const truncate = (value, max) => {
   const text = String(value || '').replace(/\s+/g, ' ').trim()
   return text.length > max ? `${text.slice(0, max - 1)}…` : text
 }
 
-/**
- * The only shape that ever reaches the LLM. ~400 tokens per thread, versus
- * ~8k for a raw thread with its comment tree.
- *
- * Deliberately omits: author names (not needed for judgment, and it is
- * personal data we have no reason to ship), urls, ids of comments, and every
- * field the model would only be echoing back.
- */
 export function buildDigest(entry, { thread, comments = [], communityMembers = null }) {
   const topComments = [...comments]
     .sort((a, b) => (b.score ?? 0) - (a.score ?? 0))
@@ -171,20 +120,6 @@ export function buildDigest(entry, { thread, comments = [], communityMembers = n
   }
 }
 
-/* ----------------------------------------------------------------- the run */
-
-/**
- * Build the candidate set for analysis.
- *
- * @param {object} input
- * @param {object[]} input.posts        every stored item for the brand
- * @param {string}   input.brand
- * @param {object}   [input.identity]   Stage 0, for markers and aliases
- * @param {Map}      [input.communityScores]
- * @param {Map}      [input.communityMembers]
- * @param {object}   [input.options]    { limit, maxAgeDays }
- * @returns {{ digests: object[], entries: object[], stats: object }}
- */
 export function buildCandidates({
   posts,
   brand,

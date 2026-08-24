@@ -6,20 +6,7 @@ import { driver } from '../scrollDriver.js'
 import { ACT_INDEX, stagePresence } from '../acts.js'
 import { PAPER_3D } from '../palette.js'
 
-/**
- * The panels the data lands in.
- *
- * Thin outlined rectangles — the 3D equivalent of the hairline borders the UI
- * uses — that slide into place under the flattening fragments during the
- * INSIGHTS act. They are what turns "the dots made a shape" into "the dots
- * became a dashboard".
- *
- * Deliberately cheap: three plane fills plus their edge outlines, no shadows,
- * no extra lights.
- */
-
 const PANELS = [
-  // [x, y, width, height, entryOffset]
   { x: -8.4, y: 1.6, w: 9.2, h: 9.4, from: [-7, 0, -6] },
   { x: 5.2, y: 0.9, w: 11.6, h: 8.2, from: [7, 2, -6] },
   { x: -1.2, y: -6.9, w: 20.4, h: 3.6, from: [0, -6, -7] },
@@ -38,7 +25,7 @@ function Panel({ config, indexRef }) {
     if (!group) return
 
     const reveal = indexRef.current
-    const eased = reveal * reveal * (3 - 2 * reveal) // smoothstep
+    const eased = reveal * reveal * (3 - 2 * reveal)
 
     const targetX = config.from[0] + (config.x - config.from[0]) * eased
     const targetY = config.from[1] + (config.y - config.from[1]) * eased
@@ -80,7 +67,6 @@ function Panel({ config, indexRef }) {
 }
 
 export default function DashboardAssembly({ reducedMotion = false }) {
-  // A single shared reveal value so every panel animates off one computation.
   const revealRef = useRef(0)
 
   useFrame(() => {
@@ -89,17 +75,6 @@ export default function DashboardAssembly({ reducedMotion = false }) {
       return
     }
 
-    /*
-     * These panels belong to SIGNAL — the moment the data becomes a
-     * dashboard — and to nothing after it. They used to clamp to 1 for every
-     * later act and never come down, so they hung around as grey rectangles
-     * behind the report, the audience columns and the call to action, in a
-     * world that had long since moved on.
-     *
-     * The long lead keeps the original build-in over the tail of RIVALS; the
-     * short tail gets them out before the report draws its own sheets in the
-     * same space.
-     */
     revealRef.current = stagePresence(driver.damped, ACT_INDEX.insights, {
       lead: 0.55,
       tail: 0.1,

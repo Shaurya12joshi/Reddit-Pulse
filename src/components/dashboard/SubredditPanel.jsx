@@ -3,7 +3,6 @@ import Icon from '../ui/Icon.jsx'
 import StackedShareBar from '../charts/StackedShareBar.jsx'
 import { formatPercent, formatSigned } from '../../utils/format.js'
 
-/** Where the conversation actually happens, and how the tone differs by room. */
 export default function SubredditPanel({ subreddits, activeSubreddit, onSelect }) {
   return (
     <Card className="h-full">

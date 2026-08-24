@@ -3,7 +3,6 @@ import Icon from '../ui/Icon.jsx'
 import { formatNumber } from '../../utils/format.js'
 import { DEFAULT_FILTERS, TIME_RANGES } from './filterOptions.js'
 
-/** Sticky control strip. Every change re-runs the whole aggregation. */
 export default function FilterBar({
   filters,
   onChange,

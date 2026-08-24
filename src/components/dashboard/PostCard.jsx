@@ -2,7 +2,6 @@ import { Badge, SentimentBadge } from '../ui/Badge.jsx'
 import Icon from '../ui/Icon.jsx'
 import { formatCompact, formatRelative, truncate } from '../../utils/format.js'
 
-/** One Reddit item in a list. Clicking opens the full detail view. */
 export default function PostCard({ post, onOpen }) {
   const heading = post.title || truncate(post.body, 110)
 

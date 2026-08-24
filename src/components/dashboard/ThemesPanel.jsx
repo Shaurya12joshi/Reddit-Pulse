@@ -1,10 +1,6 @@
 import { Card, CardBody, CardHeader } from '../ui/Card.jsx'
 import Icon from '../ui/Icon.jsx'
 
-/**
- * Praise or complaint themes with the actual sentences behind them.
- * Quotes matter — a bar chart alone never convinces anyone.
- */
 export default function ThemesPanel({ themes, polarity, total }) {
   const isPraise = polarity === 'positive'
   const accent = isPraise ? 'text-positive-ink' : 'text-negative-ink'

@@ -1,6 +1,5 @@
 import { sentimentStyle } from '../../utils/format.js'
 
-/** Neutral pill used for tags, topics and counts. */
 export function Badge({ children, className = '', title }) {
   return (
     <span
@@ -12,7 +11,6 @@ export function Badge({ children, className = '', title }) {
   )
 }
 
-/** Coloured pill that states a sentiment label. */
 export function SentimentBadge({ label, showDot = true, className = '' }) {
   const style = sentimentStyle(label)
   return (

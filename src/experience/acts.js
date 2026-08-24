@@ -1,16 +1,3 @@
-/**
- * The narrative spine.
- *
- * Twelve acts, each owning a slice of scroll progress and a corresponding 3D
- * layout. This is the whole landing page, not an intro to it: the report, the
- * evidence behind it, who it is for and the call to action are all acts of the
- * same timeline, so the visitor travels through one continuous world instead
- * of a 3D section followed by a website.
- *
- * The four "How it works" steps are woven into the same timeline rather than
- * living in a separate section — walking the journey *is* reading how the
- * product works.
- */
 
 export const ACTS = [
   {
@@ -145,7 +132,6 @@ export const ACTS = [
 
 export const LAST_ACT = ACTS.length - 1
 
-/** Act ids that mount their own data-driven scene contents. */
 export const ACT_INDEX = Object.fromEntries(ACTS.map((act, index) => [act.id, index]))
 
 const clamp01 = (v) => (v < 0 ? 0 : v > 1 ? 1 : v)
@@ -155,7 +141,6 @@ export const easeInOutCubic = (t) =>
 
 export const easeOutCubic = (t) => 1 - (1 - t) ** 3
 
-/** Index of the act containing this progress value. */
 export function actIndexAt(progress) {
   for (let i = 0; i < ACTS.length; i += 1) {
     if (progress < ACTS[i].end) return i
@@ -163,34 +148,17 @@ export function actIndexAt(progress) {
   return LAST_ACT
 }
 
-/**
- * Where to land when jumping to an act.
- *
- * Not the act's `start`: `copyEnvelope` ramps its text in over the first 30%
- * of an act and begins fading it out at 72%, so the boundary itself is the
- * one place the copy is invisible. 35% in is past the reveal and well before
- * the exit — the act at rest, showing what it says.
- */
 export function actAnchor(index) {
   const act = ACTS[index]
   if (!act) return 0
   return act.start + 0.35 * (act.end - act.start)
 }
 
-/** 0..1 position within a given act. */
 export function actLocalProgress(progress, index) {
   const act = ACTS[index]
   return clamp01((progress - act.start) / (act.end - act.start))
 }
 
-/**
- * How present a stage is at this progress — 0 outside its act, 1 through the
- * middle of it, easing at both edges.
- *
- * Data-driven scene contents (the report, the evidence panels) use this to
- * fade themselves in and out, so only the stage that belongs to the current
- * moment is ever drawing.
- */
 export function stagePresence(progress, index, { lead = 0.35, tail = 0.35 } = {}) {
   const act = ACTS[index]
   if (!act) return 0
@@ -204,13 +172,6 @@ export function stagePresence(progress, index, { lead = 0.35, tail = 0.35 } = {}
   return easeInOutCubic(Math.min(rampIn, rampOut))
 }
 
-/**
- * Which two layouts to interpolate, and how far between them.
- *
- * Each act *holds* its shape for the first stretch, then transforms into the
- * next one. That hold-then-move rhythm is what makes the world feel authored
- * rather than continuously sliding.
- */
 const HOLD = 0.4
 
 export function layoutBlend(progress) {
@@ -227,11 +188,6 @@ export function layoutBlend(progress) {
   }
 }
 
-/**
- * Visibility envelope for a piece of act copy: rises, holds, falls.
- * Returns { opacity, reveal, exit } so the overlay can drive masked reveals on
- * the way in and a distinct exit transform on the way out.
- */
 export function copyEnvelope(progress, index) {
   const local = actLocalProgress(progress, index)
   const inT = clamp01(local / 0.3)

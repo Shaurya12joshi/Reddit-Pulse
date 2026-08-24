@@ -9,17 +9,6 @@ import ReportStage from './scene/ReportStage.jsx'
 import EvidenceStage from './scene/EvidenceStage.jsx'
 import { PAPER_3D } from './palette.js'
 
-/**
- * The WebGL layer.
- *
- * Lighting is deliberately flat and bright: two soft directionals and a strong
- * ambient, no shadow maps. Paper does not throw hard shadows, and skipping
- * shadow rendering entirely is what keeps hundreds of instances cheap.
- *
- * Fog matched to the page background is doing real work — it dissolves distant
- * fragments into the canvas colour so the WebGL layer has no visible edge
- * against the HTML around it.
- */
 export default function ExperienceCanvas({
   count,
   reducedMotion,
@@ -28,7 +17,6 @@ export default function ExperienceCanvas({
   posts,
   onOpenPost,
 }) {
-  // Drop resolution rather than frame rate when the GPU struggles.
   const [dpr, setDpr] = useState(1.5)
 
   return (
@@ -54,9 +42,7 @@ export default function ExperienceCanvas({
         <ConversationField count={count} reducedMotion={reducedMotion} />
         <DashboardAssembly reducedMotion={reducedMotion} />
 
-        {/* The data-driven acts. Both read the scroll driver themselves and
-            stop rendering outside their own stretch of the journey, so the
-            world only ever draws the stage the camera is actually at. */}
+        {}
         <ReportStage insights={insights} company={company} reducedMotion={reducedMotion} />
         <EvidenceStage posts={posts} onOpenPost={onOpenPost} reducedMotion={reducedMotion} />
 

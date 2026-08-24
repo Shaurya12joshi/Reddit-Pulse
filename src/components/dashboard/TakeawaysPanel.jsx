@@ -7,10 +7,6 @@ const TONE_STYLES = {
   neutral: { icon: 'layers', className: 'text-ink-2 bg-elevated border-line' },
 }
 
-/**
- * The executive summary. Every sentence here is generated from the computed
- * aggregates — no model, no invented facts — which is why the footnote says so.
- */
 export default function TakeawaysPanel({ takeaways }) {
   return (
     <Card>

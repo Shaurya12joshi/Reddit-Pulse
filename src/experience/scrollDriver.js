@@ -1,29 +1,12 @@
-/**
- * The single source of truth for the whole experience.
- *
- * One rAF loop reads scroll position and pointer, applies frame-rate
- * independent damping, and notifies subscribers. Both the WebGL scene and the
- * HTML typography read from this same object, which is what keeps the text and
- * the 3D world locked to each other — they are not two animations that happen
- * to look synchronised, they are one value rendered twice.
- *
- * Nothing here touches React state: subscribers write to the DOM or to
- * three.js objects imperatively, so scrolling never triggers a re-render.
- */
 
 const clamp01 = (v) => (v < 0 ? 0 : v > 1 ? 1 : v)
 
 export const driver = {
-  /** Raw 0..1 progress through the pinned section. */
   progress: 0,
-  /** Damped progress — what almost everything should read. */
   damped: 0,
-  /** Signed scroll velocity, useful for lean/stretch effects. */
   velocity: 0,
-  /** Pointer in -1..1 space, damped. */
   pointerX: 0,
   pointerY: 0,
-  /** True once the user has scrolled at all (hides the scroll cue). */
   moved: false,
 }
 
@@ -40,7 +23,6 @@ export function setScrollTarget(element) {
 
 export function subscribe(callback) {
   subscribers.add(callback)
-  // Push the current value immediately so a late subscriber is never blank.
   callback(driver)
   return () => subscribers.delete(callback)
 }
@@ -66,8 +48,6 @@ function frame(time) {
   if (Math.abs(next - driver.progress) > 0.0002) driver.moved = true
   driver.progress = next
 
-  // Frame-rate independent exponential smoothing. The 1 - e^(-k·dt) form keeps
-  // the feel identical on 60Hz and 120Hz displays.
   const ease = 1 - Math.exp(-7.5 * dt)
   const previousDamped = driver.damped
   driver.damped += (driver.progress - driver.damped) * ease
@@ -81,14 +61,6 @@ function frame(time) {
   rafId = requestAnimationFrame(frame)
 }
 
-/**
- * Jump the page to a given progress value through the pinned section.
- *
- * The inverse of `readProgress`: that turns a scroll position into 0..1, this
- * turns 0..1 back into a scroll position. Nothing is written to the driver
- * itself — the rAF loop reads the new scroll position on its next frame, so
- * the scene animates through the journey rather than teleporting.
- */
 export function scrollToProgress(progress) {
   if (!targetEl || typeof window === 'undefined') return
 

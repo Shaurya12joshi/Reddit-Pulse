@@ -1,14 +1,3 @@
-/**
- * The 3D palette.
- *
- * These are the *object* colours — the exact display hues from the art
- * direction. They are intentionally the vivid versions: a physical object lit
- * in a scene reads differently from a glyph on paper, and the UI keeps its own
- * darkened `-ink` variants for anything that has to be read as text.
- *
- * Kept as plain hex strings so three.js can consume them directly and so the
- * values stay greppable against the CSS tokens they mirror.
- */
 
 export const PAPER_3D = {
   bg: '#f7f5ef',
@@ -27,13 +16,6 @@ export const ACCENT_3D = {
   purple: '#8b7bb8',
 }
 
-/**
- * Hex → linear-ish RGB triplet in 0..1.
- *
- * three.js works in linear space with the default colour management, and
- * instanceColor buffers bypass Color's conversion, so the sRGB→linear step has
- * to happen here or every object comes out washed out.
- */
 export function hexToRgbTriplet(hex) {
   const value = hex.replace('#', '')
   const full =

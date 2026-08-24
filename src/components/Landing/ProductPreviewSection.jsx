@@ -13,28 +13,8 @@ import { usePreviewReport } from '../../data/previewReport.js'
 import useInView from '../../hooks/useInView.js'
 import useEnvironment from '../../experience/useEnvironment.js'
 
-// The heaviest thing in the section, and useless on the flat route.
 const ReportCanvas = lazy(() => import('../../experience/report/ReportCanvas.jsx'))
 
-/**
- * "What you get" — the report itself, built as an object.
- *
- * The journey above ends with fragments flattening into dashboard panels;
- * this is what those panels contain. Sentiment, topics, volume and
- * competitors are rendered as geometry in the same world — same paper, same
- * hairlines, same light — so the page never drops out of three dimensions
- * between the hero and the proof.
- *
- * The measurements are real. This features whichever company has the richest
- * collected dataset, run through the same pipeline a live search uses, and if
- * nothing has been collected the section removes itself rather than showing
- * invented content.
- *
- * Where WebGL is unavailable or motion is unwelcome, the original dashboard
- * panels render instead: the same numbers, laid out flat. That path is not a
- * degraded placeholder — it is the exact set of components a live report
- * uses, so clicking a topic or opening a discussion behaves identically.
- */
 export default function ProductPreviewSection() {
   const [activeTopic, setActiveTopic] = useState('all')
   const [selectedPost, setSelectedPost] = useState(null)
@@ -54,8 +34,6 @@ export default function ProductPreviewSection() {
       : topics.filter((topic) => topic.id === activeTopic)
 
   const spotlightPosts = posts.slice(0, 2)
-  // Phones get the flat report too: a second WebGL context plus a hero canvas
-  // is a lot to ask of a handset, and the panels are easier to read small.
   const immersive = ready && webgl && !reducedMotion && !mobile
 
   return (
@@ -94,17 +72,14 @@ export default function ProductPreviewSection() {
               />
             </Suspense>
 
-            {/* Dissolves the canvas into the page top and bottom, so the WebGL
-                band has no hard edge against the copy around it. */}
+            {}
             <div
               aria-hidden="true"
               className="pointer-events-none absolute inset-0 bg-gradient-to-b from-canvas via-transparent to-canvas"
             />
           </div>
 
-          {/* The words behind the numbers. Kept flat on purpose: quotations
-              and theme names are read, not looked at, and rendering running
-              text as geometry would make it worse, not more impressive. */}
+          {}
           <div className="mt-4 grid gap-4 lg:grid-cols-2">
             <Reveal>
               <ThemesPanel themes={praise} polarity="positive" total={totals.mentions} />

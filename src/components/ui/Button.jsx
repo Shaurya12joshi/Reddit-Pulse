@@ -1,7 +1,4 @@
 const VARIANTS = {
-  // primary-ink is the paired text colour for the primary fill, so contrast
-  // holds in both themes (light-blue fill + navy text on dark, the reverse
-  // on light) rather than assuming white always works.
   primary:
     'bg-primary text-primary-ink hover:bg-primary-hover border border-transparent disabled:bg-primary/40',
   secondary:

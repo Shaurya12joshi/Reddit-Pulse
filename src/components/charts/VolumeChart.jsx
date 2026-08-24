@@ -7,7 +7,6 @@ import { CHART_COLORS } from '../../utils/chartColors.js'
 const MARGIN = { top: 16, right: 16, bottom: 26, left: 34 }
 const HEIGHT = 230
 
-/** Discussion volume per period, stacked by sentiment. */
 export default function VolumeChart({ buckets, granularity = 'day' }) {
   const [wrapRef, { width }] = useElementSize()
   const [hover, setHover] = useState(null)
@@ -28,7 +27,6 @@ export default function VolumeChart({ buckets, granularity = 'day' }) {
       const segments = []
       let cursor = MARGIN.top + innerHeight
 
-      // Stack order: negative at the bottom, then neutral, then positive.
       ;[
         { key: 'negative', color: CHART_COLORS.negative },
         { key: 'neutral', color: CHART_COLORS.neutral },
@@ -85,7 +83,7 @@ export default function VolumeChart({ buckets, granularity = 'day' }) {
 
             {chart.bars.map((bar) => (
               <g key={bar.bucket.start}>
-                {/* Invisible full-height target makes hovering easy. */}
+                {}
                 <rect
                   x={MARGIN.left + chart.slot * bar.index}
                   y={MARGIN.top}

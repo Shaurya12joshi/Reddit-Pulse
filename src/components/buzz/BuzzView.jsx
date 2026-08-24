@@ -5,14 +5,6 @@ import Icon from '../ui/Icon.jsx'
 import { formatCompact, formatNumber, formatRelative } from '../../utils/format.js'
 import { useBuzz } from '../../hooks/useBuzz.js'
 
-/**
- * "If we could only watch a few communities for this brand, which ones?"
- *
- * Everything on this page is a measured number with its evidence attached —
- * the ranking, the labels and the exclusions all state what they are based on,
- * because a list of subreddits with no reasoning behind it is not actionable.
- */
-
 const TABLE_PREVIEW = 12
 
 function SubredditLink({ name, className = '' }) {
@@ -37,7 +29,6 @@ function Section({ title, subtitle, icon, children, action }) {
   )
 }
 
-/** The ranked table — the headline deliverable. */
 function RankedTable({ rows }) {
   const [expanded, setExpanded] = useState(false)
   const visible = expanded ? rows : rows.slice(0, TABLE_PREVIEW)
@@ -87,7 +78,6 @@ function RankedTable({ rows }) {
   )
 }
 
-/** One of the handful of communities actually worth monitoring. */
 function TopCommunity({ row }) {
   const { signals } = row
 
@@ -226,7 +216,7 @@ export default function BuzzView({ company, onRefresh }) {
         </div>
       </header>
 
-      {/* ---------------------------------------------------- the ranking */}
+      {}
       <Section
         title="Ranked communities"
         subtitle="Ordered by measured buzz, gated on whether the brand is genuinely the subject"
@@ -235,7 +225,7 @@ export default function BuzzView({ company, onRefresh }) {
         <RankedTable rows={ranked} />
       </Section>
 
-      {/* ------------------------------------------------ top communities */}
+      {}
       <Section
         title="Top communities"
         subtitle="Monitor these first"
@@ -248,7 +238,7 @@ export default function BuzzView({ company, onRefresh }) {
         </ul>
       </Section>
 
-      {/* ------------------------------------------------------- emerging */}
+      {}
       <Section
         title="Emerging communities"
         subtitle="Rising or newly active — worth watching before they matter"
@@ -277,7 +267,7 @@ export default function BuzzView({ company, onRefresh }) {
         )}
       </Section>
 
-      {/* ---------------------------------------------- discovery insights */}
+      {}
       <Section
         title="Discovery insights"
         subtitle="What a plain search for the brand name would have missed"
@@ -380,7 +370,7 @@ export default function BuzzView({ company, onRefresh }) {
         </div>
       </Section>
 
-      {/* ------------------------------------------------------- excluded */}
+      {}
       {excluded.length ? (
         <Section
           title="Set aside"
@@ -398,7 +388,7 @@ export default function BuzzView({ company, onRefresh }) {
         </Section>
       ) : null}
 
-      {/* ---------------------------------------------------- methodology */}
+      {}
       <Section
         title="Methodology"
         subtitle="How the ranking was produced"

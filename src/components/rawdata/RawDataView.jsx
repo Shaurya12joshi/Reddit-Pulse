@@ -1,14 +1,5 @@
 import { useEffect, useState } from 'react'
 
-/**
- * The unglamorous view: every row we actually collected.
- *
- * The report answers "what does this mean"; this answers "what have you
- * actually got". Deliberately dense and utilitarian — monospace, tight rows,
- * no charts — so the collected data can be inspected directly rather than
- * taken on trust. Sorting, filtering and paging all happen in SQL.
- */
-
 const API = 'http://localhost:3001'
 const PAGE_SIZE = 100
 
@@ -47,7 +38,6 @@ export default function RawDataView({ company }) {
   const [data, setData] = useState(null)
   const [loading, setLoading] = useState(true)
 
-  // Don't fire a request per keystroke.
   useEffect(() => {
     const timer = setTimeout(() => {
       setDebounced(query)
@@ -119,7 +109,7 @@ export default function RawDataView({ company }) {
 
   return (
     <main className="min-h-screen bg-white px-4 py-6 font-mono text-slate-800 sm:px-8">
-      {/* header */}
+      {}
       <header className="border-b-2 border-slate-900 pb-3">
         <h1 className="text-sm font-bold uppercase tracking-wider">
           Raw collection — {data.company}
@@ -130,7 +120,7 @@ export default function RawDataView({ company }) {
         </p>
       </header>
 
-      {/* summary counters */}
+      {}
       <section className="mt-4 grid grid-cols-2 gap-px border border-slate-300 bg-slate-300 sm:grid-cols-4 lg:grid-cols-7">
         {summary.map(([label, value]) => (
           <div key={label} className="bg-white px-3 py-2">
@@ -140,7 +130,7 @@ export default function RawDataView({ company }) {
         ))}
       </section>
 
-      {/* subreddit rollup */}
+      {}
       <section className="mt-6">
         <h2 className="text-[11px] font-bold uppercase tracking-wider text-slate-500">
           Communities found ({subreddits.length})
@@ -199,7 +189,7 @@ export default function RawDataView({ company }) {
         </div>
       </section>
 
-      {/* controls */}
+      {}
       <section className="mt-6 flex flex-wrap items-center gap-3 border-y border-slate-300 py-2">
         <input
           value={query}
@@ -231,7 +221,7 @@ export default function RawDataView({ company }) {
         </span>
       </section>
 
-      {/* the table */}
+      {}
       <section className="mt-3 overflow-x-auto border border-slate-300">
         <table className="w-full min-w-[1100px] text-[11px]">
           <thead className="bg-slate-900 text-white">
@@ -307,7 +297,7 @@ export default function RawDataView({ company }) {
         </table>
       </section>
 
-      {/* paging */}
+      {}
       <section className="mt-3 flex items-center justify-between text-[11px]">
         <span className="text-slate-500">
           rows {total === 0 ? 0 : offset + 1}–{Math.min(offset + PAGE_SIZE, total)} of{' '}

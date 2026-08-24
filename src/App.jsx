@@ -19,7 +19,7 @@ export default function App() {
     <Routes>
       <Route path="/" element={<LandingRoute />} />
       <Route path="/analyze/:company" element={<AnalyzePage />} />
-      {/* `/analyze` with no company has nothing to show send it home. */}
+      {}
       <Route path="/analyze" element={<Navigate to="/" replace />} />
       <Route path="*" element={<NotFound />} />
     </Routes>

@@ -7,11 +7,6 @@ import { CHART_COLORS } from '../../utils/chartColors.js'
 const MARGIN = { top: 16, right: 16, bottom: 26, left: 40 }
 const HEIGHT = 250
 
-/**
- * Average sentiment over time, drawn as a smooth area around a zero baseline.
- * Above the line is favourable, below is not — the shape tells the story before
- * the reader looks at a single number.
- */
 export default function SentimentTrendChart({ buckets, granularity = 'day' }) {
   const [wrapRef, { width }] = useElementSize()
   const [hover, setHover] = useState(null)
@@ -69,7 +64,7 @@ export default function SentimentTrendChart({ buckets, granularity = 'day' }) {
             }}
           >
             <defs>
-              {/* var() must go through `style`, not the stopColor attribute. */}
+              {}
               <linearGradient id="trend-positive" x1="0" y1="0" x2="0" y2="1">
                 <stop
                   offset="0%"
@@ -94,7 +89,7 @@ export default function SentimentTrendChart({ buckets, granularity = 'day' }) {
                   stopOpacity="0"
                 />
               </linearGradient>
-              {/* Split the fill at the zero line: green above, red below. */}
+              {}
               <clipPath id="clip-above">
                 <rect
                   x={0}
@@ -113,7 +108,7 @@ export default function SentimentTrendChart({ buckets, granularity = 'day' }) {
               </clipPath>
             </defs>
 
-            {/* horizontal grid + y labels */}
+            {}
             {chart.ticks.map((tick) => {
               const y =
                 MARGIN.top +
@@ -158,7 +153,7 @@ export default function SentimentTrendChart({ buckets, granularity = 'day' }) {
               clipPath="url(#clip-below)"
             />
 
-            {/* x labels — thinned out so they never collide */}
+            {}
             {chart.points.map((point, index) => {
               const step = Math.max(1, Math.ceil(chart.points.length / 7))
               if (index % step !== 0 && index !== chart.points.length - 1) return null
@@ -222,7 +217,6 @@ function TrendTooltip({ point, chartWidth, granularity }) {
     bucket.avgScore >= 0.08 ? 'positive' : bucket.avgScore <= -0.08 ? 'negative' : 'neutral',
   )
 
-  // Keep the tooltip inside the chart bounds.
   const left = Math.min(Math.max(point.x, 80), chartWidth - 80)
 
   return (

@@ -10,10 +10,6 @@ import {
 } from '../../utils/format.js'
 import { escapeRegex } from '../../analysis/topics.js'
 
-/**
- * Full text of one discussion, with the exact words that drove the score
- * highlighted — the analysis stays inspectable rather than a black box.
- */
 export default function PostDetailModal({ post, open, onClose }) {
   const highlighted = useMemo(() => {
     if (!post) return null
@@ -32,7 +28,7 @@ export default function PostDetailModal({ post, open, onClose }) {
       subtitle={`r/${post.subreddit} · u/${post.author} · ${formatLongDate(post.createdAt)}`}
       width="max-w-2xl"
     >
-      {/* score summary */}
+      {}
       <div className="flex flex-wrap items-center gap-3 rounded-lg border border-line bg-elevated px-4 py-3">
         <SentimentBadge label={post.sentimentLabel} />
         <span className={`tnum text-[13px] font-semibold ${style.text}`}>
@@ -54,14 +50,14 @@ export default function PostDetailModal({ post, open, onClose }) {
         </span>
       </div>
 
-      {/* the text */}
+      {}
       <div className="mt-4 max-h-[38vh] overflow-y-auto pr-1">
         <p className="text-[14px] leading-relaxed whitespace-pre-line text-ink-2">
           {highlighted}
         </p>
       </div>
 
-      {/* what the analyser found */}
+      {}
       <div className="mt-5 grid gap-4 border-t border-line pt-4 sm:grid-cols-2">
         <DetailBlock title="Topics">
           {post.topicLabels.length ? (
@@ -140,10 +136,6 @@ function Empty({ children }) {
   return <p className="text-[12px] text-ink-3">{children}</p>
 }
 
-/**
- * Wrap every scoring word in a coloured span.
- * Returns an array of strings and elements for React to render.
- */
 function highlight(text, hits) {
   const positive = new Set(hits.positive)
   const negative = new Set(hits.negative)

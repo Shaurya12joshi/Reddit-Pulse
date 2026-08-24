@@ -1,14 +1,3 @@
-/**
- * Turns a list of normalised Reddit items into everything the dashboard shows.
- *
- * The pipeline is deliberately two-stage:
- *
- *   enrichPosts()   — expensive per-post text analysis. Runs once per dataset.
- *   buildInsights() — cheap aggregation over already-enriched posts. Runs again
- *                     every time the user changes a filter.
- *
- * Keeping them apart is what makes the filters feel instant.
- */
 
 import { analyzeSentiment, analyzeSentences, labelFor, tokenize } from './sentiment.js'
 import { detectTopics, extractTrendingPhrases, topicLabel } from './topics.js'
@@ -17,25 +6,16 @@ import { THEME_BUCKETS } from './lexicon.js'
 
 const DAY_MS = 24 * 60 * 60 * 1000
 
-/* ------------------------------------------------------------- enrichment */
-
-/** Full text of a post — title and body together. */
 function fullText(post) {
   return [post.title, post.body].filter(Boolean).join('. ')
 }
 
-/**
- * Attach sentiment, topics, themes and competitor mentions to one item.
- * Returns a new object; the input is never mutated.
- */
 export function enrichPost(post, companyName) {
   const text = fullText(post)
   const sentiment = analyzeSentiment(text)
   const sentences = analyzeSentences(text)
   const topics = detectTopics(text)
 
-  // Attribute themes sentence by sentence, so one post can both praise and
-  // complain without the two cancelling out.
   const praiseThemes = new Set()
   const complaintThemes = new Set()
   const themeEvidence = []
@@ -83,15 +63,12 @@ export function enrichPost(post, companyName) {
   }
 }
 
-/** Enrich a whole dataset. */
 export function enrichPosts(posts, companyName) {
   return posts
     .map((post) => enrichPost(post, companyName))
     .filter((post) => Number.isFinite(post.timestamp))
     .sort((a, b) => b.timestamp - a.timestamp)
 }
-
-/* ------------------------------------------------------------ aggregation */
 
 function percent(part, whole) {
   if (!whole) return 0
@@ -108,7 +85,6 @@ function countBy(items, getKey) {
   return map
 }
 
-/** Positive / neutral / negative counts for a set of posts. */
 function sentimentSplit(posts) {
   const split = { positive: 0, neutral: 0, negative: 0 }
   posts.forEach((post) => {
@@ -117,10 +93,6 @@ function sentimentSplit(posts) {
   return split
 }
 
-/**
- * Build day- or week-buckets covering the full span of the data, including
- * empty periods so the trend line has no misleading gaps.
- */
 function buildTimeline(posts) {
   if (posts.length === 0) return { buckets: [], granularity: 'day' }
 
@@ -132,7 +104,6 @@ function buildTimeline(posts) {
   const granularity = spanDays > 45 ? 'week' : 'day'
   const bucketMs = granularity === 'week' ? DAY_MS * 7 : DAY_MS
 
-  // Snap the first bucket to the start of its day for tidy labels.
   const start = new Date(min)
   start.setHours(0, 0, 0, 0)
   const startMs = start.getTime()
@@ -169,7 +140,6 @@ function buildTimeline(posts) {
   }
 }
 
-/** Per-topic volume and tone. */
 function buildTopics(posts) {
   const map = new Map()
 
@@ -202,7 +172,6 @@ function buildTopics(posts) {
     .sort((a, b) => b.count - a.count)
 }
 
-/** Praise and complaint themes, each with real quoted evidence. */
 function buildThemes(posts, polarity) {
   const map = new Map()
 
@@ -248,7 +217,6 @@ function buildThemes(posts, polarity) {
     .sort((a, b) => b.count - a.count)
 }
 
-/** Competitor league table with reasons and quotes. */
 function buildCompetitors(posts) {
   const map = new Map()
 
@@ -269,8 +237,6 @@ function buildCompetitors(posts) {
       }
       const entry = map.get(mention.brand)
 
-      // Count one mention per post per brand for volume, but keep every
-      // sentence as potential evidence.
       if (!seenInPost.has(mention.brand)) {
         seenInPost.add(mention.brand)
         entry.mentions += 1
@@ -319,7 +285,6 @@ function buildCompetitors(posts) {
     .sort((a, b) => b.mentions - a.mentions)
 }
 
-/** Volume and tone per subreddit. */
 function buildSubreddits(posts) {
   const map = new Map()
 
@@ -351,13 +316,11 @@ function buildSubreddits(posts) {
     .sort((a, b) => b.count - a.count)
 }
 
-/** Representative discussions, picked three different ways. */
 function buildTopDiscussions(posts) {
   const byEngagement = [...posts].sort((a, b) => b.engagement - a.engagement)
   const positives = posts.filter((p) => p.sentimentLabel === 'positive')
   const negatives = posts.filter((p) => p.sentimentLabel === 'negative')
 
-  // "Representative" = strong tone *and* real engagement behind it.
   const weight = (post, direction) =>
     direction * post.sentimentScore * Math.log10(10 + post.engagement)
 
@@ -372,10 +335,6 @@ function buildTopDiscussions(posts) {
   }
 }
 
-/**
- * A plain-language summary generated from the numbers above.
- * Nothing here is invented — every sentence is derived from computed values.
- */
 function buildTakeaways({
   companyName,
   posts,
@@ -392,7 +351,6 @@ function buildTakeaways({
 
   if (posts.length === 0) return takeaways
 
-  /* --- headline tone --- */
   const dominant =
     sentiment.positivePct >= sentiment.negativePct ? 'positive' : 'negative'
   const dominantPct =
@@ -415,7 +373,6 @@ function buildTakeaways({
     }${sentiment.net}. The single largest group is ${dominant} at ${dominantPct}%.`,
   })
 
-  /* --- what people talk about --- */
   if (topics.length > 0) {
     const lead = topics[0]
     const runnerUp = topics[1]
@@ -433,7 +390,6 @@ function buildTakeaways({
     })
   }
 
-  /* --- strongest praise --- */
   if (praise.length > 0) {
     const top = praise[0]
     takeaways.push({
@@ -448,7 +404,6 @@ function buildTakeaways({
     })
   }
 
-  /* --- biggest liability --- */
   if (complaints.length > 0) {
     const top = complaints[0]
     takeaways.push({
@@ -463,7 +418,6 @@ function buildTakeaways({
     })
   }
 
-  /* --- competitive picture --- */
   if (competitors.length > 0) {
     const top = competitors[0]
     const reason = top.reasons[0]
@@ -483,7 +437,6 @@ function buildTakeaways({
     })
   }
 
-  /* --- momentum --- */
   const buckets = timeline.buckets
   if (buckets.length >= 4) {
     const half = Math.floor(buckets.length / 2)
@@ -507,7 +460,6 @@ function buildTakeaways({
     })
   }
 
-  /* --- where the conversation lives --- */
   if (subreddits.length > 1) {
     const top = subreddits[0]
     const harshest = [...subreddits]
@@ -529,14 +481,6 @@ function buildTakeaways({
   return takeaways
 }
 
-/* -------------------------------------------------------------- main entry */
-
-/**
- * Aggregate enriched posts into the complete dashboard model.
- *
- * @param {object[]} posts     Posts already run through enrichPosts().
- * @param {string} companyName
- */
 export function buildInsights(posts, companyName) {
   const split = sentimentSplit(posts)
   const total = posts.length
@@ -567,7 +511,6 @@ export function buildInsights(posts, companyName) {
     {
       limit: 14,
       minCount: Math.max(2, Math.round(total * 0.03)),
-      // The company's own name is in almost every post — it is not a theme.
       exclude: tokenize(companyName),
     },
   )

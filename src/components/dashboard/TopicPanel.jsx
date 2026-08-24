@@ -2,7 +2,6 @@ import { Card, CardBody, CardHeader } from '../ui/Card.jsx'
 import Icon from '../ui/Icon.jsx'
 import DivergingBars from '../charts/DivergingBars.jsx'
 
-/** Topic taxonomy view. Clicking a row filters the whole dashboard by it. */
 export default function TopicPanel({ topics, activeTopic, onSelectTopic }) {
   return (
     <Card className="h-full">

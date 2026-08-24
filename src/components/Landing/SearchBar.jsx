@@ -1,12 +1,6 @@
 import { useState } from 'react'
 import Icon from '../ui/Icon.jsx'
 
-/**
- * The one real entry point to the product.
- *
- * Styled as an editorial rule rather than a boxed input — a baseline the
- * company name is written on, with the action sitting at the end of it.
- */
 export default function SearchBar({
   onSubmit,
   disabled = false,

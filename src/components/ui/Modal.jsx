@@ -1,7 +1,6 @@
 import { useEffect } from 'react'
 import Icon from './Icon.jsx'
 
-/** Centred dialog with a scrim. Closes on Escape and on scrim click. */
 export default function Modal({ open, onClose, title, subtitle, children, width = 'max-w-lg' }) {
   useEffect(() => {
     if (!open) return undefined

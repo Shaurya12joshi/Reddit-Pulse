@@ -1,4 +1,3 @@
-/** Filter constants, kept out of the component file so fast refresh works. */
 
 export const TIME_RANGES = [
   { value: '7', label: 'Last 7 days' },

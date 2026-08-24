@@ -1,4 +1,3 @@
-/** The surface every dashboard panel sits on. */
 
 export function Card({ children, className = '', as: Tag = 'section' }) {
   return (

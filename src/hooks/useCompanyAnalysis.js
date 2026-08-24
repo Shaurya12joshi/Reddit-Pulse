@@ -1,11 +1,3 @@
-/**
- * Owns the "collect data for a company" lifecycle.
- *
- * The browser extension gathers from Reddit and posts to the backend, which
- * scores and stores everything. This hook only orchestrates that and confirms
- * data exists — the report itself is fetched by `useReport` once the dashboard
- * mounts, so no post data passes through here.
- */
 
 import { useCallback, useRef, useState } from 'react'
 import { isExtensionAvailable, requestScrape } from '../services/extensionBridge.js'
@@ -13,13 +5,12 @@ import { isExtensionAvailable, requestScrape } from '../services/extensionBridge
 const API = 'http://localhost:3001'
 
 export function useCompanyAnalysis() {
-  const [status, setStatus] = useState('idle') // idle | loading | ready | error
+  const [status, setStatus] = useState('idle')
   const [company, setCompany] = useState('')
   const [error, setError] = useState(null)
   const [progress, setProgress] = useState({ stage: 'starting', message: '' })
   const [meta, setMeta] = useState(null)
 
-  // Lets a new search cancel an in-flight one.
   const abortRef = useRef(null)
 
   const reset = useCallback(() => {
@@ -62,8 +53,6 @@ export function useCompanyAnalysis() {
 
       setProgress({ stage: 'summarising', message: 'Building insights' })
 
-      // Confirm something was actually stored before handing over to the
-      // dashboard, so a failure surfaces here rather than as an empty report.
       const res = await fetch(`${API}/api/report?company=${encodeURIComponent(name)}`, {
         signal: controller.signal,
       })
@@ -94,6 +83,8 @@ export function useCompanyAnalysis() {
       setError({
         message: caught?.message || 'Something went wrong while analysing.',
         hint: caught?.hint || null,
+        rateLimited: Boolean(caught?.rateLimited),
+        retryAt: caught?.retryAt || null,
       })
       setStatus('error')
     }

@@ -1,11 +1,3 @@
-/**
- * Landing-page preview data — real, never fabricated.
- *
- * Features whichever company has the richest collected dataset, using the same
- * server-computed report a live search produces. If the backend isn't running,
- * or nothing has been collected yet, the section removes itself rather than
- * showing placeholder content.
- */
 
 import { useEffect, useState } from 'react'
 
@@ -23,7 +15,6 @@ export function usePreviewReport() {
         if (!listRes.ok) throw new Error('Could not list companies')
 
         const { companies } = await listRes.json()
-        // The API returns them richest-first.
         const featured = companies?.[0]?.company
         if (!featured) {
           if (!cancelled) setState({ status: 'empty' })

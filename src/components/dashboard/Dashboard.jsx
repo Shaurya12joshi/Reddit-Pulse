@@ -21,14 +21,6 @@ import Button from '../ui/Button.jsx'
 import SentimentTrendChart from '../charts/SentimentTrendChart.jsx'
 import VolumeChart from '../charts/VolumeChart.jsx'
 
-/**
- * The report.
- *
- * Filtering and aggregation happen on the server — this component asks for a
- * finished report whenever the filters change and renders the result. Nothing
- * is scored in the browser, so it stays responsive however large the dataset
- * grows.
- */
 export default function Dashboard({ company, meta, onRefresh }) {
   const [filters, setFilters] = useState(DEFAULT_FILTERS)
   const [selectedPost, setSelectedPost] = useState(null)
@@ -100,7 +92,7 @@ export default function Dashboard({ company, meta, onRefresh }) {
         <div className="animate-fade-up mt-7 space-y-4">
           <StatTiles insights={insights} />
 
-          {/* summary + distribution */}
+          {}
           <div className="grid gap-4 xl:grid-cols-12">
             <div className="xl:col-span-7">
               <TakeawaysPanel takeaways={insights.takeaways} />
@@ -110,7 +102,7 @@ export default function Dashboard({ company, meta, onRefresh }) {
             </div>
           </div>
 
-          {/* time series */}
+          {}
           <div className="grid gap-4 xl:grid-cols-12">
             <div className="xl:col-span-7">
               <Card className="h-full">
@@ -144,7 +136,7 @@ export default function Dashboard({ company, meta, onRefresh }) {
             </div>
           </div>
 
-          {/* topics */}
+          {}
           <div className="grid gap-4 xl:grid-cols-12">
             <div className="xl:col-span-7">
               <TopicPanel
@@ -158,7 +150,7 @@ export default function Dashboard({ company, meta, onRefresh }) {
             </div>
           </div>
 
-          {/* praise vs complaints */}
+          {}
           <div className="grid gap-4 lg:grid-cols-2">
             <ThemesPanel
               themes={insights.praise}
@@ -172,7 +164,7 @@ export default function Dashboard({ company, meta, onRefresh }) {
             />
           </div>
 
-          {/* competitors + communities */}
+          {}
           <div className="grid gap-4 xl:grid-cols-12">
             <div className="xl:col-span-8">
               <CompetitorPanel
@@ -190,7 +182,7 @@ export default function Dashboard({ company, meta, onRefresh }) {
             </div>
           </div>
 
-          {/* raw discussions — paged in from the server rather than all at once */}
+          {}
           <DiscussionsPanel
             posts={posts}
             topDiscussions={insights.topDiscussions}

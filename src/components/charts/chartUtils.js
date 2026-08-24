@@ -1,16 +1,10 @@
-/** Shared maths for the hand-built SVG charts. */
 
-/** Map a value from a data range onto a pixel range. */
 export function scale(value, domainMin, domainMax, rangeMin, rangeMax) {
   if (domainMax === domainMin) return (rangeMin + rangeMax) / 2
   const t = (value - domainMin) / (domainMax - domainMin)
   return rangeMin + t * (rangeMax - rangeMin)
 }
 
-/**
- * Round a domain outwards to friendly tick values.
- * @returns {{min:number,max:number,ticks:number[]}}
- */
 export function niceScale(min, max, tickCount = 4) {
   if (min === max) {
     const pad = Math.abs(min) || 1
@@ -34,17 +28,12 @@ export function niceScale(min, max, tickCount = 4) {
 
   const ticks = []
   for (let value = niceMin; value <= niceMax + step / 2; value += step) {
-    // Guard against binary-float drift producing values like 0.30000000000004.
     ticks.push(Number(value.toFixed(6)))
   }
 
   return { min: niceMin, max: niceMax, ticks }
 }
 
-/**
- * Build a smooth SVG path through points using a monotone-ish cubic curve.
- * Falls back to a straight line for two points or fewer.
- */
 export function smoothPath(points) {
   if (points.length === 0) return ''
   if (points.length < 3) {
@@ -71,7 +60,6 @@ export function smoothPath(points) {
   return commands.join(' ')
 }
 
-/** Close a line path down to a baseline so it can be filled as an area. */
 export function areaPath(linePath, points, baselineY) {
   if (!linePath || points.length === 0) return ''
   const first = points[0]
@@ -79,7 +67,6 @@ export function areaPath(linePath, points, baselineY) {
   return `${linePath} L${last.x},${baselineY} L${first.x},${baselineY} Z`
 }
 
-/** Index of the data point nearest to a pixel x position. */
 export function nearestIndex(points, x) {
   let best = 0
   let bestDistance = Infinity

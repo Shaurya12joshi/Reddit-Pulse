@@ -14,11 +14,6 @@ const TABS = [
 
 const PAGE_SIZE = 8
 
-/**
- * Explorer for the individual posts and comments behind every number above.
- * "Representative" interleaves the strongest positive, negative and most
- * engaged threads so the default view is not one-sided.
- */
 export default function DiscussionsPanel({ posts, topDiscussions, onOpenPost }) {
   const [tab, setTab] = useState('representative')
   const [visible, setVisible] = useState(PAGE_SIZE)
@@ -38,7 +33,6 @@ export default function DiscussionsPanel({ posts, topDiscussions, onOpenPost }) 
       case 'recent':
         return [...posts].sort((a, b) => b.timestamp - a.timestamp)
       default: {
-        // Interleave the three "top" lists, skipping duplicates.
         const seen = new Set()
         const merged = []
         const sources = [
@@ -95,7 +89,7 @@ export default function DiscussionsPanel({ posts, topDiscussions, onOpenPost }) 
         }
       />
 
-      {/* mobile tab selector */}
+      {}
       <div className="border-b border-line px-3 py-2 md:hidden">
         <div className="flex gap-1 overflow-x-auto">
           {TABS.map((item) => (

@@ -1,32 +1,9 @@
-/**
- * Talks to the Reddit Scraper browser extension.
- *
- * The page can't reach Reddit itself — it has no Reddit session and CORS
- * blocks it. The extension can, because it runs inside the browser and its
- * requests carry the user's cookies. The extension injects a content script
- * (`bridge.js`) into this page, and the two sides exchange window messages.
- */
 
 const EXT_SOURCE = 'reddit-scraper-extension'
 const PAGE_SOURCE = 'reddit-dashboard'
 
-/**
- * Overall ceiling for one scrape, so a wedged run can't hang the UI forever.
- *
- * This covers the extension's own Reddit fetching *and* every /api/ingest
- * call it makes along the way — and ingest now classifies relevance before
- * it stores anything, so that an off-topic post never reaches the report at
- * all. That is an LLM round trip per batch of threads, and on a free tier
- * with a per-minute request cap it is sometimes backoff rather than work: a
- * ~300-thread corpus spent 73 of 90 seconds waiting out rate limits. Three
- * minutes was a ceiling for scraping alone and cut those runs off mid-flight.
- */
 const SCRAPE_TIMEOUT_MS = 600_000
 
-/**
- * Is the extension installed and injected into this page?
- * Resolves false after `timeoutMs` rather than hanging.
- */
 export function isExtensionAvailable(timeoutMs = 1000) {
   return new Promise((resolve) => {
     let settled = false
@@ -51,12 +28,6 @@ export function isExtensionAvailable(timeoutMs = 1000) {
   })
 }
 
-/**
- * Ask the extension to scrape a company. Resolves once it reports done.
- *
- * @param {string} company
- * @param {{onProgress?: (job:object)=>void, signal?: AbortSignal}} options
- */
 export function requestScrape(company, { onProgress, signal } = {}) {
   return new Promise((resolve, reject) => {
     let settled = false
@@ -83,7 +54,14 @@ export function requestScrape(company, { onProgress, signal } = {}) {
       onProgress?.(job)
 
       if (job.status === 'done') settle(resolve, job)
-      if (job.status === 'error') settle(reject, new Error(job.step || 'The scrape failed.'))
+      if (job.status === 'error') {
+        const error = new Error(job.step || 'The scrape failed.')
+        if (job.rateLimited) {
+          error.rateLimited = true
+          error.retryAt = job.retryAt || null
+        }
+        settle(reject, error)
+      }
     }
 
     const onAbort = () => settle(reject, new DOMException('Aborted', 'AbortError'))
@@ -96,7 +74,6 @@ export function requestScrape(company, { onProgress, signal } = {}) {
       SCRAPE_TIMEOUT_MS,
     )
 
-    // Listener is attached first, so no progress update can be missed.
     window.postMessage({ source: PAGE_SOURCE, type: 'SCRAPE', company }, window.location.origin)
   })
 }

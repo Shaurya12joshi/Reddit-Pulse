@@ -1,11 +1,3 @@
-/**
- * Horizontal bar list — the workhorse for ranked categories
- * (topics, subreddits, competitors).
- *
- * @param {{items:{id:string,label:string,value:number,caption?:string,
- *          color?:string}[], onSelect?:Function, activeId?:string,
- *          valueSuffix?:string}} props
- */
 export default function BarList({
   items,
   onSelect,
@@ -42,7 +34,7 @@ export default function BarList({
                 interactive ? 'cursor-pointer hover:bg-elevated' : ''
               } ${isActive ? 'bg-elevated ring-1 ring-accent/40 ring-inset' : ''}`}
             >
-              {/* the bar itself sits behind the text */}
+              {}
               <span
                 aria-hidden="true"
                 className="absolute inset-y-0 left-0 rounded-r-md transition-[width] duration-500 ease-out"

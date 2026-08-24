@@ -1,13 +1,13 @@
-import { useEffect, useRef, useState } from 'react'
-import { useLocation, useNavigate, useParams } from 'react-router'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { Link, useLocation, useNavigate, useParams } from 'react-router'
 
 import Dashboard from '../components/dashboard/Dashboard.jsx'
 import RawDataView from '../components/rawdata/RawDataView.jsx'
 import BuzzView from '../components/buzz/BuzzView.jsx'
+import LoadingScreen from '../components/loading/LoadingScreen.jsx'
 import { useCompanyAnalysis } from '../hooks/useCompanyAnalysis.js'
 import { fromSlug } from '../utils/slug.js'
 
-/** Switches between the finished report, the community ranking and the raw rows. */
 function ViewToggle({ view, onChange }) {
   return (
     <div className="fixed right-4 top-4 z-50 flex overflow-hidden rounded-full border border-line bg-surface/90 text-[11px] shadow-sm backdrop-blur">
@@ -31,13 +31,69 @@ function ViewToggle({ view, onChange }) {
   )
 }
 
-/**
- * The `/analyze/:company` route.
- *
- * The URL is the input. Everything this page needs comes from `:company`,
- * which is why a refresh, a shared link and a back/forward step all land in
- * the same place — there is no prior interaction to have missed.
- */
+function RateLimitWait({ company, retryAt, onRetry }) {
+  const [remaining, setRemaining] = useState(() => Math.max(0, (retryAt ?? 0) - Date.now()))
+
+  const retried = useRef(false)
+  useEffect(() => {
+    retried.current = !retryAt || retryAt <= Date.now()
+  }, [retryAt])
+
+  useEffect(() => {
+    if (!retryAt) return undefined
+
+    const tick = () => {
+      const left = Math.max(0, retryAt - Date.now())
+      setRemaining(left)
+      if (left === 0 && !retried.current) {
+        retried.current = true
+        onRetry()
+      }
+    }
+
+    const timer = setInterval(tick, 1000)
+    return () => clearInterval(timer)
+  }, [retryAt, onRetry])
+
+  const seconds = Math.ceil(remaining / 1000)
+  const clock = `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, '0')}`
+
+  return (
+    <div className="flex min-h-screen flex-col items-center justify-center gap-4 px-6 text-center">
+      <p className="text-[15px] font-medium text-ink">Reddit asked us to slow down</p>
+
+      {retryAt ? (
+        <>
+          <p className="tnum text-[32px] font-medium tabular-nums text-ink">{clock}</p>
+          <p className="max-w-sm text-[13px] text-ink-3">
+            Collecting {company} resumes automatically when the wait is over.
+            Nothing already collected was lost.
+          </p>
+        </>
+      ) : (
+        <p className="max-w-sm text-[13px] text-ink-3">
+          Wait a few minutes and try again. Nothing already collected was lost.
+        </p>
+      )}
+
+      <div className="mt-2 flex items-center gap-4">
+        {}
+        <button
+          type="button"
+          onClick={onRetry}
+          disabled={remaining > 0}
+          className="text-[13px] text-accent-ink underline underline-offset-2 disabled:cursor-not-allowed disabled:text-ink-3 disabled:no-underline"
+        >
+          {remaining > 0 ? 'Waiting…' : 'Try now'}
+        </button>
+        <Link to="/" className="text-[13px] text-ink-3 underline underline-offset-2">
+          Another company
+        </Link>
+      </div>
+    </div>
+  )
+}
+
 export default function AnalyzePage() {
   const { company: slug } = useParams()
   const location = useLocation()
@@ -46,13 +102,8 @@ export default function AnalyzePage() {
   const { status, company, error, meta, progress, analyze } = useCompanyAnalysis()
   const [view, setView] = useState('report')
 
-  // Slugs are lossy, so the name the visitor typed is preferred when we still
-  // have it (an in-app navigation from the landing page). On a cold load only
-  // the URL is left, and the slug is unpacked back into something readable.
   const name = location.state?.companyName || fromSlug(slug)
 
-  // Run once per company. The ref guard keeps StrictMode's double-mount in dev
-  // — and any unrelated re-render — from firing a second scrape.
   const startedFor = useRef(null)
   useEffect(() => {
     if (!name || startedFor.current === slug) return
@@ -60,10 +111,12 @@ export default function AnalyzePage() {
     analyze(name)
   }, [slug, name, analyze])
 
+  const retry = useCallback(() => {
+    if (name) analyze(name)
+  }, [name, analyze])
+
   const goHome = () => navigate('/')
 
-  // The name displayed while work is in flight comes from the hook once it has
-  // one, so it matches whatever was actually queried.
   const label = company || name
 
   if (status === 'ready') {
@@ -78,6 +131,10 @@ export default function AnalyzePage() {
   }
 
   if (status === 'error') {
+    if (error?.rateLimited) {
+      return <RateLimitWait company={label} retryAt={error.retryAt} onRetry={retry} />
+    }
+
     return (
       <div className="flex min-h-screen flex-col items-center justify-center gap-3 px-6 text-center">
         <p className="text-[15px] font-medium text-ink">Couldn't analyse {label}</p>
@@ -96,15 +153,5 @@ export default function AnalyzePage() {
     )
   }
 
-  // `idle` and `loading` look the same here: the analysis starts on mount, so
-  // idle is only ever the single frame before the effect runs.
-  return (
-    <div className="flex min-h-screen flex-col items-center justify-center gap-4 px-6 text-center">
-      <span className="h-6 w-6 animate-spin rounded-full border-2 border-line border-t-ink" />
-      <div>
-        <p className="text-[15px] font-medium text-ink">Analysing {label}</p>
-        <p className="mt-1 text-[13px] text-ink-3">{progress.message}</p>
-      </div>
-    </div>
-  )
+  return <LoadingScreen company={label} progress={progress} />
 }

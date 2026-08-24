@@ -1,14 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 
-/**
- * True once the element has scrolled into view, and stays true afterwards —
- * sections should reveal once, not flicker every time they cross the
- * viewport edge on a fast scroll.
- */
 export default function useInView({ threshold = 0.15, rootMargin = '0px 0px -10% 0px' } = {}) {
   const ref = useRef(null)
-  // Respect reduced-motion users by starting already "in view" — content
-  // simply appears rather than being gated behind a scroll trigger.
   const [inView, setInView] = useState(
     () =>
       typeof window !== 'undefined' &&

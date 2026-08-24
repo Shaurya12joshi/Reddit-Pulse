@@ -1,7 +1,3 @@
-/**
- * One small inline-SVG icon set, so the app needs no icon dependency.
- * Usage: <Icon name="search" className="h-4 w-4" />
- */
 
 const PATHS = {
   search: (

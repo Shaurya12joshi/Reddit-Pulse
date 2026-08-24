@@ -1,12 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
 
-/**
- * Measure an element so SVG charts can be drawn at real pixel size.
- * Drawing at true size (rather than scaling a fixed viewBox) keeps text crisp
- * and stops labels stretching on wide screens.
- *
- * @returns {[React.RefObject, {width:number, height:number}]}
- */
 export default function useElementSize() {
   const ref = useRef(null)
   const [size, setSize] = useState({ width: 0, height: 0 })

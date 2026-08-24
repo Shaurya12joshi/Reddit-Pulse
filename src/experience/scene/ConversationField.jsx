@@ -6,24 +6,9 @@ import { driver } from '../scrollDriver.js'
 import { ACTS, layoutBlend } from '../acts.js'
 import { buildLayouts } from '../layouts.js'
 
-/**
- * The conversation field — every fragment in the journey, and the network
- * between them.
- *
- * Both the instanced cards and the connection lines are rendered here on
- * purpose: the lines need the *interpolated* positions, and computing them
- * once in a single loop is far cheaper than recomputing or sharing them
- * across components.
- *
- * Per-frame cost is one pass over `count`, doing arithmetic into preallocated
- * buffers. Nothing is allocated inside the loop.
- */
-
-// Module-scope scratch objects — reused every frame, never garbage.
 const dummy = new THREE.Object3D()
 const CARD_GEOMETRY_ARGS = [0.66, 0.42, 0.03]
 
-// REST — the act where the field is meant to read as still turning.
 const ACT_REST = 10
 
 export default function ConversationField({ count = 620, reducedMotion = false }) {
@@ -34,8 +19,6 @@ export default function ConversationField({ count = 620, reducedMotion = false }
 
   const { layouts, edges, meta } = useMemo(() => buildLayouts(count), [count])
 
-  // Mutable scratch buffers. Deliberately refs rather than memos: these exist
-  // to be written into 60 times a second, and a ref says that plainly.
   const currentRef = useRef(null)
   if (currentRef.current === null || currentRef.current.length !== count * 3) {
     currentRef.current = new Float32Array(count * 3)
@@ -57,20 +40,14 @@ export default function ConversationField({ count = 620, reducedMotion = false }
       new THREE.BufferAttribute(lineBufferRef.current, 3),
     )
     return geometry
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [expectedLineLength])
 
-  // instanceColor has to exist before the frame loop can write into it, and
-  // three.js only creates it lazily on the first setColorAt call.
   const instanceColor = useMemo(
     () =>
       new THREE.InstancedBufferAttribute(new Float32Array(count * 3).fill(1), 3),
     [count],
   )
 
-  // three.js decides whether to compile the instancing-colour path when the
-  // shader program is first built, so the attribute must be attached *and*
-  // flagged before the first frame or every fragment renders flat white.
   useLayoutEffect(() => {
     const mesh = meshRef.current
     if (!mesh) return
@@ -86,16 +63,6 @@ export default function ConversationField({ count = 620, reducedMotion = false }
     const time = reducedMotion ? 0 : state.clock.elapsedTime
     const progress = reducedMotion ? 0.84 : driver.damped
 
-    /*
-     * The closing acts turn.
-     *
-     * By REST the fragments have stopped drifting — `align` is high, so the
-     * per-fragment idle motion has faded out by design — and the world went
-     * completely still under copy that says the conversation does not stop.
-     * A slow rotation of the whole field gives those acts life without
-     * reintroducing the chaos-era jitter the acts before them earned their
-     * way out of.
-     */
     if (groupRef.current) {
       const restStart = ACTS[ACT_REST]?.start ?? 0.87
       const spinIn = Math.max(0, Math.min(1, (progress - restStart + 0.06) / 0.12))
@@ -122,8 +89,6 @@ export default function ConversationField({ count = 620, reducedMotion = false }
       let y = a.positions[i3 + 1] + (b.positions[i3 + 1] - a.positions[i3 + 1]) * t
       let z = a.positions[i3 + 2] + (b.positions[i3 + 2] - a.positions[i3 + 2]) * t
 
-      // Idle life. Fades out as the data becomes structured, so the dashboard
-      // reads as settled rather than restless.
       if (drift > 0.001) {
         x += Math.sin(time * 0.42 + phase) * drift
         y += Math.cos(time * 0.35 + phase * 1.7) * drift
@@ -136,7 +101,6 @@ export default function ConversationField({ count = 620, reducedMotion = false }
 
       dummy.position.set(x, y, z)
 
-      // Tumbling in chaos, square to the camera once organised.
       const spin = reducedMotion ? 0 : time * spins[i]
       dummy.rotation.set(
         (tumble[i3] + spin) * (1 - align),
@@ -151,8 +115,6 @@ export default function ConversationField({ count = 620, reducedMotion = false }
     }
     mesh.instanceMatrix.needsUpdate = true
 
-    // Colours only change when the blend actually moves — this skips a
-    // ~7KB buffer upload on every idle frame.
     const previous = lastBlend.current
     if (previous.from !== from || previous.to !== to || Math.abs(previous.t - t) > 0.002) {
       const array = instanceColor.array
@@ -163,7 +125,6 @@ export default function ConversationField({ count = 620, reducedMotion = false }
       lastBlend.current = { from, to, t }
     }
 
-    // Edges follow the fragments they connect.
     const line = lineRef.current
     if (line) {
       const linePositions = lineBufferRef.current

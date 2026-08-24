@@ -1,11 +1,5 @@
 import { useEffect, useState } from 'react'
 
-/**
- * What kind of experience can this visitor actually have?
- *
- * Resolved after mount so the server/first paint never guesses wrong, and so
- * WebGL is probed exactly once rather than on every render.
- */
 export default function useEnvironment() {
   const [env, setEnv] = useState({
     ready: false,
@@ -38,7 +32,6 @@ export default function useEnvironment() {
   return env
 }
 
-/** One-shot WebGL probe. The context is released immediately. */
 function detectWebGL() {
   try {
     const canvas = document.createElement('canvas')
