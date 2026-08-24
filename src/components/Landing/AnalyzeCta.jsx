@@ -22,9 +22,9 @@ export default function AnalyzeCta({ onAnalyze, dataSource, onOpenSettings, id }
 
       <p className="mt-5 text-[12px] leading-relaxed text-ink-3">
         {dataSource === 'live' ? (
-          <>Live mode — results are loaded from whatever the Reddit scraper extension most recently collected.</>
+          <>Live mode: results are loaded from whatever the Reddit scraper extension most recently collected.</>
         ) : (
-          <>Running on a realistic sample dataset — no scrape needed.</>
+          <>Running on a realistic sample dataset, no scrape needed.</>
         )}
       </p>
     </div>

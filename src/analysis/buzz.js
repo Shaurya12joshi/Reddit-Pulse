@@ -459,7 +459,7 @@ function discussionType(entry) {
   else if (sentiment.positive >= sentiment.negative * 1.6) parts.push('recommendations')
   else parts.push('mixed discussion')
 
-  return parts.join(' — ')
+  return parts.join(' - ')
 }
 
 const QUESTION = /^(?:how|why|what|which|when|where|who|is|are|do|does|did|can|should|would|any(?:one|body))\b|\?/i
@@ -947,7 +947,7 @@ export function rankCommunities({
         name: row.name,
         items: row.items,
         test: 'vocabulary',
-        reason: `${row.threads} threads name "${brand}" but ${row.threads - row.relevantThreads} share none of its context vocabulary — likely a different sense of the word`,
+        reason: `${row.threads} threads name "${brand}" but ${row.threads - row.relevantThreads} share none of its context vocabulary - likely a different sense of the word`,
       })
       continue
     }
@@ -956,7 +956,7 @@ export function rankCommunities({
         name: row.name,
         items: row.items,
         test: 'sense',
-        reason: `"${brand}" is written in lower case in ${row.otherSense} of ${row.brandSense + row.otherSense} threads here — the ordinary word, not the brand`,
+        reason: `"${brand}" is written in lower case in ${row.otherSense} of ${row.brandSense + row.otherSense} threads here - the ordinary word, not the brand`,
       })
       continue
     }

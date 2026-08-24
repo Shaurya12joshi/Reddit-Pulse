@@ -192,7 +192,7 @@ export default function Dashboard({ company, meta, onRefresh }) {
           {nextOffset ? (
             <div className="flex justify-center pt-2">
               <Button variant="secondary" size="sm" onClick={loadMore}>
-                Load more — {posts.length} of {total}
+                Load more ({posts.length} of {total})
               </Button>
             </div>
           ) : null}

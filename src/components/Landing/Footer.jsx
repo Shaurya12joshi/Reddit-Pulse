@@ -30,8 +30,8 @@ export default function Footer() {
               </span>
             </button>
             <p className="mt-4 max-w-sm text-[14px] leading-relaxed text-ink-3">
-              Reads what Reddit already says about a company — sentiment,
-              topics, competitors and the communities worth watching — from
+              Reads what Reddit already says about a company: sentiment,
+              topics, competitors and the communities worth watching, from
               public threads, with the off-topic ones filtered out.
             </p>
           </div>

@@ -241,7 +241,7 @@ export default function BuzzView({ company, onRefresh }) {
       {}
       <Section
         title="Emerging communities"
-        subtitle="Rising or newly active — worth watching before they matter"
+        subtitle="Rising or newly active, worth watching before they matter"
         icon={<Icon name="spark" className="h-3.5 w-3.5" />}
       >
         {emerging.length ? (
@@ -260,7 +260,7 @@ export default function BuzzView({ company, onRefresh }) {
           </ul>
         ) : (
           <p className="text-[13px] text-ink-3">
-            Nothing is accelerating in this dataset. With a single collection run that is expected —
+            Nothing is accelerating in this dataset. With a single collection run that is expected:
             trend velocity needs a sample reaching back past the previous 30 days, and re-running
             weekly is what makes this section meaningful.
           </p>
@@ -336,7 +336,7 @@ export default function BuzzView({ company, onRefresh }) {
                       <SubredditLink name={row.name} />
                       <span className="text-[12px] text-ink-3">
                         {' '}
-                        — reached via {row.via.join(', ')} · rank {row.rank}
+                        - reached via {row.via.join(', ')} · rank {row.rank}
                       </span>
                     </li>
                   ))}
@@ -353,7 +353,7 @@ export default function BuzzView({ company, onRefresh }) {
                       <SubredditLink name={row.name} />
                       <span className="text-[12px] text-ink-3">
                         {' '}
-                        — rank {row.rank} · {row.discussionType}
+                        - rank {row.rank} · {row.discussionType}
                       </span>
                     </li>
                   ))}
@@ -381,7 +381,7 @@ export default function BuzzView({ company, onRefresh }) {
             {excluded.map((row) => (
               <li key={row.name} className="text-[13px]">
                 <SubredditLink name={row.name} />
-                <span className="text-[12px] text-ink-3"> — {row.reason}</span>
+                <span className="text-[12px] text-ink-3"> - {row.reason}</span>
               </li>
             ))}
           </ul>
@@ -424,7 +424,7 @@ export default function BuzzView({ company, onRefresh }) {
             <strong className="font-medium text-ink">Unmeasurable signals are dropped</strong>,
             not guessed. Trend velocity needs a sample reaching past the previous 30 days; where it
             does not, the weights are renormalised over what is known and the table says so.
-            Comments are used for depth only — they come from a sampled set of threads, so counting
+            Comments are used for depth only: they come from a sampled set of threads, so counting
             them as volume would rank whichever thread the collector happened to open.
           </p>
         </div>

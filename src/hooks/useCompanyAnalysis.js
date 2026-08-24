@@ -34,21 +34,38 @@ export function useCompanyAnalysis() {
     setStatus('loading')
     setError(null)
     setMeta(null)
-    setProgress({ stage: 'starting', message: 'Looking for the collector extension' })
+    setProgress({ stage: 'starting', message: 'Checking what we already have' })
 
     try {
-      const hasExtension = await isExtensionAvailable()
+      // Reddit is an ingestion source, not something to re-hit on every
+      // search — only scrape when this company's data is missing or stale.
+      const freshness = await fetch(`${API}/api/freshness?company=${encodeURIComponent(name)}`, {
+        signal: controller.signal,
+      })
+        .then((r) => (r.ok ? r.json() : null))
+        .catch(() => null)
       if (controller.signal.aborted) return
 
-      if (hasExtension) {
-        setProgress({ stage: 'scraping', message: `Collecting Reddit discussions about ${name}` })
+      const needsCollection = !freshness || freshness.stale
 
-        await requestScrape(name, {
-          signal: controller.signal,
-          onProgress: (job) =>
-            setProgress((prev) => ({ ...prev, stage: 'scraping', message: job.step || prev.message })),
-        })
+      let hasExtension = false
+      if (needsCollection) {
+        setProgress({ stage: 'starting', message: 'Looking for the collector extension' })
+        hasExtension = await isExtensionAvailable()
         if (controller.signal.aborted) return
+
+        if (hasExtension) {
+          setProgress({ stage: 'scraping', message: `Collecting Reddit discussions about ${name}` })
+
+          await requestScrape(name, {
+            signal: controller.signal,
+            onProgress: (job) =>
+              setProgress((prev) => ({ ...prev, stage: 'scraping', message: job.step || prev.message })),
+          })
+          if (controller.signal.aborted) return
+        }
+      } else {
+        setProgress({ stage: 'scraping', message: `Using ${freshness.postCount} already-collected posts` })
       }
 
       setProgress({ stage: 'summarising', message: 'Building insights' })
@@ -62,7 +79,7 @@ export function useCompanyAnalysis() {
         const err = new Error(body.error || `No Reddit data found for "${name}"`)
         if (res.status === 404) {
           err.hint = hasExtension
-            ? 'The collector ran but saved nothing — make sure you are signed in to Reddit in this browser.'
+            ? 'The collector ran but saved nothing. Make sure you are signed in to Reddit in this browser.'
             : 'The collector extension is not installed, so live data cannot be gathered. Load it from chrome://extensions, then search again.'
         }
         throw err

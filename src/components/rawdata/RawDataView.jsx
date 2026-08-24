@@ -18,7 +18,7 @@ const COLUMNS = [
 const nf = new Intl.NumberFormat('en-US')
 
 function fmtDate(ts) {
-  if (!Number.isFinite(ts)) return '—'
+  if (!Number.isFinite(ts)) return 'N/A'
   return new Date(ts).toISOString().slice(0, 10)
 }
 
@@ -112,7 +112,7 @@ export default function RawDataView({ company }) {
       {}
       <header className="border-b-2 border-slate-900 pb-3">
         <h1 className="text-sm font-bold uppercase tracking-wider">
-          Raw collection — {data.company}
+          Raw collection: {data.company}
         </h1>
         <p className="mt-1 text-[11px] text-slate-500">
           Every row scraped from Reddit, straight from the database. Sorted and
@@ -177,10 +177,10 @@ export default function RawDataView({ company }) {
                           : 'text-slate-400'
                     }`}
                   >
-                    {sub.avgSentiment ?? '—'}
+                    {sub.avgSentiment ?? 'N/A'}
                   </td>
                   <td className="px-2 py-1 tabular-nums text-slate-500">
-                    {sub.subscribers ? nf.format(sub.subscribers) : '—'}
+                    {sub.subscribers ? nf.format(sub.subscribers) : 'N/A'}
                   </td>
                 </tr>
               ))}
@@ -272,7 +272,7 @@ export default function RawDataView({ company }) {
                   </span>
                 </td>
                 <td className="px-2 py-1.5 text-[10px] text-slate-500">
-                  {(post.topicLabels ?? []).join(', ') || '—'}
+                  {(post.topicLabels ?? []).join(', ') || 'N/A'}
                 </td>
                 <td className="px-2 py-1.5">
                   <div className="max-w-2xl">
