@@ -25,7 +25,14 @@ export function useReport(company, filters) {
     const controller = new AbortController()
     setExtraPosts([])
 
-    async function load() {
+    // While the server is still judging freshly collected posts it serves them
+    // unpruned and says so. Re-read until that finishes, so the report settles
+    // on its own instead of needing a manual refresh.
+    const RECHECK_MS = 8000
+    const RECHECKS = 12
+    let timer = null
+
+    async function load(attempt = 0) {
       try {
         const res = await apiFetch(`/api/report?${buildQuery(company, filters)}`, {
           signal: controller.signal,
@@ -35,7 +42,13 @@ export function useReport(company, filters) {
           throw new Error(body.error || `Report failed (${res.status})`)
         }
         const data = await res.json()
-        if (id === requestId.current) setState({ status: 'ready', ...data })
+        if (id !== requestId.current) return
+
+        setState({ status: 'ready', ...data })
+
+        if (data.analysing && attempt < RECHECKS) {
+          timer = setTimeout(() => load(attempt + 1), RECHECK_MS)
+        }
       } catch (error) {
         if (error.name === 'AbortError') return
         if (id === requestId.current) setState({ status: 'error', error: error.message })
@@ -43,7 +56,10 @@ export function useReport(company, filters) {
     }
 
     load()
-    return () => controller.abort()
+    return () => {
+      clearTimeout(timer)
+      controller.abort()
+    }
   }, [company, filters])
 
   const loadMore = useCallback(async () => {

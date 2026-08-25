@@ -10,7 +10,7 @@ function fullText(post) {
   return [post.title, post.body].filter(Boolean).join('. ')
 }
 
-export function enrichPost(post, companyName) {
+export function enrichPost(post, companyName, { knownBrands = [] } = {}) {
   const text = fullText(post)
   const sentiment = analyzeSentiment(text)
   const sentences = analyzeSentences(text)
@@ -57,15 +57,15 @@ export function enrichPost(post, companyName) {
     praiseThemes: [...praiseThemes],
     complaintThemes: [...complaintThemes],
     themeEvidence,
-    competitorMentions: detectCompetitors(text, companyName),
+    competitorMentions: detectCompetitors(text, companyName, knownBrands),
     engagement: (post.score || 0) + (post.numComments || 0) * 2,
     timestamp: new Date(post.createdAt).getTime(),
   }
 }
 
-export function enrichPosts(posts, companyName) {
+export function enrichPosts(posts, companyName, { knownBrands = [] } = {}) {
   return posts
-    .map((post) => enrichPost(post, companyName))
+    .map((post) => enrichPost(post, companyName, { knownBrands }))
     .filter((post) => Number.isFinite(post.timestamp))
     .sort((a, b) => b.timestamp - a.timestamp)
 }
@@ -217,13 +217,42 @@ function buildThemes(posts, polarity) {
     .sort((a, b) => b.count - a.count)
 }
 
-function buildCompetitors(posts) {
+/**
+ * Regex capture finds real rivals but also debris — a stray capitalised word,
+ * an airline code, a product name. When the brand's competitors have been
+ * resolved, that list is the authority: anything outside it is dropped, and an
+ * alias ("SQ") is folded into the name people would recognise.
+ */
+function competitorGate(roster = []) {
+  if (!roster.length) return { allowed: null, canonical: new Map() }
+
+  const canonical = new Map()
+  for (const entry of roster) {
+    const name = String(entry?.name || '').trim()
+    if (!name) continue
+    canonical.set(name.toLowerCase(), name)
+    for (const alias of entry.aliases || []) {
+      const key = String(alias || '').trim().toLowerCase()
+      if (key) canonical.set(key, name)
+    }
+  }
+
+  return { allowed: canonical.size > 0, canonical }
+}
+
+function buildCompetitors(posts, roster = []) {
   const map = new Map()
+  const { allowed, canonical } = competitorGate(roster)
 
   posts.forEach((post) => {
     const seenInPost = new Set()
 
-    post.competitorMentions.forEach((mention) => {
+    post.competitorMentions.forEach((raw) => {
+      const resolved = canonical.get(String(raw.brand || '').toLowerCase())
+      if (allowed && !resolved) return
+
+      const mention = resolved ? { ...raw, brand: resolved, known: true } : raw
+
       if (!map.has(mention.brand)) {
         map.set(mention.brand, {
           brand: mention.brand,
@@ -481,7 +510,11 @@ function buildTakeaways({
   return takeaways
 }
 
-export function buildInsights(posts, companyName) {
+export function buildInsights(
+  posts,
+  companyName,
+  { market: resolvedMarket = null, roster = [] } = {},
+) {
   const split = sentimentSplit(posts)
   const total = posts.length
   const scoreSum = posts.reduce((sum, post) => sum + post.sentimentScore, 0)
@@ -504,7 +537,7 @@ export function buildInsights(posts, companyName) {
   const topics = buildTopics(posts)
   const praise = buildThemes(posts, 'positive')
   const complaints = buildThemes(posts, 'negative')
-  const competitors = buildCompetitors(posts)
+  const competitors = buildCompetitors(posts, roster)
   const subreddits = buildSubreddits(posts)
   const trending = extractTrendingPhrases(
     posts.map((post) => post.text),
@@ -514,7 +547,10 @@ export function buildInsights(posts, companyName) {
       exclude: tokenize(companyName),
     },
   )
-  const { market } = findMarket(companyName)
+  // The resolved category describes any company; the built-in brand groups only
+  // cover a dozen markets. Prefer the resolved one, keep the lookup as fallback.
+  const { market: lexiconMarket } = findMarket(companyName)
+  const market = resolvedMarket || lexiconMarket
 
   const totals = {
     mentions: total,

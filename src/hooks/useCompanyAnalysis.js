@@ -5,6 +5,38 @@ import { apiFetch } from '../services/aiConnection.js'
 
 
 
+/**
+ * Collected posts are judged by the AI before they count towards a report.
+ * Wait for that to finish so the dashboard opens complete, rather than filling
+ * in underneath the reader.
+ */
+async function waitForAnalysis(company, signal, onProgress) {
+  const EVERY_MS = 2000
+  const DEADLINE_MS = 4 * 60 * 1000
+  const until = Date.now() + DEADLINE_MS
+
+  while (!signal.aborted && Date.now() < until) {
+    const status = await apiFetch(
+      `/api/analysis-status?company=${encodeURIComponent(company)}`,
+      { signal },
+    )
+      .then((response) => (response.ok ? response.json() : null))
+      .catch(() => null)
+
+    if (!status) return
+    if (!status.analysing) return
+
+    const judged = status.total - status.pending
+    onProgress(
+      status.total
+        ? `Reading ${status.total} discussions — ${judged} of them so far`
+        : 'Reading the discussions collected',
+    )
+
+    await new Promise((settle) => setTimeout(settle, EVERY_MS))
+  }
+}
+
 export function useCompanyAnalysis() {
   const [status, setStatus] = useState('idle')
   const [company, setCompany] = useState('')
@@ -69,11 +101,28 @@ export function useCompanyAnalysis() {
         setProgress({ stage: 'scraping', message: `Using ${freshness.postCount} already-collected posts` })
       }
 
+      setProgress({ stage: 'summarising', message: 'Reading the discussions collected' })
+
+      await waitForAnalysis(name, controller.signal, (message) =>
+        setProgress({ stage: 'summarising', message }),
+      )
+      if (controller.signal.aborted) return
+
       setProgress({ stage: 'summarising', message: 'Building insights' })
 
-      const res = await apiFetch(`/api/report?company=${encodeURIComponent(name)}`, {
-        signal: controller.signal,
-      })
+      const report = () =>
+        apiFetch(`/api/report?company=${encodeURIComponent(name)}`, { signal: controller.signal })
+
+      let res = await report()
+
+      // The collector saves in phases, so the report can be asked for in the
+      // gap between the last batch arriving and it being stored. One retry
+      // separates that from genuinely having collected nothing.
+      if (res.status === 404 && hasExtension) {
+        await new Promise((settle) => setTimeout(settle, 2000))
+        if (controller.signal.aborted) return
+        res = await report()
+      }
 
       if (!res.ok) {
         const body = await res.json().catch(() => ({}))

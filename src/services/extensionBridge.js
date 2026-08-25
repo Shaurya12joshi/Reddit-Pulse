@@ -28,6 +28,9 @@ export function isExtensionAvailable(timeoutMs = 1000) {
   })
 }
 
+const sameCompany = (a, b) =>
+  String(a || '').trim().toLowerCase() === String(b || '').trim().toLowerCase()
+
 export function requestScrape(company, { onProgress, signal } = {}) {
   return new Promise((resolve, reject) => {
     let settled = false
@@ -51,6 +54,14 @@ export function requestScrape(company, { onProgress, signal } = {}) {
       if (data?.source !== EXT_SOURCE || data.type !== 'JOB' || !data.job) return
 
       const job = data.job
+
+      // Two searches can overlap — a second company started while the first is
+      // still collecting. Without this check the earlier job's "done" resolves
+      // the later one, and the page reports for a company nothing was saved
+      // for yet. Jobs from older extension builds carry no company, so those
+      // are still accepted.
+      if (job.company && !sameCompany(job.company, company)) return
+
       onProgress?.(job)
 
       if (job.status === 'done') settle(resolve, job)

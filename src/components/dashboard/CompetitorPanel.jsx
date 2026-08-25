@@ -5,10 +5,97 @@ import Icon from '../ui/Icon.jsx'
 import { formatPercent, formatSigned, sentimentStyle } from '../../utils/format.js'
 import { labelFor } from '../../analysis/sentiment.js'
 
-export default function CompetitorPanel({ competitors, company, market }) {
+const VERDICT = {
+  brand: { label: 'Favours', tone: 'positive' },
+  competitor: { label: 'Favours', tone: 'negative' },
+  mixed: { label: 'Split', tone: 'neutral' },
+  unclear: { label: 'No clear winner', tone: 'neutral' },
+}
+
+const TONE = {
+  positive: 'border-positive/30 bg-positive/10 text-positive-ink',
+  negative: 'border-negative/25 bg-negative/10 text-negative-ink',
+  neutral: 'border-line bg-elevated text-ink-2',
+}
+
+function VerdictBadge({ verdict, company, competitor }) {
+  const meta = VERDICT[verdict] || VERDICT.unclear
+  const winner = verdict === 'brand' ? company : verdict === 'competitor' ? competitor : null
+
+  return (
+    <span
+      className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-medium ${TONE[meta.tone]}`}
+    >
+      <Icon
+        name={verdict === 'mixed' || verdict === 'unclear' ? 'scale' : 'check'}
+        className="h-3 w-3"
+      />
+      {winner ? `${meta.label} ${winner}` : meta.label}
+    </span>
+  )
+}
+
+function WinList({ title, items, tone }) {
+  if (!items?.length) return null
+  return (
+    <div>
+      <p className="text-[11px] tracking-wide text-ink-3 uppercase">{title}</p>
+      <ul className="mt-1.5 flex flex-wrap gap-1.5">
+        {items.map((item) => (
+          <li
+            key={item}
+            className={`rounded-full border px-2.5 py-1 text-[11px] ${TONE[tone]}`}
+          >
+            {item}
+          </li>
+        ))}
+      </ul>
+    </div>
+  )
+}
+
+function HeadToHead({ verdict, company }) {
+  return (
+    <div className="space-y-3 rounded-lg border border-line bg-surface p-3.5">
+      <div className="flex flex-wrap items-center gap-2">
+        <VerdictBadge
+          verdict={verdict.verdict}
+          company={company}
+          competitor={verdict.competitor}
+        />
+        <span className="tnum text-[11px] text-ink-3">
+          read from {verdict.mentions} discussion{verdict.mentions === 1 ? '' : 's'}
+        </span>
+      </div>
+
+      <p className="text-[13px] leading-relaxed text-ink-2">{verdict.summary}</p>
+
+      <div className="grid gap-3 sm:grid-cols-2">
+        <WinList title={`${company} wins on`} items={verdict.brand_wins} tone="positive" />
+        <WinList
+          title={`${verdict.competitor} wins on`}
+          items={verdict.competitor_wins}
+          tone="negative"
+        />
+      </div>
+
+      {verdict.switching ? (
+        <p className="flex items-start gap-2 border-t border-line pt-3 text-[12px] leading-relaxed text-ink-3">
+          <Icon name="arrowOut" className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+          {verdict.switching}
+        </p>
+      ) : null}
+    </div>
+  )
+}
+
+export default function CompetitorPanel({ competitors, company, market, comparisons }) {
   const [expanded, setExpanded] = useState(null)
 
   const peak = Math.max(...competitors.map((c) => c.mentions), 1)
+  const verdicts = new Map(
+    (comparisons?.comparisons || []).map((entry) => [entry.competitor.toLowerCase(), entry]),
+  )
 
   return (
     <Card>
@@ -71,6 +158,9 @@ export default function CompetitorPanel({ competitors, company, market }) {
                       <p className="tnum mt-1 pl-5.5 text-[12px] text-ink-3">
                         {competitor.mentions} mentions ·{' '}
                         {formatPercent(competitor.share, 1)} of discussions
+                        {verdicts.has(competitor.brand.toLowerCase()) ? (
+                          <span className="text-accent-ink"> · head-to-head read</span>
+                        ) : null}
                       </p>
                     </div>
 
@@ -120,6 +210,15 @@ export default function CompetitorPanel({ competitors, company, market }) {
 
                   {isOpen ? (
                     <div className="animate-fade space-y-3 bg-elevated/50 px-5 pt-1 pb-5">
+                      {verdicts.get(competitor.brand.toLowerCase()) ? (
+                        <HeadToHead
+                          verdict={verdicts.get(competitor.brand.toLowerCase())}
+                          company={company}
+                        />
+                      ) : comparisons?.status === 'loading' ? (
+                        <div className="h-24 animate-pulse rounded-lg bg-elevated" />
+                      ) : null}
+
                       <div className="flex flex-wrap gap-1.5 md:hidden">
                         {competitor.reasons.map((reason) => (
                           <Badge key={reason.label}>

@@ -20,12 +20,14 @@ import Icon from '../ui/Icon.jsx'
 import Button from '../ui/Button.jsx'
 import SentimentTrendChart from '../charts/SentimentTrendChart.jsx'
 import VolumeChart from '../charts/VolumeChart.jsx'
+import { useComparisons } from '../../hooks/useComparisons.js'
 
 export default function Dashboard({ company, meta, onRefresh }) {
   const [filters, setFilters] = useState(DEFAULT_FILTERS)
   const [selectedPost, setSelectedPost] = useState(null)
 
   const report = useReport(company, filters)
+  const comparisons = useComparisons(company)
 
   if (report.status === 'loading') {
     return (
@@ -171,6 +173,7 @@ export default function Dashboard({ company, meta, onRefresh }) {
                 competitors={insights.competitors}
                 company={company}
                 market={insights.market}
+                comparisons={comparisons}
               />
             </div>
             <div className="xl:col-span-4">

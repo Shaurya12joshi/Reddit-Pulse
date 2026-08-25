@@ -67,16 +67,40 @@ function canonicalise(candidate) {
   return known || trimmed
 }
 
-export function detectCompetitors(text, companyName) {
+/**
+ * The built-in brand list only covers a handful of markets. Names resolved for
+ * this company — its competitors and their aliases — are matched alongside it,
+ * so a brand nobody hardcoded is still recognised in a comparison.
+ */
+function matchersFor(extraBrands = []) {
+  if (!extraBrands.length) return BRAND_MATCHERS
+
+  const known = new Set(ALL_BRANDS.map((brand) => brand.toLowerCase()))
+  const extra = []
+  for (const name of extraBrands) {
+    const brand = String(name || '').trim()
+    if (brand.length < 2 || known.has(brand.toLowerCase())) continue
+    known.add(brand.toLowerCase())
+    extra.push({
+      brand,
+      regex: new RegExp(`(?:^|[^\\w])${escapeRegex(brand)}(?:$|[^\\w])`, 'i'),
+    })
+  }
+
+  return extra.length ? [...BRAND_MATCHERS, ...extra] : BRAND_MATCHERS
+}
+
+export function detectCompetitors(text, companyName, extraBrands = []) {
   if (!text) return []
 
+  const matchers = matchersFor(extraBrands)
   const mentions = []
   const sentences = splitSentences(text)
 
   sentences.forEach((sentence) => {
     const found = new Set()
 
-    BRAND_MATCHERS.forEach(({ brand, regex }) => {
+    matchers.forEach(({ brand, regex }) => {
       if (regex.test(sentence) && !isSelfReference(brand, companyName)) {
         found.add(brand)
       }
