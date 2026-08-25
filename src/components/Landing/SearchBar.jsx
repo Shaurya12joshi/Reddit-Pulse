@@ -3,6 +3,7 @@ import Icon from '../ui/Icon.jsx'
 
 export default function SearchBar({
   onSubmit,
+  id,
   disabled = false,
   initialValue = '',
   size = 'lg',
@@ -30,6 +31,7 @@ export default function SearchBar({
           className={`shrink-0 text-ink-3 ${large ? 'h-5 w-5' : 'h-4 w-4'}`}
         />
         <input
+          id={id}
           type="text"
           value={value}
           onChange={(event) => setValue(event.target.value)}

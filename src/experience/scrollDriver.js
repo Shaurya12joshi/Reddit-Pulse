@@ -61,6 +61,11 @@ function frame(time) {
   rafId = requestAnimationFrame(frame)
 }
 
+/** True once the immersive rail owns scrolling; false in the static fallback. */
+export function isDriverActive() {
+  return Boolean(targetEl)
+}
+
 export function scrollToProgress(progress) {
   if (!targetEl || typeof window === 'undefined') return
 

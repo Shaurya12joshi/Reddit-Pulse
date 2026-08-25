@@ -1,8 +1,9 @@
 
-export function Card({ children, className = '', as: Tag = 'section' }) {
+export function Card({ children, className = '', as: Tag = 'section', ...props }) {
   return (
     <Tag
       className={`rounded-[14px] border border-line bg-surface ${className}`}
+      {...props}
     >
       {children}
     </Tag>

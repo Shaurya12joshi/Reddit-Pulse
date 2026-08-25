@@ -3,13 +3,9 @@ import AnalyzeCta from './AnalyzeCta.jsx'
 import ProductPreviewSection from './ProductPreviewSection.jsx'
 import Footer from './Footer.jsx'
 
-export default function LandingPage({ onAnalyze, dataSource, onOpenSettings }) {
+export default function LandingPage({ onAnalyze, dataSource }) {
   const cta = (
-    <AnalyzeCta
-      onAnalyze={onAnalyze}
-      dataSource={dataSource}
-      onOpenSettings={onOpenSettings}
-    />
+    <AnalyzeCta onAnalyze={onAnalyze} dataSource={dataSource} />
   )
 
   return (

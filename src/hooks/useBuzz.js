@@ -1,7 +1,8 @@
 
 import { useCallback, useEffect, useState } from 'react'
+import { apiFetch } from '../services/aiConnection.js'
 
-const API = 'http://localhost:3001'
+
 
 export function useBuzz(company) {
   const [state, setState] = useState({ status: 'loading' })
@@ -13,7 +14,7 @@ export function useBuzz(company) {
 
     async function load() {
       try {
-        const res = await fetch(`${API}/api/buzz?company=${encodeURIComponent(company)}`, {
+        const res = await apiFetch(`/api/buzz?company=${encodeURIComponent(company)}`, {
           signal: controller.signal,
         })
         const body = await res.json().catch(() => ({}))

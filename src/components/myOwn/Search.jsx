@@ -39,7 +39,6 @@ function Search() {
                    hover:bg-indigo-700 transition-colors"
       > Analyze </button>
     </form>
-
     <div className="max-w-md text-sm text-slate-600">
       {isLoading && <p>Loading…</p>}
       {isError ? <p>{error}</p> : null}

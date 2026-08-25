@@ -1,6 +1,9 @@
+import { Link } from 'react-router'
+
 import Reveal from './Reveal.jsx'
 import { ACTS, actAnchor } from '../../experience/acts.js'
 import { scrollToProgress } from '../../experience/scrollDriver.js'
+import { goToSearch } from '../../experience/goToSearch.js'
 
 const SCROLL_TOP = { top: 0 }
 
@@ -71,10 +74,22 @@ export default function Footer() {
               <li>
                 <a
                   href="#analyze"
+                  onClick={(event) => {
+                    event.preventDefault()
+                    goToSearch()
+                  }}
                   className="text-[14px] text-ink-2 transition-colors hover:text-ink"
                 >
                   Analyse a company
                 </a>
+              </li>
+              <li>
+                <Link
+                  to="/connect"
+                  className="text-[14px] text-ink-2 transition-colors hover:text-ink"
+                >
+                  Use your own AI
+                </Link>
               </li>
               <li>
                 <button

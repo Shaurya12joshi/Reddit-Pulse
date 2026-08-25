@@ -1,8 +1,9 @@
 
 import { useCallback, useRef, useState } from 'react'
 import { isExtensionAvailable, requestScrape } from '../services/extensionBridge.js'
+import { apiFetch } from '../services/aiConnection.js'
 
-const API = 'http://localhost:3001'
+
 
 export function useCompanyAnalysis() {
   const [status, setStatus] = useState('idle')
@@ -39,7 +40,7 @@ export function useCompanyAnalysis() {
     try {
       // Reddit is an ingestion source, not something to re-hit on every
       // search — only scrape when this company's data is missing or stale.
-      const freshness = await fetch(`${API}/api/freshness?company=${encodeURIComponent(name)}`, {
+      const freshness = await apiFetch(`/api/freshness?company=${encodeURIComponent(name)}`, {
         signal: controller.signal,
       })
         .then((r) => (r.ok ? r.json() : null))
@@ -70,7 +71,7 @@ export function useCompanyAnalysis() {
 
       setProgress({ stage: 'summarising', message: 'Building insights' })
 
-      const res = await fetch(`${API}/api/report?company=${encodeURIComponent(name)}`, {
+      const res = await apiFetch(`/api/report?company=${encodeURIComponent(name)}`, {
         signal: controller.signal,
       })
 

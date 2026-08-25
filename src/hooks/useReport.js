@@ -1,7 +1,8 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { apiFetch } from '../services/aiConnection.js'
 
-const API = 'http://localhost:3001'
+
 
 function buildQuery(company, filters) {
   const params = new URLSearchParams({ company })
@@ -26,7 +27,7 @@ export function useReport(company, filters) {
 
     async function load() {
       try {
-        const res = await fetch(`${API}/api/report?${buildQuery(company, filters)}`, {
+        const res = await apiFetch(`/api/report?${buildQuery(company, filters)}`, {
           signal: controller.signal,
         })
         if (!res.ok) {
@@ -50,7 +51,7 @@ export function useReport(company, filters) {
     const params = buildQuery(company, filters)
     params.set('offset', String(state.nextOffset))
 
-    const res = await fetch(`${API}/api/posts?${params}`)
+    const res = await apiFetch(`/api/posts?${params}`)
     if (!res.ok) return
 
     const data = await res.json()

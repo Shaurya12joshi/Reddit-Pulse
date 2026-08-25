@@ -1,5 +1,6 @@
 import { useState } from "react";
 import {normalizePosts} from "./normalize";
+import { apiFetch } from '../../services/aiConnection.js'
 function useCompanyData() {
     const [status, setStatus] = useState("idle");
     const [posts, setPosts] = useState([]);
@@ -8,7 +9,7 @@ function useCompanyData() {
         try {
             setStatus("loading");
             const codedName = encodeURIComponent(companyName)
-            const response = await fetch(`http://localhost:3001/api/results?company=${codedName}`)
+            const response = await apiFetch(`/api/results?company=${codedName}`)
             if(response.status===404){
                 setError(`No data scraped for ${companyName} yet`)
                 setStatus("error")

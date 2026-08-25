@@ -1,7 +1,8 @@
 
 import { useEffect, useState } from 'react'
+import { apiFetch } from '../services/aiConnection.js'
 
-const API = 'http://localhost:3001'
+
 
 export function usePreviewReport() {
   const [state, setState] = useState({ status: 'loading' })
@@ -11,7 +12,7 @@ export function usePreviewReport() {
 
     async function load() {
       try {
-        const listRes = await fetch(`${API}/api/companies`)
+        const listRes = await apiFetch(`/api/companies`)
         if (!listRes.ok) throw new Error('Could not list companies')
 
         const { companies } = await listRes.json()
@@ -21,8 +22,7 @@ export function usePreviewReport() {
           return
         }
 
-        const reportRes = await fetch(
-          `${API}/api/report?company=${encodeURIComponent(featured)}`,
+        const reportRes = await apiFetch(`/api/report?company=${encodeURIComponent(featured)}`,
         )
         if (!reportRes.ok) throw new Error('Could not load the featured report')
 

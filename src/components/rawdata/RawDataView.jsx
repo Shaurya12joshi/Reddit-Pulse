@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
+import { apiFetch } from '../../services/aiConnection.js'
 
-const API = 'http://localhost:3001'
+
 const PAGE_SIZE = 100
 
 const COLUMNS = [
@@ -60,7 +61,7 @@ export default function RawDataView({ company }) {
     if (debounced) params.set('q', debounced)
     if (typeFilter !== 'all') params.set('type', typeFilter)
 
-    fetch(`${API}/api/raw?${params}`, { signal: controller.signal })
+    apiFetch(`/api/raw?${params}`, { signal: controller.signal })
       .then((res) => (res.ok ? res.json() : Promise.reject(new Error('Request failed'))))
       .then((json) => {
         setData(json)
