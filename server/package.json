@@ -1,0 +1,24 @@
+{
+  "name": "server",
+  "version": "1.0.0",
+  "description": "API and analysis pipeline for Reddit Pulse.",
+  "main": "index.js",
+  "scripts": {
+    "start": "node --env-file-if-exists=.env index.js",
+    "dev": "node --env-file-if-exists=.env --watch index.js",
+    "eval": "node --env-file-if-exists=.env eval/run.js --verbose",
+    "smoke": "node --env-file-if-exists=.env intelligence/smoke.js",
+    "verify": "node --env-file-if-exists=.env verify.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "module",
+  "dependencies": {
+    "cors": "^2.8.6",
+    "express": "^5.2.1"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}

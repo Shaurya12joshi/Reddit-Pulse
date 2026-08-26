@@ -31,7 +31,6 @@ export default function ScrollRail() {
 
   return (
     <>
-      {}
       <nav
         aria-label="Journey progress"
         className="pointer-events-none absolute top-1/2 right-5 z-20 hidden -translate-y-1/2 lg:block"
@@ -55,7 +54,6 @@ export default function ScrollRail() {
             ))}
           </ul>
 
-          {}
           <div className="relative w-px bg-line">
             <div
               ref={fillRef}

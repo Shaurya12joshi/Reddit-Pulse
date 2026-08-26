@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react'
 import { apiFetch } from '../../services/aiConnection.js'
 
-
 const PAGE_SIZE = 100
 
 const COLUMNS = [
@@ -110,7 +109,6 @@ export default function RawDataView({ company }) {
 
   return (
     <main className="min-h-screen bg-white px-4 py-6 font-mono text-slate-800 sm:px-8">
-      {}
       <header className="border-b-2 border-slate-900 pb-3">
         <h1 className="text-sm font-bold uppercase tracking-wider">
           Raw collection: {data.company}
@@ -121,7 +119,6 @@ export default function RawDataView({ company }) {
         </p>
       </header>
 
-      {}
       <section className="mt-4 grid grid-cols-2 gap-px border border-slate-300 bg-slate-300 sm:grid-cols-4 lg:grid-cols-7">
         {summary.map(([label, value]) => (
           <div key={label} className="bg-white px-3 py-2">
@@ -131,7 +128,6 @@ export default function RawDataView({ company }) {
         ))}
       </section>
 
-      {}
       <section className="mt-6">
         <h2 className="text-[11px] font-bold uppercase tracking-wider text-slate-500">
           Communities found ({subreddits.length})
@@ -190,7 +186,6 @@ export default function RawDataView({ company }) {
         </div>
       </section>
 
-      {}
       <section className="mt-6 flex flex-wrap items-center gap-3 border-y border-slate-300 py-2">
         <input
           value={query}
@@ -222,7 +217,6 @@ export default function RawDataView({ company }) {
         </span>
       </section>
 
-      {}
       <section className="mt-3 overflow-x-auto border border-slate-300">
         <table className="w-full min-w-[1100px] text-[11px]">
           <thead className="bg-slate-900 text-white">
@@ -298,7 +292,6 @@ export default function RawDataView({ company }) {
         </table>
       </section>
 
-      {}
       <section className="mt-3 flex items-center justify-between text-[11px]">
         <span className="text-slate-500">
           rows {total === 0 ? 0 : offset + 1}–{Math.min(offset + PAGE_SIZE, total)} of{' '}

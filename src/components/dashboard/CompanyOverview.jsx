@@ -52,7 +52,6 @@ export default function CompanyOverview({ company, insights, meta, onRefresh }) 
         </div>
       </div>
 
-      {}
       <div className="w-full shrink-0 rounded-[14px] border border-line bg-surface p-5 lg:w-[330px]">
         <div className="flex items-start justify-between gap-3">
           <div>

@@ -2,15 +2,9 @@ import { useEffect, useState } from 'react'
 
 import { apiFetch } from '../services/aiConnection.js'
 
-/**
- * Head-to-head verdicts the model drew from the collected posts. Loaded after
- * the report so the dashboard paints immediately and fills this in when ready.
- */
 export function useComparisons(company) {
   const [state, setState] = useState({ status: 'loading', comparisons: [], company: null })
 
-  // Derive the reset from props rather than an effect: a company change makes
-  // any loaded verdicts stale immediately, without an extra render pass.
   const current = state.company === company ? state : { status: 'loading', comparisons: [] }
 
   useEffect(() => {

@@ -21,7 +21,6 @@ export default function App() {
       <Route path="/" element={<LandingRoute />} />
       <Route path="/analyze/:company" element={<AnalyzePage />} />
       <Route path="/connect" element={<ConnectAiPage />} />
-      {}
       <Route path="/analyze" element={<Navigate to="/" replace />} />
       <Route path="*" element={<NotFound />} />
     </Routes>

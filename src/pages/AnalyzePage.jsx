@@ -77,7 +77,6 @@ function RateLimitWait({ company, retryAt, onRetry }) {
       )}
 
       <div className="mt-2 flex items-center gap-4">
-        {}
         <button
           type="button"
           onClick={onRetry}

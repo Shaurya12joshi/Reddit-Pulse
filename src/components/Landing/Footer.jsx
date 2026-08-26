@@ -106,7 +106,6 @@ export default function Footer() {
 
         <div className="mt-14 flex flex-col gap-3 border-t border-line pt-6 sm:flex-row sm:items-center sm:justify-between">
           <p className="tnum text-[12px] text-ink-3">© {year} Reddit Pulse</p>
-          {}
           <p className="max-w-md text-[12px] leading-relaxed text-ink-3 sm:text-right">
             Built on public Reddit posts and comments. Not affiliated with,
             endorsed by, or connected to Reddit, Inc.

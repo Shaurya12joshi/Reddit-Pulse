@@ -216,7 +216,6 @@ export default function BuzzView({ company, onRefresh }) {
         </div>
       </header>
 
-      {}
       <Section
         title="Ranked communities"
         subtitle="Ordered by measured buzz, gated on whether the brand is genuinely the subject"
@@ -225,7 +224,6 @@ export default function BuzzView({ company, onRefresh }) {
         <RankedTable rows={ranked} />
       </Section>
 
-      {}
       <Section
         title="Top communities"
         subtitle="Monitor these first"
@@ -238,7 +236,6 @@ export default function BuzzView({ company, onRefresh }) {
         </ul>
       </Section>
 
-      {}
       <Section
         title="Emerging communities"
         subtitle="Rising or newly active, worth watching before they matter"
@@ -267,7 +264,6 @@ export default function BuzzView({ company, onRefresh }) {
         )}
       </Section>
 
-      {}
       <Section
         title="Discovery insights"
         subtitle="What a plain search for the brand name would have missed"
@@ -370,7 +366,6 @@ export default function BuzzView({ company, onRefresh }) {
         </div>
       </Section>
 
-      {}
       {excluded.length ? (
         <Section
           title="Set aside"
@@ -388,7 +383,6 @@ export default function BuzzView({ company, onRefresh }) {
         </Section>
       ) : null}
 
-      {}
       <Section
         title="Methodology"
         subtitle="How the ranking was produced"

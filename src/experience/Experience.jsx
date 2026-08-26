@@ -81,7 +81,6 @@ export default function Experience({ children, fallbackSections }) {
         <ScrollRail />
       </div>
 
-      {}
       <PostDetailModal
         post={selectedPost}
         open={Boolean(selectedPost)}

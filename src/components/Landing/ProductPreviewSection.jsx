@@ -72,14 +72,12 @@ export default function ProductPreviewSection() {
               />
             </Suspense>
 
-            {}
             <div
               aria-hidden="true"
               className="pointer-events-none absolute inset-0 bg-gradient-to-b from-canvas via-transparent to-canvas"
             />
           </div>
 
-          {}
           <div className="mt-4 grid gap-4 lg:grid-cols-2">
             <Reveal>
               <ThemesPanel themes={praise} polarity="positive" total={totals.mentions} />

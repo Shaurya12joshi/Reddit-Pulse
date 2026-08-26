@@ -37,7 +37,6 @@ export default function DivergingBars({ items, onSelect, activeId }) {
                 <span className="truncate text-[13px] text-ink-2">{item.label}</span>
 
                 <span className="flex h-5 items-center">
-                  {}
                   <span className="flex h-full flex-1 justify-end">
                     <span
                       className="h-full rounded-l-[3px] bg-negative/80 transition-[width] duration-500 ease-out"
@@ -46,7 +45,6 @@ export default function DivergingBars({ items, onSelect, activeId }) {
                     />
                   </span>
                   <span className="h-full w-px shrink-0 bg-line-strong" />
-                  {}
                   <span className="flex h-full flex-1 justify-start">
                     <span
                       className="h-full rounded-r-[3px] bg-positive/80 transition-[width] duration-500 ease-out"

@@ -1,4 +1,3 @@
-
 export const PAPER_3D = {
   bg: '#f7f5ef',
   card: '#fffdf8',

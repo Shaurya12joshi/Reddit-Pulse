@@ -89,7 +89,6 @@ export default function DiscussionsPanel({ posts, topDiscussions, onOpenPost }) 
         }
       />
 
-      {}
       <div className="border-b border-line px-3 py-2 md:hidden">
         <div className="flex gap-1 overflow-x-auto">
           {TABS.map((item) => (

@@ -83,7 +83,6 @@ export default function VolumeChart({ buckets, granularity = 'day' }) {
 
             {chart.bars.map((bar) => (
               <g key={bar.bucket.start}>
-                {}
                 <rect
                   x={MARGIN.left + chart.slot * bar.index}
                   y={MARGIN.top}

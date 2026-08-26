@@ -1,4 +1,3 @@
-
 import { analyzeSentiment, analyzeSentences, labelFor, tokenize } from './sentiment.js'
 import { detectTopics, extractTrendingPhrases, topicLabel } from './topics.js'
 import { detectCompetitors, findMarket } from './competitors.js'
@@ -217,12 +216,6 @@ function buildThemes(posts, polarity) {
     .sort((a, b) => b.count - a.count)
 }
 
-/**
- * Regex capture finds real rivals but also debris — a stray capitalised word,
- * an airline code, a product name. When the brand's competitors have been
- * resolved, that list is the authority: anything outside it is dropped, and an
- * alias ("SQ") is folded into the name people would recognise.
- */
 function competitorGate(roster = []) {
   if (!roster.length) return { allowed: null, canonical: new Map() }
 
@@ -547,8 +540,6 @@ export function buildInsights(
       exclude: tokenize(companyName),
     },
   )
-  // The resolved category describes any company; the built-in brand groups only
-  // cover a dozen markets. Prefer the resolved one, keep the lookup as fallback.
   const { market: lexiconMarket } = findMarket(companyName)
   const market = resolvedMarket || lexiconMarket
 

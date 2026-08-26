@@ -1,4 +1,3 @@
-
 import { buildBrandMatcher, makeSenseClassifier, brandTokens } from './buzz.js'
 import { escapeRegex } from './topics.js'
 import { analyzeSentiment } from './sentiment.js'

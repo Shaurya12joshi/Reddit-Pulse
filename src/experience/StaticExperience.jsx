@@ -41,7 +41,6 @@ export default function StaticExperience({ children, fallbackSections }) {
 
             {isLast && children ? <div className="mt-9">{children}</div> : null}
 
-            {}
             {act.id === 'report' && fallbackSections ? (
               <div className="mt-10">{fallbackSections}</div>
             ) : null}

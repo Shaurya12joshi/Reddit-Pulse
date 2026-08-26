@@ -1,4 +1,3 @@
-
 export const ACTS = [
   {
     id: 'raw',

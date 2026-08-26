@@ -1,15 +1,7 @@
-
 import { useCallback, useRef, useState } from 'react'
 import { isExtensionAvailable, requestScrape } from '../services/extensionBridge.js'
 import { apiFetch } from '../services/aiConnection.js'
 
-
-
-/**
- * Collected posts are judged by the AI before they count towards a report.
- * Wait for that to finish so the dashboard opens complete, rather than filling
- * in underneath the reader.
- */
 async function waitForAnalysis(company, signal, onProgress) {
   const EVERY_MS = 2000
   const DEADLINE_MS = 4 * 60 * 1000
@@ -70,8 +62,6 @@ export function useCompanyAnalysis() {
     setProgress({ stage: 'starting', message: 'Checking what we already have' })
 
     try {
-      // Reddit is an ingestion source, not something to re-hit on every
-      // search — only scrape when this company's data is missing or stale.
       const freshness = await apiFetch(`/api/freshness?company=${encodeURIComponent(name)}`, {
         signal: controller.signal,
       })
@@ -115,9 +105,6 @@ export function useCompanyAnalysis() {
 
       let res = await report()
 
-      // The collector saves in phases, so the report can be asked for in the
-      // gap between the last batch arriving and it being stored. One retry
-      // separates that from genuinely having collected nothing.
       if (res.status === 404 && hasExtension) {
         await new Promise((settle) => setTimeout(settle, 2000))
         if (controller.signal.aborted) return

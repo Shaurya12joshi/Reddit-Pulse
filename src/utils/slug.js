@@ -1,4 +1,3 @@
-
 export function toSlug(name) {
   return String(name ?? '')
     .normalize('NFKD')

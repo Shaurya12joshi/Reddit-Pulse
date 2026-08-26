@@ -8,9 +8,6 @@ import {
   subscribe,
 } from '../services/aiConnection.js'
 
-/**
- * The list of AI services on offer, plus whichever one this browser is using.
- */
 export function useAiConnection() {
   const [catalogue, setCatalogue] = useState({ status: 'loading' })
   const [connection, setConnection] = useState(() => getConnection())
@@ -35,7 +32,6 @@ export function useAiConnection() {
     }
   }, [])
 
-  /** Verify an account, then keep it only if it actually works. */
   const connect = useCallback(async (draft) => {
     setChecking(true)
     try {

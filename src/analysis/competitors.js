@@ -1,4 +1,3 @@
-
 import { ALL_BRANDS, BRAND_GROUPS, COMPARISON_PATTERNS, STOPWORDS } from './lexicon.js'
 import { analyzeSentiment, splitSentences } from './sentiment.js'
 import { detectTopics, escapeRegex } from './topics.js'
@@ -67,11 +66,6 @@ function canonicalise(candidate) {
   return known || trimmed
 }
 
-/**
- * The built-in brand list only covers a handful of markets. Names resolved for
- * this company — its competitors and their aliases — are matched alongside it,
- * so a brand nobody hardcoded is still recognised in a comparison.
- */
 function matchersFor(extraBrands = []) {
   if (!extraBrands.length) return BRAND_MATCHERS
 

@@ -97,7 +97,6 @@ function ActBlock({ act, index, isFirst, children }) {
           {act.body}
         </p>
 
-        {}
         {children ? (
           <div className="pointer-events-auto mt-9">{children}</div>
         ) : null}

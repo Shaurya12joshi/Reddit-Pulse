@@ -1,8 +1,5 @@
-
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { apiFetch } from '../services/aiConnection.js'
-
-
 
 function buildQuery(company, filters) {
   const params = new URLSearchParams({ company })
@@ -25,9 +22,6 @@ export function useReport(company, filters) {
     const controller = new AbortController()
     setExtraPosts([])
 
-    // While the server is still judging freshly collected posts it serves them
-    // unpruned and says so. Re-read until that finishes, so the report settles
-    // on its own instead of needing a manual refresh.
     const RECHECK_MS = 8000
     const RECHECKS = 12
     let timer = null

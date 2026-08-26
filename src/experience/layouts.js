@@ -1,4 +1,3 @@
-
 import { PAPER_3D, ACCENT_3D, hexToRgbTriplet } from './palette.js'
 
 function createRandom(seed) {

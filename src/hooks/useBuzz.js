@@ -1,8 +1,5 @@
-
 import { useCallback, useEffect, useState } from 'react'
 import { apiFetch } from '../services/aiConnection.js'
-
-
 
 export function useBuzz(company) {
   const [state, setState] = useState({ status: 'loading' })

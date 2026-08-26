@@ -42,7 +42,6 @@ export default function ExperienceCanvas({
         <ConversationField count={count} reducedMotion={reducedMotion} />
         <DashboardAssembly reducedMotion={reducedMotion} />
 
-        {}
         <ReportStage insights={insights} company={company} reducedMotion={reducedMotion} />
         <EvidenceStage posts={posts} onOpenPost={onOpenPost} reducedMotion={reducedMotion} />
 

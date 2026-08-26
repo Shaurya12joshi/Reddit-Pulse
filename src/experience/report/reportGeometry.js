@@ -1,4 +1,3 @@
-
 import { ACCENT_3D, PAPER_3D, hexToRgbTriplet } from '../palette.js'
 
 export const SENTIMENT_3D = {

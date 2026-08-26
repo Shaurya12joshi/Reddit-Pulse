@@ -32,7 +32,6 @@ function useCompanyData() {
         }  
     }
     return {status, posts, error, search}
-
 }
 
 export default useCompanyData

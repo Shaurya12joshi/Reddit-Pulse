@@ -1,4 +1,3 @@
-
 const clamp01 = (v) => (v < 0 ? 0 : v > 1 ? 1 : v)
 
 export const driver = {
@@ -61,7 +60,6 @@ function frame(time) {
   rafId = requestAnimationFrame(frame)
 }
 
-/** True once the immersive rail owns scrolling; false in the static fallback. */
 export function isDriverActive() {
   return Boolean(targetEl)
 }

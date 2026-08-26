@@ -1,5 +1,3 @@
-
-
 export const POSITIVE_WORDS = {
   amazing: 3, awesome: 3, excellent: 3, fantastic: 3, outstanding: 3,
   perfect: 3, incredible: 3, brilliant: 3, superb: 3, phenomenal: 3,

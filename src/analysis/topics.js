@@ -1,4 +1,3 @@
-
 import { TOPIC_TAXONOMY, STOPWORDS } from './lexicon.js'
 import { tokenize } from './sentiment.js'
 

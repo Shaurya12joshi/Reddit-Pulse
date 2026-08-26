@@ -94,7 +94,6 @@ export default function Dashboard({ company, meta, onRefresh }) {
         <div className="animate-fade-up mt-7 space-y-4">
           <StatTiles insights={insights} />
 
-          {}
           <div className="grid gap-4 xl:grid-cols-12">
             <div className="xl:col-span-7">
               <TakeawaysPanel takeaways={insights.takeaways} />
@@ -104,7 +103,6 @@ export default function Dashboard({ company, meta, onRefresh }) {
             </div>
           </div>
 
-          {}
           <div className="grid gap-4 xl:grid-cols-12">
             <div className="xl:col-span-7">
               <Card className="h-full">
@@ -138,7 +136,6 @@ export default function Dashboard({ company, meta, onRefresh }) {
             </div>
           </div>
 
-          {}
           <div className="grid gap-4 xl:grid-cols-12">
             <div className="xl:col-span-7">
               <TopicPanel
@@ -152,7 +149,6 @@ export default function Dashboard({ company, meta, onRefresh }) {
             </div>
           </div>
 
-          {}
           <div className="grid gap-4 lg:grid-cols-2">
             <ThemesPanel
               themes={insights.praise}
@@ -166,7 +162,6 @@ export default function Dashboard({ company, meta, onRefresh }) {
             />
           </div>
 
-          {}
           <div className="grid gap-4 xl:grid-cols-12">
             <div className="xl:col-span-8">
               <CompetitorPanel
@@ -185,7 +180,6 @@ export default function Dashboard({ company, meta, onRefresh }) {
             </div>
           </div>
 
-          {}
           <DiscussionsPanel
             posts={posts}
             topDiscussions={insights.topDiscussions}

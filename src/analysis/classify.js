@@ -1,4 +1,3 @@
-
 import { escapeRegex } from './topics.js'
 import { analyzeSentiment } from './sentiment.js'
 

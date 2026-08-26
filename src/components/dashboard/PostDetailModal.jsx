@@ -28,7 +28,6 @@ export default function PostDetailModal({ post, open, onClose }) {
       subtitle={`r/${post.subreddit} · u/${post.author} · ${formatLongDate(post.createdAt)}`}
       width="max-w-2xl"
     >
-      {}
       <div className="flex flex-wrap items-center gap-3 rounded-lg border border-line bg-elevated px-4 py-3">
         <SentimentBadge label={post.sentimentLabel} />
         <span className={`tnum text-[13px] font-semibold ${style.text}`}>
@@ -50,14 +49,12 @@ export default function PostDetailModal({ post, open, onClose }) {
         </span>
       </div>
 
-      {}
       <div className="mt-4 max-h-[38vh] overflow-y-auto pr-1">
         <p className="text-[14px] leading-relaxed whitespace-pre-line text-ink-2">
           {highlighted}
         </p>
       </div>
 
-      {}
       <div className="mt-5 grid gap-4 border-t border-line pt-4 sm:grid-cols-2">
         <DetailBlock title="Topics">
           {post.topicLabels.length ? (

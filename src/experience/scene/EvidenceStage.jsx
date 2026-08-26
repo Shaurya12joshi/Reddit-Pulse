@@ -75,7 +75,6 @@ function ThreadPanel({ post, slot, revealRef, index, total, onOpen }) {
 
   return (
     <group ref={groupRef}>
-      {}
       <mesh geometry={geometry}>
         <meshStandardMaterial
           color={PAPER_3D.card}
@@ -85,7 +84,6 @@ function ThreadPanel({ post, slot, revealRef, index, total, onOpen }) {
           opacity={0.97}
         />
       </mesh>
-      {}
       <lineSegments geometry={edges}>
         <lineBasicMaterial color={accent} transparent opacity={0.95} depthWrite={false} />
       </lineSegments>
@@ -94,7 +92,6 @@ function ThreadPanel({ post, slot, revealRef, index, total, onOpen }) {
         <meshBasicMaterial color={accent} />
       </mesh>
 
-      {}
       <Html
         transform
         scale={PANEL_SCALE}
@@ -113,7 +110,6 @@ function ThreadPanel({ post, slot, revealRef, index, total, onOpen }) {
           onPointerLeave={() => setHovered(false)}
           className="flex h-full w-full cursor-pointer flex-col justify-center overflow-hidden py-9 pr-10 pl-12 text-left"
         >
-          {}
           <div className="flex items-baseline gap-4">
             <span
               className="shrink-0 text-[22px] font-semibold tracking-[0.08em] uppercase"
@@ -127,7 +123,6 @@ function ThreadPanel({ post, slot, revealRef, index, total, onOpen }) {
             </span>
           </div>
 
-          {}
           <h3 className="display mt-5 text-[42px] text-ink">
             {truncate(post.title || post.body, 54)}
           </h3>

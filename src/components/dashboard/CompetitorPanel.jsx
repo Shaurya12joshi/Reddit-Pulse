@@ -134,7 +134,6 @@ export default function CompetitorPanel({ competitors, company, market, comparis
                     aria-expanded={isOpen}
                     className="grid w-full grid-cols-[1.4fr_1fr] items-center gap-4 px-5 py-3.5 text-left transition-colors hover:bg-elevated md:grid-cols-[minmax(140px,1.1fr)_minmax(120px,1fr)_minmax(180px,1.4fr)_auto]"
                   >
-                    {}
                     <div className="min-w-0">
                       <div className="flex items-center gap-2">
                         <Icon
@@ -164,7 +163,6 @@ export default function CompetitorPanel({ competitors, company, market, comparis
                       </p>
                     </div>
 
-                    {}
                     <div className="hidden md:block">
                       <div className="h-1.5 w-full overflow-hidden rounded-full bg-raised">
                         <div
@@ -174,7 +172,6 @@ export default function CompetitorPanel({ competitors, company, market, comparis
                       </div>
                     </div>
 
-                    {}
                     <div className="hidden flex-wrap gap-1.5 md:flex">
                       {competitor.reasons.slice(0, 2).map((reason) => (
                         <Badge key={reason.label}>
@@ -195,7 +192,6 @@ export default function CompetitorPanel({ competitors, company, market, comparis
                       ) : null}
                     </div>
 
-                    {}
                     <div className="flex items-center justify-end gap-2">
                       <span className={`tnum text-[12px] font-medium ${style.text}`}>
                         {formatSigned(competitor.avgSentiment)}

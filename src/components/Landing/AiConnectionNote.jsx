@@ -4,11 +4,6 @@ import { Link } from 'react-router'
 import Icon from '../ui/Icon.jsx'
 import { getConnection, subscribe } from '../../services/aiConnection.js'
 
-/**
- * Sits under the search field as a pill, matching the example chips below it.
- * Says which AI account the next report runs on and leads to changing it —
- * present, but never competing with the Analyze button.
- */
 export default function AiConnectionNote() {
   const [connection, setConnection] = useState(() => getConnection())
 

@@ -4,8 +4,6 @@ import * as THREE from 'three'
 
 import { PAPER_3D, ACCENT_3D } from '../../experience/palette.js'
 
-// Same three-way split and colors as the landing page's own sentiment donut
-// (src/experience/layouts.js) — this is that exact shape, standalone and spinning.
 const SENTIMENT_SPLIT = [0.44, 0.19, 0.37]
 const BAND_COLORS = [ACCENT_3D.green, PAPER_3D.muted, ACCENT_3D.orange]
 

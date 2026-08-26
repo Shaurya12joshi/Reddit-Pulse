@@ -1,4 +1,3 @@
-
 export const CHART_COLORS = {
   positive: 'var(--color-positive)',
   neutral: 'var(--color-neutral)',

@@ -1,4 +1,3 @@
-
 const EXT_SOURCE = 'reddit-scraper-extension'
 const PAGE_SOURCE = 'reddit-dashboard'
 
@@ -55,11 +54,6 @@ export function requestScrape(company, { onProgress, signal } = {}) {
 
       const job = data.job
 
-      // Two searches can overlap — a second company started while the first is
-      // still collecting. Without this check the earlier job's "done" resolves
-      // the later one, and the page reports for a company nothing was saved
-      // for yet. Jobs from older extension builds carry no company, so those
-      // are still accepted.
       if (job.company && !sameCompany(job.company, company)) return
 
       onProgress?.(job)

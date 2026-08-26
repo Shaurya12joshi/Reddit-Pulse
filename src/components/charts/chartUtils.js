@@ -1,4 +1,3 @@
-
 export function scale(value, domainMin, domainMax, rangeMin, rangeMax) {
   if (domainMax === domainMin) return (rangeMin + rangeMax) / 2
   const t = (value - domainMin) / (domainMax - domainMin)

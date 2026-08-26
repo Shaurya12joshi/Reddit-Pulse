@@ -1,4 +1,3 @@
-
 import { scoreThreads } from './importance.js'
 import { threadIdFromPermalink } from './buzz.js'
 import { tokenize } from './sentiment.js'

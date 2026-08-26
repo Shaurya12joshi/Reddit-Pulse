@@ -64,7 +64,6 @@ export default function SentimentTrendChart({ buckets, granularity = 'day' }) {
             }}
           >
             <defs>
-              {}
               <linearGradient id="trend-positive" x1="0" y1="0" x2="0" y2="1">
                 <stop
                   offset="0%"
@@ -89,7 +88,6 @@ export default function SentimentTrendChart({ buckets, granularity = 'day' }) {
                   stopOpacity="0"
                 />
               </linearGradient>
-              {}
               <clipPath id="clip-above">
                 <rect
                   x={0}
@@ -108,7 +106,6 @@ export default function SentimentTrendChart({ buckets, granularity = 'day' }) {
               </clipPath>
             </defs>
 
-            {}
             {chart.ticks.map((tick) => {
               const y =
                 MARGIN.top +
@@ -153,7 +150,6 @@ export default function SentimentTrendChart({ buckets, granularity = 'day' }) {
               clipPath="url(#clip-below)"
             />
 
-            {}
             {chart.points.map((point, index) => {
               const step = Math.max(1, Math.ceil(chart.points.length / 7))
               if (index % step !== 0 && index !== chart.points.length - 1) return null

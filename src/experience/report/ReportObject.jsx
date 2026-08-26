@@ -211,7 +211,6 @@ function TopicRidge({ topics, reveal }) {
             <boxGeometry args={[0.62, 1, 0.62]} />
             <meshStandardMaterial color={column.accent} roughness={0.82} metalness={0} />
           </mesh>
-          {}
           <mesh
             ref={(node) => {
               caps.current[index] = node
@@ -220,7 +219,6 @@ function TopicRidge({ topics, reveal }) {
             <boxGeometry args={[0.66, 0.12, 0.66]} />
             <meshStandardMaterial color={column.color} roughness={0.82} metalness={0} />
           </mesh>
-          {}
           <Label position={[0, index % 2 === 0 ? -0.55 : -1.15, 0]}>
             <span className="block text-[14px] leading-tight font-medium text-ink">
               {column.label}
@@ -339,7 +337,6 @@ function CompetitorConstellation({ competitors, company, reveal }) {
 
   return (
     <group ref={groupRef}>
-      {}
       <mesh>
         <boxGeometry args={[0.5, 0.5, 0.5]} />
         <meshStandardMaterial color={PAPER_3D.ink} roughness={0.7} metalness={0} />
@@ -434,7 +431,6 @@ export default function ReportObject({ insights, company, presence, parallax = t
 
   return (
     <group ref={groupRef}>
-      {}
       <group position={[-4.9, -1.4, 1.2]} rotation={[0, 0.34, 0]}>
         <Sheet
           width={5.6}
@@ -449,7 +445,6 @@ export default function ReportObject({ insights, company, presence, parallax = t
         </Label>
       </group>
 
-      {}
       <group position={[3.4, -1.2, -0.4]} rotation={[0, -0.16, 0]}>
         <Sheet
           width={13.4}
@@ -464,7 +459,6 @@ export default function ReportObject({ insights, company, presence, parallax = t
         </Label>
       </group>
 
-      {}
       <group position={[-1.1, -4.6, 2.4]} rotation={[-0.28, 0, 0]}>
         <VolumeRibbon timeline={timeline} reveal={reveal} />
         <Label position={[0, -0.7, 0]}>
@@ -472,7 +466,6 @@ export default function ReportObject({ insights, company, presence, parallax = t
         </Label>
       </group>
 
-      {}
       <group position={[5.4, 3.1, -3.4]} rotation={[0, -0.42, 0]}>
         <CompetitorConstellation
           competitors={competitors}
