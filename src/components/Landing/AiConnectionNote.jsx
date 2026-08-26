@@ -20,7 +20,7 @@ export default function AiConnectionNote() {
           ? `Reports are using your ${name} account. Change your AI connection`
           : 'Connect your own AI account'
       }
-      className={`group mt-5 inline-flex items-center gap-2.5 rounded-full border py-2.5 pr-3.5 pl-3 text-[13px] transition-colors ${
+      className={`group inline-flex items-center gap-2.5 rounded-full border py-2.5 pr-3.5 pl-3 text-[13px] transition-colors ${
         connected
           ? 'border-positive/30 bg-positive/8 hover:border-positive/60'
           : 'border-line bg-surface hover:border-ink'

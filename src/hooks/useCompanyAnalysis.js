@@ -21,7 +21,7 @@ async function waitForAnalysis(company, signal, onProgress) {
     const judged = status.total - status.pending
     onProgress(
       status.total
-        ? `Reading ${status.total} discussions — ${judged} of them so far`
+        ? `Reading ${status.total} discussions, ${judged} done so far`
         : 'Reading the discussions collected',
     )
 

@@ -157,7 +157,7 @@ export default function ConnectAiPage() {
         </h1>
         <p className="mt-2 max-w-prose text-[14px] leading-relaxed text-ink-2">
           Reports are read and written by an AI model. Connect an account and every report you run
-          goes through it — your models, your usage, your control.
+          goes through it: your models, your usage, your control.
         </p>
       </header>
 

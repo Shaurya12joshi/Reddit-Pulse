@@ -3,6 +3,7 @@ import { Link, Navigate, Route, Routes } from 'react-router'
 import LandingRoute from './pages/LandingRoute.jsx'
 import AnalyzePage from './pages/AnalyzePage.jsx'
 import ConnectAiPage from './pages/ConnectAiPage.jsx'
+import ExtensionGuidePage from './pages/ExtensionGuidePage.jsx'
 
 function NotFound() {
   return (
@@ -21,6 +22,7 @@ export default function App() {
       <Route path="/" element={<LandingRoute />} />
       <Route path="/analyze/:company" element={<AnalyzePage />} />
       <Route path="/connect" element={<ConnectAiPage />} />
+      <Route path="/extension" element={<ExtensionGuidePage />} />
       <Route path="/analyze" element={<Navigate to="/" replace />} />
       <Route path="*" element={<NotFound />} />
     </Routes>

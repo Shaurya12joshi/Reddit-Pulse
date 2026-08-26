@@ -1,4 +1,5 @@
 import AiConnectionNote from './AiConnectionNote.jsx'
+import ExtensionNote from './ExtensionNote.jsx'
 import { SEARCH_ANCHOR } from '../../experience/goToSearch.js'
 import SearchBar from './SearchBar.jsx'
 import { EXAMPLE_COMPANIES } from '../../data/exampleCompanies.js'
@@ -8,7 +9,10 @@ export default function AnalyzeCta({ onAnalyze, dataSource, id = SEARCH_ANCHOR }
     <div id={id} className="w-full max-w-xl scroll-mt-24">
       <SearchBar onSubmit={onAnalyze} id="company-search" />
 
-      <AiConnectionNote />
+      <div className="mt-5 flex flex-wrap items-center gap-2.5">
+        <AiConnectionNote />
+        <ExtensionNote />
+      </div>
 
       <div className="mt-7 flex flex-wrap items-center gap-2">
         <span className="eyebrow mr-1 text-ink-3">Try</span>
