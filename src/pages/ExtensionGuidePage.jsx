@@ -669,20 +669,28 @@ export default function ExtensionGuidePage() {
               </div>
             ))}
           </div>
-          <p className="mt-3.5 text-[13px] leading-relaxed text-ink-3">
-            The code is short and readable. If you want to check any of this yourself, it is all in
-            the{' '}
+          <div className="mt-4 flex flex-wrap items-center justify-between gap-4 rounded-[14px] border border-line bg-surface/80 p-4 backdrop-blur-sm">
+            <p className="max-w-sm text-[13.5px] leading-relaxed text-ink-3">
+              The code is short and readable. Every claim above can be checked line by line.
+            </p>
             <a
               href={EXTENSION_REPO_URL}
               target="_blank"
               rel="noopener noreferrer"
-              className="font-medium underline underline-offset-2"
-              style={{ color: ORANGE_INK }}
+              className="group/src inline-flex shrink-0 items-center gap-2.5 rounded-xl border border-line bg-surface px-4 py-2.5 text-[13.5px] font-semibold text-ink shadow-sm transition-all hover:-translate-y-0.5 hover:border-ink hover:shadow-md motion-reduce:hover:translate-y-0"
             >
-              extension repository
+              <Icon
+                name="github"
+                className="h-4 w-4 text-ink-2 transition-colors group-hover/src:text-ink"
+                strokeWidth={1.7}
+              />
+              Read the source
+              <Icon
+                name="arrowOut"
+                className="h-3.5 w-3.5 text-ink-3 transition-transform duration-200 group-hover/src:-translate-y-0.5 group-hover/src:translate-x-0.5 motion-reduce:transform-none"
+              />
             </a>
-            .
-          </p>
+          </div>
         </Stage>
 
         <footer className="mt-20 flex flex-wrap items-center justify-between gap-3 border-t border-line pt-7">
