@@ -9,6 +9,7 @@ const STAGES = [
   { id: 'starting', label: 'Connecting' },
   { id: 'scraping', label: 'Collecting' },
   { id: 'summarising', label: 'Analysing' },
+  { id: 'reading', label: 'Comparing' },
 ]
 
 function StageDots({ stage }) {

@@ -1,12 +1,3 @@
-// A head-to-head the user asked for by name. The automatic read in
-// comparison.js decides for itself which rivals are worth weighing; this one
-// takes the rival as given, works out who that rival actually is, and reads
-// the corpus for that pairing alone.
-//
-// Two model calls: one to resolve the typed name into a real company (with
-// aliases, so the corpus scan finds it) and to say how the two relate, then
-// one to read the excerpts. Every claim cites a numbered excerpt, so quotes
-// can be traced back to the thread they came from.
 
 import { structured, activeModel, llmAvailable } from './client.js'
 import { patternsFor } from './comparison.js'
@@ -157,9 +148,6 @@ function byEngagement(posts) {
   )
 }
 
-// Splits the corpus three ways: both names in one passage, the rival alone,
-// the brand alone. The single-name groups are what let the read say something
-// useful when nobody has put the two side by side.
 export function splitEvidence(posts, brandNames, rivalNames) {
   const brandPatterns = patternsFor(brandNames)
   const rivalPatterns = patternsFor(rivalNames)

@@ -120,6 +120,20 @@ db.exec(`
     updated_at INTEGER NOT NULL
   );
 
+  -- Stage 4c. One product weighed against another, rather than one company
+  -- against another. Keyed by the pair so several can coexist.
+  CREATE TABLE IF NOT EXISTS product_comparisons (
+    company    TEXT NOT NULL,
+    mine       TEXT NOT NULL,          -- the user's product, lowercased
+    theirs     TEXT NOT NULL,          -- the rival product, lowercased
+    data       TEXT NOT NULL,
+    source     TEXT NOT NULL,
+    model      TEXT,
+    corpus     INTEGER NOT NULL,
+    updated_at INTEGER NOT NULL,
+    PRIMARY KEY (company, mine, theirs)
+  );
+
   -- One row per (run, thing) so trend velocity can be a real derivative
   -- between runs instead of an inference from post dates inside one sample.
   CREATE TABLE IF NOT EXISTS snapshots (
@@ -560,6 +574,40 @@ export function cachedTrending(company) {
       'SELECT data, source, model, corpus, updated_at AS updatedAt FROM trending_reads WHERE company = ?',
     )
     .get(key(company))
+  if (!row) return null
+  try {
+    return { ...JSON.parse(row.data), corpus: row.corpus, updatedAt: row.updatedAt }
+  } catch {
+    return null
+  }
+}
+
+export function saveProductComparison(company, mine, theirs, result, corpus) {
+  db.prepare(`
+    INSERT INTO product_comparisons (company, mine, theirs, data, source, model, corpus, updated_at)
+    VALUES (?,?,?,?,?,?,?,?)
+    ON CONFLICT(company, mine, theirs) DO UPDATE SET
+      data = excluded.data, source = excluded.source, model = excluded.model,
+      corpus = excluded.corpus, updated_at = excluded.updated_at
+  `).run(
+    key(company),
+    key(mine),
+    key(theirs),
+    JSON.stringify(result),
+    result.source || 'none',
+    result.model ?? null,
+    corpus,
+    Date.now(),
+  )
+}
+
+export function cachedProductComparison(company, mine, theirs) {
+  const row = db
+    .prepare(
+      `SELECT data, source, model, corpus, updated_at AS updatedAt
+       FROM product_comparisons WHERE company = ? AND mine = ? AND theirs = ?`,
+    )
+    .get(key(company), key(mine), key(theirs))
   if (!row) return null
   try {
     return { ...JSON.parse(row.data), corpus: row.corpus, updatedAt: row.updatedAt }

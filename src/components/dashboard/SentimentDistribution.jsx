@@ -5,7 +5,7 @@ import { SENTIMENT_SERIES } from '../../utils/chartColors.js'
 
 export default function SentimentDistribution({ sentiment }) {
   return (
-    <Card className="h-full">
+    <Card>
       <CardHeader
         title="Sentiment distribution"
         subtitle="Share of all analysed discussions"

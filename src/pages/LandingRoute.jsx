@@ -14,8 +14,6 @@ export default function LandingRoute() {
     goToSearch()
   }, [hash])
 
-  // The two optional asks ride in the query string rather than router state,
-  // so reloading the report page keeps them.
   const handleAnalyze = (rawName, extras = {}) => {
     const name = String(rawName ?? '').trim()
     const slug = toSlug(name)
@@ -24,8 +22,11 @@ export default function LandingRoute() {
     const params = new URLSearchParams()
     const compareWith = String(extras.compareWith ?? '').trim()
     const subject = String(extras.subject ?? '').trim()
+    const rivalProduct = String(extras.rivalProduct ?? '').trim()
+
     if (compareWith) params.set('vs', compareWith)
     if (subject) params.set('ask', subject)
+    if (rivalProduct) params.set('theirs', rivalProduct)
 
     const query = params.toString()
     navigate(`/analyze/${slug}${query ? `?${query}` : ''}`, { state: { companyName: name } })

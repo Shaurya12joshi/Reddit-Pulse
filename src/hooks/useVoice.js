@@ -2,7 +2,6 @@ import { useCallback, useEffect, useState } from 'react'
 
 import { apiFetch } from '../services/aiConnection.js'
 
-// What Reddit says about one product, service or question the user typed.
 export function useVoice(company, subject) {
   const [state, setState] = useState({ status: 'idle', key: null })
   const [attempt, setAttempt] = useState(0)

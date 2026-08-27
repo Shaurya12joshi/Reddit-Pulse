@@ -2,8 +2,6 @@ import { useCallback, useEffect, useState } from 'react'
 
 import { apiFetch } from '../services/aiConnection.js'
 
-// The head-to-head the user asked for by name. Runs alongside useComparisons,
-// which keeps reading whichever rivals the model picks on its own.
 export function useNamedComparison(company, target) {
   const [state, setState] = useState({ status: 'idle', key: null })
   const [attempt, setAttempt] = useState(0)

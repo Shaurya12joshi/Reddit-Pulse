@@ -6,8 +6,8 @@ import { redditUrl } from '../../utils/reddit.js'
 import { TONE_CLASSES, evidenceOf, evidenceTitle } from '../../utils/evidence.js'
 
 const VERDICT = {
-  brand: { label: 'Commenters lean toward', tone: 'positive' },
-  competitor: { label: 'Commenters lean toward', tone: 'negative' },
+  mine: { label: 'Commenters lean toward', tone: 'positive' },
+  theirs: { label: 'Commenters lean toward', tone: 'negative' },
   mixed: { label: 'Opinion splits', tone: 'caution' },
   unclear: { label: 'Not settled by the discussions', tone: 'neutral' },
 }
@@ -21,31 +21,24 @@ const RECEPTION = {
   unclear: 'text-ink-3',
 }
 
-const RELATIONSHIP = {
-  direct: 'People genuinely choose between these two.',
-  adjacent: 'These two overlap, but are not usually a straight either/or.',
-  unrelated: 'These two are not normally weighed against each other.',
-}
-
 const SWITCHING = {
-  to_brand: 'Movement toward',
-  to_competitor: 'Movement away, toward',
+  to_mine: 'Movement toward',
+  to_theirs: 'Movement away, toward',
   both: 'Movement in both directions with',
   none: null,
 }
 
-function EdgeMark({ edge, company, competitor }) {
+function EdgeMark({ edge, mine, theirs }) {
   if (edge === 'tie') return <span className="text-[11px] text-ink-3">Level</span>
   if (edge === 'unclear') return <span className="text-[11px] text-ink-3">Unclear</span>
-  const winner = edge === 'brand' ? company : competitor
   return (
     <span
       className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-medium ${
-        edge === 'brand' ? TONE.positive : TONE.negative
+        edge === 'mine' ? TONE.positive : TONE.negative
       }`}
     >
       <Icon name="check" className="h-3 w-3" />
-      {winner}
+      {edge === 'mine' ? mine : theirs}
     </span>
   )
 }
@@ -66,36 +59,6 @@ function WinList({ title, items, tone }) {
   )
 }
 
-function Quote({ quote, company, competitor }) {
-  const side =
-    quote.side === 'brand' ? company : quote.side === 'competitor' ? competitor : 'both'
-
-  return (
-    <blockquote className="rounded-lg border border-line bg-surface p-3.5">
-      <p className="text-[13px] leading-relaxed text-ink-2 italic [overflow-wrap:anywhere]">“{quote.quote}”</p>
-      {quote.point ? (
-        <p className="mt-2 text-[12px] leading-relaxed text-ink-3">{quote.point}</p>
-      ) : null}
-      <footer className="mt-2 flex flex-wrap items-center gap-2 text-[11px] text-ink-3">
-        <span>r/{quote.subreddit}</span>
-        <span className="h-1 w-1 rounded-full bg-line-strong" />
-        <span>on {side}</span>
-        {quote.permalink ? (
-          <a
-            href={redditUrl(quote.permalink)}
-            target="_blank"
-            rel="noreferrer"
-            className="ml-auto inline-flex items-center gap-1 text-ink-3 hover:text-accent-ink"
-          >
-            Open thread
-            <Icon name="arrowOut" className="h-3 w-3" />
-          </a>
-        ) : null}
-      </footer>
-    </blockquote>
-  )
-}
-
 function Empty({ children, onRetry }) {
   return (
     <CardBody>
@@ -109,16 +72,18 @@ function Empty({ children, onRetry }) {
   )
 }
 
-export default function NamedComparisonPanel({ company, requested, result }) {
-  const rival = result?.target?.name || requested
+export default function ProductComparisonPanel({ requested, result }) {
+  const mine = result?.products?.mine?.name || requested?.mine
+  const theirs = result?.products?.theirs?.name || requested?.theirs
+
   const header = (
     <CardHeader
-      title={`${company} vs ${rival}`}
-      subtitle="The head-to-head you asked for, read from the collected discussions"
-      icon={<Icon name="scale" className="h-3.5 w-3.5" />}
+      title={`${mine} vs ${theirs}`}
+      subtitle="The product-level comparison you asked for, read from the collected discussions"
+      icon={<Icon name="layers" className="h-3.5 w-3.5" />}
       action={
         result?.coverage ? (
-          <Badge title="Excerpts naming both companies">
+          <Badge title="Excerpts covering both products">
             {result.coverage.headToHead} head-to-head
           </Badge>
         ) : null
@@ -154,7 +119,7 @@ export default function NamedComparisonPanel({ company, requested, result }) {
       <Card>
         {header}
         <Empty onRetry={result?.source === 'failed' ? result.reload : null}>
-          {result?.reason || `Nothing in the collected discussions weighs ${company} against ${rival}.`}
+          {result?.reason || 'Nothing in the collected discussions weighs these two against each other.'}
         </Empty>
       </Card>
     )
@@ -162,12 +127,9 @@ export default function NamedComparisonPanel({ company, requested, result }) {
 
   const meta = VERDICT[comparison.verdict] || VERDICT.unclear
   const winner =
-    comparison.verdict === 'brand'
-      ? company
-      : comparison.verdict === 'competitor'
-        ? rival
-        : null
+    comparison.verdict === 'mine' ? mine : comparison.verdict === 'theirs' ? theirs : null
   const switching = SWITCHING[comparison.switching?.direction]
+  const products = result.products
 
   return (
     <Card>
@@ -178,10 +140,7 @@ export default function NamedComparisonPanel({ company, requested, result }) {
           <span
             className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-medium ${TONE[meta.tone]}`}
           >
-            <Icon
-              name={winner ? 'check' : 'scale'}
-              className="h-3 w-3"
-            />
+            <Icon name={winner ? 'check' : 'scale'} className="h-3 w-3" />
             {winner ? `${meta.label} ${winner}` : meta.label}
           </span>
           <span
@@ -192,13 +151,19 @@ export default function NamedComparisonPanel({ company, requested, result }) {
           >
             {evidenceOf(comparison.confidence).label}
           </span>
-          {result.target?.relationship ? (
+          {products?.theirsInferred ? (
             <span
-              className={`inline-flex items-center rounded-full border px-2.5 py-1 text-[11px] font-medium ${
-                result.target.relationship === 'unrelated' ? TONE.caution : TONE.info
-              }`}
+              title="No rival product was named, so the counterpart was chosen for you"
+              className={`inline-flex items-center rounded-full border px-2.5 py-1 text-[11px] font-medium ${TONE.caution}`}
             >
-              {RELATIONSHIP[result.target.relationship]}
+              Counterpart chosen for you
+            </span>
+          ) : null}
+          {products?.comparable === false ? (
+            <span
+              className={`inline-flex items-center rounded-full border px-2.5 py-1 text-[11px] font-medium ${TONE.negative}`}
+            >
+              Not straight alternatives
             </span>
           ) : null}
           {result.reload ? (
@@ -213,9 +178,33 @@ export default function NamedComparisonPanel({ company, requested, result }) {
           ) : null}
         </div>
 
+        <div className="grid gap-3 sm:grid-cols-2">
+          {[products?.mine, products?.theirs].map((product, index) =>
+            product?.name ? (
+              <div key={product.name} className="rounded-lg border border-line bg-elevated/60 p-3">
+                <p className="text-[12.5px] font-semibold text-ink">
+                  {product.name}
+                  {product.owner ? (
+                    <span className="ml-1.5 font-normal text-ink-3">by {product.owner}</span>
+                  ) : null}
+                </p>
+                <p className="mt-1 text-[12px] leading-relaxed text-ink-3">
+                  {product.what_it_is}
+                </p>
+                <p className="mt-1.5 text-[11px] text-ink-3">
+                  {index === 0 ? 'Yours' : 'Theirs'}
+                </p>
+              </div>
+            ) : null,
+          )}
+        </div>
+
         <div>
           <p className="text-[15px] leading-snug font-medium text-ink">{comparison.headline}</p>
           <p className="mt-2 text-[13px] leading-relaxed text-ink-2">{comparison.summary}</p>
+          {products?.relationship ? (
+            <p className="mt-2 text-[12px] leading-relaxed text-ink-3">{products.relationship}</p>
+          ) : null}
         </div>
 
         {comparison.dimensions?.length ? (
@@ -224,8 +213,8 @@ export default function NamedComparisonPanel({ company, requested, result }) {
               <thead>
                 <tr className="border-b border-line text-[11px] tracking-wide text-ink-3 uppercase">
                   <th className="py-2 pr-3 font-medium">Dimension</th>
-                  <th className="py-2 pr-3 font-medium">{company}</th>
-                  <th className="py-2 pr-3 font-medium">{rival}</th>
+                  <th className="py-2 pr-3 font-medium">{mine}</th>
+                  <th className="py-2 pr-3 font-medium">{theirs}</th>
                   <th className="py-2 font-medium">Edge</th>
                 </tr>
               </thead>
@@ -236,13 +225,13 @@ export default function NamedComparisonPanel({ company, requested, result }) {
                       {row.dimension}
                     </td>
                     <td className="py-2.5 pr-3 text-[12.5px] leading-relaxed text-ink-2">
-                      {row.brand_view}
+                      {row.mine_view}
                     </td>
                     <td className="py-2.5 pr-3 text-[12.5px] leading-relaxed text-ink-2">
-                      {row.competitor_view}
+                      {row.theirs_view}
                     </td>
                     <td className="py-2.5">
-                      <EdgeMark edge={row.edge} company={company} competitor={rival} />
+                      <EdgeMark edge={row.edge} mine={mine} theirs={theirs} />
                     </td>
                   </tr>
                 ))}
@@ -252,24 +241,41 @@ export default function NamedComparisonPanel({ company, requested, result }) {
         ) : null}
 
         <div className="grid gap-3 sm:grid-cols-2">
-          <WinList title={`${company} wins on`} items={comparison.brand_wins} tone="positive" />
-          <WinList title={`${rival} wins on`} items={comparison.competitor_wins} tone="negative" />
+          <WinList title={`${mine} wins on`} items={comparison.mine_wins} tone="positive" />
+          <WinList title={`${theirs} wins on`} items={comparison.theirs_wins} tone="negative" />
         </div>
+
+        {comparison.best_for_mine || comparison.best_for_theirs ? (
+          <div className="grid gap-3 text-[12.5px] sm:grid-cols-2">
+            {comparison.best_for_mine ? (
+              <p className="rounded-lg border border-line bg-elevated/60 p-3 text-ink-3">
+                <span className="font-medium text-ink">{mine}</span> suits{' '}
+                {comparison.best_for_mine}
+              </p>
+            ) : null}
+            {comparison.best_for_theirs ? (
+              <p className="rounded-lg border border-line bg-elevated/60 p-3 text-ink-3">
+                <span className="font-medium text-ink">{theirs}</span> suits{' '}
+                {comparison.best_for_theirs}
+              </p>
+            ) : null}
+          </div>
+        ) : null}
 
         <div className="grid gap-3 text-[12.5px] sm:grid-cols-2">
           <p className="rounded-lg border border-line bg-elevated/60 p-3 text-ink-3">
-            {company} is spoken about{' '}
-            <span className={`font-medium ${RECEPTION[comparison.brand_reception]}`}>
-              {comparison.brand_reception}ly
-            </span>{' '}
-            across these excerpts.
+            {mine} is spoken about{' '}
+            <span className={`font-medium ${RECEPTION[comparison.mine_reception]}`}>
+              {comparison.mine_reception}ly
+            </span>
+            .
           </p>
           <p className="rounded-lg border border-line bg-elevated/60 p-3 text-ink-3">
-            {rival} is spoken about{' '}
-            <span className={`font-medium ${RECEPTION[comparison.competitor_reception]}`}>
-              {comparison.competitor_reception}ly
-            </span>{' '}
-            across these excerpts.
+            {theirs} is spoken about{' '}
+            <span className={`font-medium ${RECEPTION[comparison.theirs_reception]}`}>
+              {comparison.theirs_reception}ly
+            </span>
+            .
           </p>
         </div>
 
@@ -279,10 +285,10 @@ export default function NamedComparisonPanel({ company, requested, result }) {
             <span>
               <span className="font-medium text-ink">
                 {switching}{' '}
-                {comparison.switching.direction === 'to_brand'
-                  ? company
-                  : comparison.switching.direction === 'to_competitor'
-                    ? rival
+                {comparison.switching.direction === 'to_mine'
+                  ? mine
+                  : comparison.switching.direction === 'to_theirs'
+                    ? theirs
                     : 'both'}
                 .
               </span>{' '}
@@ -293,14 +299,39 @@ export default function NamedComparisonPanel({ company, requested, result }) {
 
         {comparison.quotes?.length ? (
           <div className="space-y-3">
-            <p className="text-[11px] tracking-wide text-ink-3 uppercase">What people actually wrote</p>
+            <p className="text-[11px] tracking-wide text-ink-3 uppercase">
+              What people actually wrote
+            </p>
             {comparison.quotes.map((quote, index) => (
-              <Quote
+              <blockquote
                 key={`${quote.id}-${index}`}
-                quote={quote}
-                company={company}
-                competitor={rival}
-              />
+                className="rounded-lg border border-line bg-surface p-3.5"
+              >
+                <p className="text-[13px] leading-relaxed text-ink-2 italic [overflow-wrap:anywhere]">
+                  “{quote.quote}”
+                </p>
+                {quote.point ? (
+                  <p className="mt-2 text-[12px] leading-relaxed text-ink-3">{quote.point}</p>
+                ) : null}
+                <footer className="mt-2 flex flex-wrap items-center gap-2 text-[11px] text-ink-3">
+                  <span>r/{quote.subreddit}</span>
+                  <span className="h-1 w-1 rounded-full bg-line-strong" />
+                  <span>
+                    on {quote.side === 'mine' ? mine : quote.side === 'theirs' ? theirs : 'both'}
+                  </span>
+                  {redditUrl(quote.permalink) ? (
+                    <a
+                      href={redditUrl(quote.permalink)}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="ml-auto inline-flex items-center gap-1 text-ink-3 hover:text-accent-ink"
+                    >
+                      Open thread
+                      <Icon name="arrowOut" className="h-3 w-3" />
+                    </a>
+                  ) : null}
+                </footer>
+              </blockquote>
             ))}
           </div>
         ) : null}
@@ -319,21 +350,10 @@ export default function NamedComparisonPanel({ company, requested, result }) {
           </div>
         ) : null}
 
-        <div className="flex flex-wrap items-center gap-2 border-t border-line pt-4 text-[11px] text-ink-3">
-          <span>
-            Read from {result.coverage.headToHead} head-to-head,{' '}
-            {result.coverage.competitorOnly} {rival}-only and {result.coverage.brandOnly}{' '}
-            {company}-only excerpts.
-          </span>
-          {result.target?.alsoWorthComparing?.length ? (
-            <span className="flex flex-wrap items-center gap-1.5">
-              Also worth comparing:
-              {result.target.alsoWorthComparing.map((name) => (
-                <Badge key={name}>{name}</Badge>
-              ))}
-            </span>
-          ) : null}
-        </div>
+        <p className="border-t border-line pt-4 text-[11px] text-ink-3">
+          Read from {result.coverage.headToHead} excerpts covering both, {result.coverage.theirsOnly}{' '}
+          about {theirs} alone and {result.coverage.mineOnly} about {mine} alone.
+        </p>
       </CardBody>
     </Card>
   )

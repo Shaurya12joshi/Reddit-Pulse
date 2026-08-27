@@ -1,9 +1,5 @@
 import { useEffect, useRef } from 'react'
 
-/**
- * Adds `is-in` to every `.reveal` (and to the root, if it carries one) the
- * first time it scrolls into view. One observer for the whole subtree.
- */
 export default function useReveal(threshold = 0.18) {
   const ref = useRef(null)
 

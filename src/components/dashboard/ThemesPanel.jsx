@@ -9,7 +9,7 @@ export default function ThemesPanel({ themes, polarity, total }) {
   const peak = Math.max(...themes.map((theme) => theme.count), 1)
 
   return (
-    <Card className="h-full">
+    <Card>
       <CardHeader
         title={isPraise ? 'What people like' : 'What people dislike'}
         subtitle={
@@ -52,7 +52,7 @@ export default function ThemesPanel({ themes, polarity, total }) {
               ) : null}
 
               {theme.examples[0] ? (
-                <blockquote className="mt-2.5 border-l-2 border-line pl-3 text-[12px] leading-relaxed text-ink-3 italic">
+                <blockquote className="mt-2.5 border-l-2 border-line pl-3 text-[12px] leading-relaxed text-ink-3 italic [overflow-wrap:anywhere]">
                   “{theme.examples[0].quote}”
                   <cite className="mt-1 block text-[11px] not-italic text-ink-3/70">
                     r/{theme.examples[0].subreddit}

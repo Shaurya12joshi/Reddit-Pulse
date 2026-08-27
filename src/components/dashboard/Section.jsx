@@ -1,6 +1,3 @@
-// The report is a long wall of cards. Grouping them under one small label
-// each gives the page a second level of hierarchy, so a reader scans six
-// sections instead of thirteen equally loud panels.
 export default function Section({ title, description, children }) {
   return (
     <section>

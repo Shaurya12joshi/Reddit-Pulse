@@ -4,20 +4,17 @@ import { Badge, SentimentBadge } from '../ui/Badge.jsx'
 import Icon from '../ui/Icon.jsx'
 import { formatPercent, formatSigned, sentimentStyle } from '../../utils/format.js'
 import { labelFor } from '../../analysis/sentiment.js'
+import { TONE_CLASSES } from '../../utils/evidence.js'
 import { redditUrl } from '../../utils/reddit.js'
 
 const VERDICT = {
   brand: { label: 'Favours', tone: 'positive' },
   competitor: { label: 'Favours', tone: 'negative' },
-  mixed: { label: 'Split', tone: 'neutral' },
+  mixed: { label: 'Split', tone: 'caution' },
   unclear: { label: 'No clear winner', tone: 'neutral' },
 }
 
-const TONE = {
-  positive: 'border-positive/30 bg-positive/10 text-positive-ink',
-  negative: 'border-negative/25 bg-negative/10 text-negative-ink',
-  neutral: 'border-line bg-elevated text-ink-2',
-}
+const TONE = TONE_CLASSES
 
 function VerdictBadge({ verdict, company, competitor }) {
   const meta = VERDICT[verdict] || VERDICT.unclear
@@ -235,7 +232,7 @@ export default function CompetitorPanel({ competitors, company, market, comparis
                             key={`${example.postId}-${index}`}
                             className="rounded-lg border border-line bg-surface p-3.5"
                           >
-                            <p className="text-[13px] leading-relaxed text-ink-2 italic">
+                            <p className="text-[13px] leading-relaxed text-ink-2 italic [overflow-wrap:anywhere]">
                               “{example.quote}”
                             </p>
                             <footer className="mt-2 flex items-center gap-2 text-[11px] text-ink-3">

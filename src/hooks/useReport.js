@@ -14,9 +14,6 @@ export function useReport(company, filters) {
   const [state, setState] = useState({ status: 'loading' })
   const [extraPosts, setExtraPosts] = useState([])
   const requestId = useRef(0)
-  // The paging cursor lives in a ref as well as in state: a caller that fetches
-  // several pages inside one handler would otherwise re-send the offset it was
-  // rendered with and pull the same page twice.
   const offsetRef = useRef(null)
 
   useEffect(() => {
@@ -42,8 +39,6 @@ export function useReport(company, filters) {
         const data = await res.json()
         if (id !== requestId.current) return
 
-        // A re-poll must not rewind paging: pages already pulled are still in
-        // extraPosts, so the cursor stays where it got to.
         if (attempt === 0) offsetRef.current = data.nextOffset ?? null
         setState((prev) => ({
           status: 'ready',
@@ -68,8 +63,6 @@ export function useReport(company, filters) {
     }
   }, [company, filters])
 
-  // Returns what it fetched so a caller can tell an empty page from a page
-  // that simply held nothing matching its own filters.
   const loadMore = useCallback(async () => {
     const offset = offsetRef.current
     if (offset === null || offset === undefined) return { posts: [], nextOffset: null }

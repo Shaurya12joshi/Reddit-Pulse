@@ -26,6 +26,8 @@ import {
   saveVoiceRead,
   cachedTrending,
   saveTrending,
+  cachedProductComparison,
+  saveProductComparison,
   collectionStats,
   countPosts,
   knownIds,
@@ -61,6 +63,7 @@ import { compareAgainstCompetitors } from './intelligence/comparison.js'
 import { compareWithNamed } from './intelligence/namedComparison.js'
 import { readVoice } from './intelligence/voice.js'
 import { refineTrending } from './intelligence/trending.js'
+import { compareProducts } from './intelligence/productComparison.js'
 import { extractTrendingPhrases } from '../src/analysis/topics.js'
 import { tokenize } from '../src/analysis/sentiment.js'
 import { catalogue, credentialContext, siteReady, testConnection } from './connection.js'
@@ -121,8 +124,6 @@ app.post('/api/ingest', async (req, res) => {
 
   const started = Date.now()
 
-  // A comment that is only an image link or a removal stub has nothing to
-  // read. Dropped here rather than later, so it never reaches a count.
   const readable = dropContentFree(posts)
   const heuristically = filterRelevantPosts(readable, company)
 
@@ -598,9 +599,6 @@ app.get('/api/comparisons', async (req, res) => {
   }
 })
 
-// A head-to-head the user asked for by name. Separate from /api/comparisons
-// so the automatic read is never displaced by it: both can be on screen at
-// once, and each caches on its own key.
 const namedInFlight = new Map()
 
 app.get('/api/comparisons/named', async (req, res) => {
@@ -652,7 +650,6 @@ app.get('/api/comparisons/named', async (req, res) => {
   }
 })
 
-// What Reddit says about one product, service or question the user typed.
 const voiceInFlight = new Map()
 
 app.get('/api/voice', async (req, res) => {
@@ -704,9 +701,6 @@ app.get('/api/voice', async (req, res) => {
   }
 })
 
-// Trending phrases, after a model has separated subjects from the debris that
-// frequency counting drags along. Its own endpoint so /api/report stays a
-// deterministic, synchronous read.
 const trendingInFlight = new Map()
 
 app.get('/api/trending', async (req, res) => {
@@ -762,6 +756,68 @@ app.get('/api/trending', async (req, res) => {
   } catch (error) {
     console.warn(`[trending] ${company} failed:`, error.message)
     res.status(500).json({ error: 'Could not read the trending themes.' })
+  }
+})
+
+const productInFlight = new Map()
+
+app.get('/api/comparisons/product', async (req, res) => {
+  const { company, mine, theirs, rivalCompany } = req.query
+  if (!company || !String(company).trim()) {
+    return res.status(400).json({ error: 'Missing "company" query parameter' })
+  }
+  if (!mine || !String(mine).trim()) {
+    return res.status(400).json({ error: 'Missing "mine" query parameter' })
+  }
+
+  const own = String(mine).trim().slice(0, 120)
+  const rival = String(theirs || '').trim().slice(0, 120)
+  const rivalBrand = String(rivalCompany || '').trim().slice(0, 120)
+
+  const corpus = countPosts(company)
+  if (corpus === 0) {
+    return res.status(404).json({ error: `No Reddit data has been collected for "${company}" yet.` })
+  }
+
+  const cacheKey = rival || `@${rivalBrand}`
+  const cached = cachedProductComparison(company, own, cacheKey)
+  const refresh = req.query.refresh === 'true'
+  const GROWTH = 1.15
+
+  if (cached && !refresh && cached.source === 'llm' && corpus < cached.corpus * GROWTH) {
+    return res.json({ ...cached, cached: true })
+  }
+
+  const key = `${String(company).trim().toLowerCase()}::${own.toLowerCase()}::${cacheKey.toLowerCase()}`
+  if (productInFlight.has(key)) return res.json(await productInFlight.get(key))
+
+  const identity = brandIdentity(company) || {}
+  const run = (async () => {
+    const started = Date.now()
+    const posts = selectPosts(company, {})
+    const result = await compareProducts(
+      String(company).trim(),
+      posts,
+      identity,
+      own,
+      rival,
+      rivalBrand,
+    )
+    saveProductComparison(company, own, cacheKey, result, corpus)
+    console.log(
+      `product comparison ${company}: "${own}" vs "${rival || result.products?.theirs?.name || rivalBrand}" — ${result.source} ` +
+        `(${result.coverage?.headToHead ?? 0} head-to-head excerpts) in ${Date.now() - started}ms`,
+    )
+    return { ...result, corpus, cached: false }
+  })().finally(() => productInFlight.delete(key))
+
+  productInFlight.set(key, run)
+
+  try {
+    res.json(await run)
+  } catch (error) {
+    console.warn(`[product comparison] ${company} failed:`, error.message)
+    res.status(500).json({ error: 'Could not read that product comparison.' })
   }
 })
 

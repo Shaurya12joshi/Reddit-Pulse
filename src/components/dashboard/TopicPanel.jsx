@@ -4,7 +4,7 @@ import DivergingBars from '../charts/DivergingBars.jsx'
 
 export default function TopicPanel({ topics, activeTopic, onSelectTopic }) {
   return (
-    <Card className="h-full">
+    <Card>
       <CardHeader
         title="Topic analysis"
         subtitle="Click a topic to filter the entire report"

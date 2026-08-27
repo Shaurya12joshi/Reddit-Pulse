@@ -2,6 +2,7 @@ import { analyzeSentiment, analyzeSentences, labelFor, tokenize } from './sentim
 import { detectTopics, extractTrendingPhrases, topicLabel } from './topics.js'
 import { detectCompetitors, findMarket } from './competitors.js'
 import { THEME_BUCKETS } from './lexicon.js'
+import { isQuotable } from './text.js'
 
 const DAY_MS = 24 * 60 * 60 * 1000
 
@@ -191,7 +192,7 @@ function buildThemes(posts, polarity) {
         if (theme.postIds.has(post.id)) return
         theme.postIds.add(post.id)
         theme.count += 1
-        if (theme.examples.length < 3) {
+        if (theme.examples.length < 3 && isQuotable(entry.sentence)) {
           theme.examples.push({
             postId: post.id,
             subreddit: post.subreddit,
@@ -216,10 +217,6 @@ function buildThemes(posts, polarity) {
     .sort((a, b) => b.count - a.count)
 }
 
-// A theme that shows up on both sides tells a reader nothing: "Design" as both
-// a like and a dislike reads as noise. Whichever side the corpus leans is the
-// side it belongs on, and the losing count rides along so the split stays
-// visible. Ties go to the complaint, since that is the actionable read.
 function splitByMajority(praise, complaints) {
   const negById = new Map(complaints.map((theme) => [theme.id, theme.count]))
   const posById = new Map(praise.map((theme) => [theme.id, theme.count]))

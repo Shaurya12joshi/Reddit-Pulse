@@ -5,7 +5,7 @@ import { formatPercent, formatSigned } from '../../utils/format.js'
 
 export default function SubredditPanel({ subreddits, activeSubreddit, onSelect }) {
   return (
-    <Card className="h-full">
+    <Card>
       <CardHeader
         title="Subreddit breakdown"
         subtitle="Volume and tone per community"

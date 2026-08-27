@@ -42,7 +42,7 @@ export default function ProductPreviewSection() {
         <div>
           <span className="eyebrow flex items-center gap-2 text-ink-3">
             <span className="h-1.5 w-1.5 rounded-full bg-accent" />
-            Live report: {company}
+            Example report: {company}
           </span>
           <h2 className="display mt-6 text-[11vw] text-ink sm:text-5xl lg:text-[3.6vw]">
             The end of the journey is a <em className="display-serif">real</em>{' '}
@@ -51,7 +51,7 @@ export default function ProductPreviewSection() {
         </div>
         <p className="max-w-md text-[15px] leading-relaxed text-ink-2 lg:pb-3">
           Everything below is a real report built from real Reddit threads,
-          not a screenshot, not sample data.{' '}
+          captured from a live run.{' '}
           {immersive
             ? 'Every bar is a measurement: column height is share of mentions, colour is how that subject is going, and distance from the centre is how often a rival gets named alongside.'
             : 'Click a topic to filter it, open a competitor to read why people compared them, or open a discussion to see exactly which words drove its score.'}

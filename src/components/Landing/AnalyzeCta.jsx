@@ -8,12 +8,13 @@ import SearchBar from './SearchBar.jsx'
 import { EXAMPLE_COMPANIES } from '../../data/exampleCompanies.js'
 
 export default function AnalyzeCta({ onAnalyze, id = SEARCH_ANCHOR }) {
-  const [extras, setExtras] = useState({ compareWith: '', subject: '' })
+  const [extras, setExtras] = useState({ compareWith: '', subject: '', rivalProduct: '' })
 
   const start = (name) =>
     onAnalyze(name, {
       compareWith: extras.compareWith.trim(),
       subject: extras.subject.trim(),
+      rivalProduct: extras.rivalProduct.trim(),
     })
 
   return (
@@ -23,6 +24,7 @@ export default function AnalyzeCta({ onAnalyze, id = SEARCH_ANCHOR }) {
       <OptionalExtras
         compareWith={extras.compareWith}
         subject={extras.subject}
+        rivalProduct={extras.rivalProduct}
         onChange={setExtras}
       />
 

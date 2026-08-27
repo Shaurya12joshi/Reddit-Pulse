@@ -40,7 +40,6 @@ const STEP_COUNT = 10
 const ORANGE = '#ff4500'
 const ORANGE_INK = '#c23a06'
 
-
 function useSceneDrivers(active) {
   const progress = useRef(0)
   const pointer = useRef({ x: 0, y: 0 })
@@ -339,7 +338,6 @@ export default function ExtensionGuidePage() {
       ),
     },
   ]
-
 
   return (
     <div className="relative min-h-dvh bg-canvas text-ink">

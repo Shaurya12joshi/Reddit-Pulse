@@ -43,7 +43,7 @@ export default function StatTiles({ insights }) {
       id: 'communities',
       icon: 'users',
       label: 'Most active community',
-      value: subreddits.length ? `r/${subreddits[0].name}` : '—',
+      value: subreddits.length ? `r/${subreddits[0].name}` : 'None',
       caption: subreddits.length
         ? `${subreddits[0].count} of ${totals.mentions} discussions`
         : 'No community stands out',

@@ -2,24 +2,21 @@ import { Card, CardBody, CardHeader } from '../ui/Card.jsx'
 import { Badge } from '../ui/Badge.jsx'
 import Icon from '../ui/Icon.jsx'
 import Button from '../ui/Button.jsx'
-import { formatPercent } from '../../utils/format.js'
+import { TONE_CLASSES, evidenceOf, evidenceTitle } from '../../utils/evidence.js'
 import { redditUrl } from '../../utils/reddit.js'
 
-// The answer to the one question the user typed, read out of the same corpus
-// the rest of the report is built from.
-
 const OVERALL = {
-  positive: { label: 'Mostly positive', className: 'border-positive/30 bg-positive/10 text-positive-ink' },
-  negative: { label: 'Mostly negative', className: 'border-negative/25 bg-negative/10 text-negative-ink' },
-  mixed: { label: 'Split opinion', className: 'border-neutral/25 bg-neutral/10 text-neutral-ink' },
-  unclear: { label: 'Not settled', className: 'border-line bg-elevated text-ink-2' },
+  positive: { label: 'Mostly positive', className: TONE_CLASSES.positive },
+  negative: { label: 'Mostly negative', className: TONE_CLASSES.negative },
+  mixed: { label: 'Split opinion', className: TONE_CLASSES.caution },
+  unclear: { label: 'Not settled', className: TONE_CLASSES.neutral },
 }
 
 const STANCE = {
-  praise: { label: 'Praise', className: 'border-positive/30 bg-positive/10 text-positive-ink' },
-  complaint: { label: 'Complaint', className: 'border-negative/25 bg-negative/10 text-negative-ink' },
-  question: { label: 'Question', className: 'border-accent/30 bg-accent-dim text-accent-ink' },
-  mixed: { label: 'Mixed', className: 'border-line bg-elevated text-ink-2' },
+  praise: { label: 'Praise', className: TONE_CLASSES.positive },
+  complaint: { label: 'Complaint', className: TONE_CLASSES.negative },
+  question: { label: 'Question', className: TONE_CLASSES.info },
+  mixed: { label: 'Mixed', className: TONE_CLASSES.caution },
 }
 
 const QUOTE_STANCE = {
@@ -40,28 +37,6 @@ function Chips({ title, items, className }) {
           </li>
         ))}
       </ul>
-    </div>
-  )
-}
-
-function SentimentBar({ split, total }) {
-  if (!total) return null
-  const parts = [
-    { key: 'positive', value: split.positive, className: 'bg-positive' },
-    { key: 'neutral', value: split.neutral, className: 'bg-neutral' },
-    { key: 'negative', value: split.negative, className: 'bg-negative' },
-  ].filter((part) => part.value > 0)
-
-  return (
-    <div className="flex h-1.5 w-full overflow-hidden rounded-full bg-raised">
-      {parts.map((part) => (
-        <span
-          key={part.key}
-          className={part.className}
-          style={{ width: `${(part.value / total) * 100}%` }}
-          title={`${part.key}: ${formatPercent((part.value / total) * 100, 0)}`}
-        />
-      ))}
     </div>
   )
 }
@@ -173,8 +148,6 @@ export default function RedditVoicePanel({ company, asked, result }) {
   }
 
   const overall = OVERALL[reading.overall] || OVERALL.unclear
-  const split = result.coverage?.sentiment || { positive: 0, neutral: 0, negative: 0 }
-  const total = split.positive + split.neutral + split.negative
 
   return (
     <Card>
@@ -188,9 +161,14 @@ export default function RedditVoicePanel({ company, asked, result }) {
             <Icon name="chat" className="h-3 w-3" />
             {overall.label}
           </span>
-          <Badge title="How well the excerpts support this answer">
-            {Math.round((reading.confidence ?? 0) * 100)}% confidence
-          </Badge>
+          <span
+            title={evidenceTitle(reading.confidence)}
+            className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-medium ${
+              TONE_CLASSES[evidenceOf(reading.confidence).tone]
+            }`}
+          >
+            {evidenceOf(reading.confidence).label}
+          </span>
           {result.coverage?.subreddits ? (
             <Badge>
               {result.coverage.subreddits} subreddit{result.coverage.subreddits === 1 ? '' : 's'}
@@ -217,16 +195,6 @@ export default function RedditVoicePanel({ company, asked, result }) {
         ) : null}
 
         <p className="text-[14px] leading-relaxed text-ink">{reading.answer}</p>
-
-        {total ? (
-          <div className="space-y-1.5">
-            <SentimentBar split={split} total={total} />
-            <p className="tnum text-[11px] text-ink-3">
-              {split.positive} positive · {split.neutral} neutral · {split.negative} negative,
-              across the discussions that matched
-            </p>
-          </div>
-        ) : null}
 
         {reading.themes?.length ? (
           <div>
@@ -275,7 +243,7 @@ export default function RedditVoicePanel({ company, asked, result }) {
                 key={`${quote.id}-${index}`}
                 className="rounded-lg border border-line bg-surface p-3.5"
               >
-                <p className="text-[13px] leading-relaxed text-ink-2 italic">“{quote.quote}”</p>
+                <p className="text-[13px] leading-relaxed text-ink-2 italic [overflow-wrap:anywhere]">“{quote.quote}”</p>
                 {quote.point ? (
                   <p className="mt-2 text-[12px] leading-relaxed text-ink-3">{quote.point}</p>
                 ) : null}

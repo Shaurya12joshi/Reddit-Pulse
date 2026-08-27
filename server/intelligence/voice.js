@@ -1,12 +1,3 @@
-// "What are Reddit users saying about X?" — where X is a product, a service,
-// or a question the user typed, not a category the pipeline chose.
-//
-// The corpus is already collected and already about the brand, so the work is
-// narrowing it to the subject asked about and reading it honestly. A model
-// call first expands the subject into the words Reddit actually uses for it
-// (people rarely type the official product name), a deterministic pass ranks
-// posts against those words, and a second call reads the top excerpts.
-// Excerpts are numbered so every quote traces back to its thread.
 
 import { structured, activeModel, llmAvailable } from './client.js'
 import { STOPWORDS } from '../../src/analysis/lexicon.js'
@@ -125,9 +116,6 @@ function textOf(post) {
   return post.text || [post.title, post.body].filter(Boolean).join('. ')
 }
 
-// A term of several words has to appear as a phrase; a single word is matched
-// on its own. Scoring counts distinct terms hit rather than raw occurrences,
-// so one post repeating a word does not outrank one covering the subject.
 function escapeRegex(value) {
   return String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 }

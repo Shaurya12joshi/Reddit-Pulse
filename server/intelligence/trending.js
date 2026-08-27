@@ -1,11 +1,3 @@
-// The trending list is mined by frequency, so it surfaces whatever repeats:
-// real subjects ("diet", "zero sugar") sit next to fragments a tokenizer left
-// behind ("til", "don", "it's"). Counting cannot tell those apart — it takes a
-// reader. A model reads the candidate list, keeps what is genuinely about the
-// brand, merges the variants that mean one thing, and says what each is about.
-//
-// Counts are never taken from the model. Once it has named a group, the corpus
-// is counted again for that group, so every number on screen is measured.
 
 import { structured, activeModel, llmAvailable } from './client.js'
 import { STOPWORDS } from '../../src/analysis/lexicon.js'
@@ -49,9 +41,6 @@ const SCHEMA = {
   },
 }
 
-// Fragments and filler that survive tokenizing but never name a subject. Used
-// to trim the candidate list before it is sent, and as the whole filter when
-// no model is connected.
 const JUNK = new Set([
   'til', 'don', 'doesn', 'didn', 'isn', 'wasn', 'aren', 'weren', 'couldn', 'wouldn',
   'shouldn', 'won', 'ain', 'gonna', 'wanna', 'gotta', 'lol', 'lmao', 'imo', 'imho',
@@ -79,9 +68,6 @@ function escapeRegex(value) {
   return String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 }
 
-// Counted here rather than summed from the candidates: two phrases in one
-// theme can appear in the same discussion, and adding their counts would
-// invent mentions that were never there.
 function countPostsMentioning(posts, phrases) {
   const patterns = phrases
     .map((phrase) => String(phrase || '').trim())
@@ -148,8 +134,6 @@ export async function refineTrending(brand, candidates = [], posts = [], identit
 
   const themes = result.themes
     .map((theme) => {
-      // Only phrases that were actually in the candidate list survive, so the
-      // model cannot introduce a subject the corpus never raised.
       const phrases = (theme.phrases || [])
         .map((phrase) => String(phrase || '').trim().toLowerCase())
         .filter((phrase) => known.has(phrase))

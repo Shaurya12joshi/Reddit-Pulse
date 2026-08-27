@@ -12,8 +12,6 @@ const KIND = {
   other: null,
 }
 
-// Frequency alone cannot tell a subject from a fragment, so the refined list
-// arrives from the server. Until it does, the raw mined phrases stand in.
 export default function TrendingThemes({ phrases, refined }) {
   const themes = refined?.themes?.length
     ? refined.themes
@@ -28,7 +26,7 @@ export default function TrendingThemes({ phrases, refined }) {
 
   if (themes.length === 0) {
     return (
-      <Card className="h-full">
+      <Card>
         <CardHeader title="Trending themes" icon={<Icon name="flame" className="h-3.5 w-3.5" />} />
         <CardBody>
           <p className="py-8 text-center text-[13px] text-ink-3">
@@ -42,7 +40,7 @@ export default function TrendingThemes({ phrases, refined }) {
   const peak = Math.max(...themes.map((theme) => theme.count), 1)
 
   return (
-    <Card className="h-full">
+    <Card>
       <CardHeader
         title="Trending themes"
         subtitle={

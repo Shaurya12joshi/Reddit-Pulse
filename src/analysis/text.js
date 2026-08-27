@@ -1,10 +1,3 @@
-// Reddit comments are often not text at all: a bare image link, a gif, a
-// deleted stub. They carry no opinion, score 0.00 neutral, and still count as
-// a discussion in every total on the report. The aboutness pass cannot catch
-// them either — it only reads threads, and a comment rides in on its parent.
-//
-// Nothing here needs a model. A comment whose body is only links, markdown
-// image syntax, punctuation or a removal stub has nothing to read.
 
 const URL_PATTERN = /https?:\/\/\S+|www\.\S+/gi
 const MARKDOWN_LINK = /\[([^\]]*)\]\(([^)]*)\)/g
@@ -22,9 +15,6 @@ export function readableText(value) {
     .trim()
 }
 
-// A thread survives on its title alone; a comment has to say something. Two
-// words is the floor — "same here" is a real reaction, a lone "lol" beside a
-// link is not what the corpus is for.
 const MIN_COMMENT_WORDS = 2
 
 export function isContentFree(post) {
@@ -43,4 +33,17 @@ export function isContentFree(post) {
 
 export function dropContentFree(posts = []) {
   return posts.filter((post) => !isContentFree(post))
+}
+
+const REPEATED_RUN = /(.)\1{7,}/
+
+export function isQuotable(sentence) {
+  const value = String(sentence || '')
+  if (REPEATED_RUN.test(value)) return false
+
+  const words = readableText(value).split(' ').filter(Boolean)
+  if (words.length < 4) return false
+
+  const stripped = readableText(value).length
+  return stripped >= value.length * 0.4
 }

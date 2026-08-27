@@ -15,7 +15,6 @@ const TABS = [
 ]
 
 const PAGE_SIZE = 8
-// Pages to pull in one click before giving the reader control back.
 const MAX_FETCHES = 6
 
 export default function DiscussionsPanel({
@@ -29,12 +28,8 @@ export default function DiscussionsPanel({
   const [type, setType] = useState('all')
   const [visible, setVisible] = useState(PAGE_SIZE)
   const [fetching, setFetching] = useState(false)
-  // Set once the server has no page left that this tab could show.
   const [drained, setDrained] = useState(false)
 
-  // Posts and comments read differently, and someone reading the threads
-  // often wants one or the other. Local to this panel: the charts above stay
-  // on the whole corpus.
   const pool = useMemo(
     () => (type === 'all' ? posts : posts.filter((post) => post.type === type)),
     [posts, type],
@@ -75,9 +70,6 @@ export default function DiscussionsPanel({
           })
         }
 
-        // The three seed lists are capped at 16 between them, so on their own
-        // the tab runs dry after two pages and "show more" stops doing
-        // anything. Everything else follows, most engaged first.
         const rest = pool
           .filter((post) => !seen.has(post.id))
           .sort((a, b) => b.engagement - a.engagement)
@@ -105,9 +97,6 @@ export default function DiscussionsPanel({
   const canReveal = localLeft > 0
   const canFetch = !canReveal && hasMore && !drained && Boolean(onLoadMore)
 
-  // Whether a freshly fetched post would show up under the current tab and
-  // type, so a page full of comments does not count as progress while the
-  // panel is showing posts only.
   const wouldShow = (post) => {
     if (type !== 'all' && post.type !== type) return false
     if (tab === 'positive') return post.sentimentLabel === 'positive'
@@ -115,10 +104,6 @@ export default function DiscussionsPanel({
     return true
   }
 
-  // Reveal what is already loaded first. When the local list runs dry, keep
-  // pulling pages until one of them holds something this tab can show, or the
-  // server runs out — then the button goes away instead of sitting there doing
-  // nothing.
   const showMore = async () => {
     if (!canFetch) {
       setVisible((current) => current + PAGE_SIZE)

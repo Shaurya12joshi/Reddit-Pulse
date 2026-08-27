@@ -1,3 +1,5 @@
+import { API } from './aiConnection.js'
+
 const EXT_SOURCE = 'reddit-scraper-extension'
 const PAGE_SOURCE = 'reddit-dashboard'
 
@@ -79,6 +81,14 @@ export function requestScrape(company, { onProgress, signal } = {}) {
       SCRAPE_TIMEOUT_MS,
     )
 
-    window.postMessage({ source: PAGE_SOURCE, type: 'SCRAPE', company }, window.location.origin)
+    window.postMessage(
+      {
+        source: PAGE_SOURCE,
+        type: 'SCRAPE',
+        company,
+        apiBase: API || window.location.origin,
+      },
+      window.location.origin,
+    )
   })
 }

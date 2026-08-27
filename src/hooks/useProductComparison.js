@@ -2,23 +2,26 @@ import { useCallback, useEffect, useState } from 'react'
 
 import { apiFetch } from '../services/aiConnection.js'
 
-export function useTrending(company) {
+export function useProductComparison(company, mine, theirs, rivalCompany) {
   const [state, setState] = useState({ status: 'idle', key: null })
   const [attempt, setAttempt] = useState(0)
 
-  const key = company ? `${company}::${attempt}` : null
+  const rivalSide = theirs || rivalCompany
+  const key = company && mine && rivalSide ? `${company}::${mine}::${rivalSide}::${attempt}` : null
 
   useEffect(() => {
     if (!key) return undefined
 
     const controller = new AbortController()
-    const params = new URLSearchParams({ company })
+    const params = new URLSearchParams({ company, mine })
+    if (theirs) params.set('theirs', theirs)
+    else params.set('rivalCompany', rivalCompany)
     if (attempt > 0) params.set('refresh', 'true')
 
-    apiFetch(`/api/trending?${params}`, { signal: controller.signal })
+    apiFetch(`/api/comparisons/product?${params}`, { signal: controller.signal })
       .then(async (response) => {
         const body = await response.json().catch(() => ({}))
-        if (!response.ok) throw new Error(body.error || `Trending failed (${response.status})`)
+        if (!response.ok) throw new Error(body.error || `Comparison failed (${response.status})`)
         return body
       })
       .then(
@@ -30,7 +33,7 @@ export function useTrending(company) {
       )
 
     return () => controller.abort()
-  }, [key, company, attempt])
+  }, [key, company, mine, theirs, rivalCompany, attempt])
 
   const reload = useCallback(() => setAttempt((count) => count + 1), [])
 

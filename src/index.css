@@ -284,8 +284,6 @@ body {
   }
 }
 
-/* ── Install section: bright panel + non-vertical reveals ─────────────── */
-
 @keyframes rp-sheen {
   from {
     opacity: 1;
@@ -298,7 +296,7 @@ body {
 }
 
 @layer components {
-  /* The panel itself: warm, lit, clearly the brightest block on the page. */
+  
   .install-panel {
     position: relative;
     isolation: isolate;
@@ -313,7 +311,7 @@ body {
       0 30px 70px -34px rgb(255 69 0 / 0.55);
   }
 
-  /* Warm light wash across the top of the panel. */
+  
   .install-panel::before {
     content: '';
     position: absolute;
@@ -329,7 +327,7 @@ body {
     );
   }
 
-  /* One sheen sweep when the panel first comes into view. */
+  
   .install-panel::after {
     content: '';
     position: absolute;
@@ -359,7 +357,7 @@ body {
     z-index: 2;
   }
 
-  /* Step card: pure white, real edge, real shadow — must out-read the panel. */
+  
   .install-card {
     overflow: hidden;
     background-color: #ffffff;
@@ -380,7 +378,7 @@ body {
       0 14px 30px -16px rgb(255 69 0 / 0.4);
   }
 
-  /* Left accent rail — fills in solid once the step is upvoted. */
+  
   .install-rail {
     position: absolute;
     top: 0;
@@ -400,9 +398,7 @@ body {
     background-color: #ff4500;
   }
 
-  /* ── Reveals ──
-     Deliberately not bottom-to-top: cards unfold sideways on a hinge,
-     the heading wipes open horizontally, the meter grows from its left edge. */
+  
 
   .reveal {
     --d: 0ms;
@@ -417,8 +413,7 @@ body {
     clip-path: inset(0 0 0 0);
   }
 
-  /* Steps slide in from the left. Flat — no rotation, no depth, so text is
-     never skewed or blurred while it is arriving. */
+  
   .reveal-slide {
     transform: translate3d(-26px, 0, 0);
     transition:
@@ -426,7 +421,7 @@ body {
       transform 420ms cubic-bezier(0.22, 1, 0.36, 1) var(--d);
   }
 
-  /* Horizontal wipe for headings. */
+  
   .reveal-wipe {
     clip-path: inset(0 100% 0 0);
     transform: translate3d(-10px, 0, 0);
@@ -436,14 +431,13 @@ body {
       opacity 200ms linear var(--d);
   }
 
-  /* Zoom-through for the callout bar. */
+  
   .reveal-zoom {
     transform: scale(0.9) translate3d(0, 0, -80px);
     transition:
       opacity 380ms ease-out var(--d),
       transform 620ms cubic-bezier(0.2, 1.06, 0.32, 1) var(--d);
   }
-
 }
 
 @media (prefers-reduced-motion: reduce) {

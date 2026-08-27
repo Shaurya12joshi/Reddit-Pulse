@@ -321,6 +321,17 @@ export async function probe() {
   }
 }
 
+function withoutEmDashes(value) {
+  if (typeof value === 'string') {
+    return value.replace(/\s*[\u2014\u2013]\s*/g, ', ').replace(/,\s*,/g, ',')
+  }
+  if (Array.isArray(value)) return value.map(withoutEmDashes)
+  if (value && typeof value === 'object') {
+    return Object.fromEntries(Object.entries(value).map(([key, entry]) => [key, withoutEmDashes(entry)]))
+  }
+  return value
+}
+
 export async function structured({ system, user, schema, effort = 'high', maxTokens = 8000 }) {
   const config = activeConfig()
   const client = await getClient()
@@ -357,7 +368,7 @@ export async function structured({ system, user, schema, effort = 'high', maxTok
   if (!text) return null
 
   try {
-    return JSON.parse(text)
+    return withoutEmDashes(JSON.parse(text))
   } catch (error) {
     console.warn('[intelligence] unparseable structured output:', error.message)
     return null
@@ -371,12 +382,12 @@ function parseLoose(text, where) {
     .replace(/^```(?:json)?\s*/i, '')
     .replace(/\s*```$/, '')
   try {
-    return JSON.parse(cleaned)
+    return withoutEmDashes(JSON.parse(cleaned))
   } catch {
     const match = cleaned.match(/\{[\s\S]*\}/)
     if (match) {
       try {
-        return JSON.parse(match[0])
+        return withoutEmDashes(JSON.parse(match[0]))
       } catch {
       }
     }

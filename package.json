@@ -10,7 +10,8 @@
     "preview": "vite preview",
     "test": "node server/eval/run.js",
     "eval": "node server/eval/run.js --verbose",
-    "start": "node --env-file-if-exists=server/.env server/index.js"
+    "start": "node --env-file-if-exists=server/.env server/index.js",
+    "capture:preview": "node scripts/capture-preview.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.120.0",

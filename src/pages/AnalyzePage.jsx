@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useLocation, useNavigate, useParams, useSearchParams } from 'react-router'
 
 import Dashboard from '../components/dashboard/Dashboard.jsx'
@@ -106,17 +106,24 @@ export default function AnalyzePage() {
   const name = location.state?.companyName || fromSlug(slug)
   const compareWith = (params.get('vs') || '').trim()
   const askedSubject = (params.get('ask') || '').trim()
+  const rivalProduct = (params.get('theirs') || '').trim()
 
+  const extras = useMemo(
+    () => ({ compareWith, subject: askedSubject, rivalProduct }),
+    [compareWith, askedSubject, rivalProduct],
+  )
+
+  const runKey = `${slug}|${compareWith}|${askedSubject}|${rivalProduct}`
   const startedFor = useRef(null)
   useEffect(() => {
-    if (!name || startedFor.current === slug) return
-    startedFor.current = slug
-    analyze(name)
-  }, [slug, name, analyze])
+    if (!name || startedFor.current === runKey) return
+    startedFor.current = runKey
+    analyze(name, extras)
+  }, [runKey, name, extras, analyze])
 
   const retry = useCallback(() => {
-    if (name) analyze(name)
-  }, [name, analyze])
+    if (name) analyze(name, extras)
+  }, [name, extras, analyze])
 
   const goHome = () => navigate('/')
 
@@ -133,6 +140,7 @@ export default function AnalyzePage() {
             onRefresh={goHome}
             compareWith={compareWith}
             askedSubject={askedSubject}
+            rivalProduct={rivalProduct}
           />
         ) : null}
         {view === 'buzz' ? <BuzzView company={company} onRefresh={goHome} /> : null}

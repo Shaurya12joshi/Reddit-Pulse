@@ -12,6 +12,7 @@ import TrendingThemes from './TrendingThemes.jsx'
 import ThemesPanel from './ThemesPanel.jsx'
 import CompetitorPanel from './CompetitorPanel.jsx'
 import NamedComparisonPanel from './NamedComparisonPanel.jsx'
+import ProductComparisonPanel from './ProductComparisonPanel.jsx'
 import RedditVoicePanel from './RedditVoicePanel.jsx'
 import SubredditPanel from './SubredditPanel.jsx'
 import DiscussionsPanel from './DiscussionsPanel.jsx'
@@ -24,6 +25,7 @@ import SentimentTrendChart from '../charts/SentimentTrendChart.jsx'
 import VolumeChart from '../charts/VolumeChart.jsx'
 import { useComparisons } from '../../hooks/useComparisons.js'
 import { useNamedComparison } from '../../hooks/useNamedComparison.js'
+import { useProductComparison } from '../../hooks/useProductComparison.js'
 import { useVoice } from '../../hooks/useVoice.js'
 import { useTrending } from '../../hooks/useTrending.js'
 
@@ -33,14 +35,15 @@ export default function Dashboard({
   onRefresh,
   compareWith = '',
   askedSubject = '',
+  rivalProduct = '',
 }) {
   const [filters, setFilters] = useState(DEFAULT_FILTERS)
   const [selectedPost, setSelectedPost] = useState(null)
 
   const report = useReport(company, filters)
   const comparisons = useComparisons(company)
-  // Both optional. The automatic competitor read above runs either way.
   const named = useNamedComparison(company, compareWith)
+  const productPair = useProductComparison(company, askedSubject, rivalProduct, compareWith)
   const voice = useVoice(company, askedSubject)
   const trending = useTrending(company)
 
@@ -129,9 +132,9 @@ export default function Dashboard({
             title="Movement over time"
             description={`Tone and volume per ${insights.timeline.granularity}.`}
           >
-            <div className="grid gap-4 xl:grid-cols-12">
+            <div className="grid items-start gap-4 xl:grid-cols-12">
               <div className="xl:col-span-7">
-                <Card className="h-full">
+                <Card>
                   <CardHeader
                     title="Sentiment over time"
                     subtitle={`Average score per ${insights.timeline.granularity}`}
@@ -146,7 +149,7 @@ export default function Dashboard({
                 </Card>
               </div>
               <div className="xl:col-span-5">
-                <Card className="h-full">
+                <Card>
                   <CardHeader
                     title="Discussion volume"
                     subtitle="Mentions per period, stacked by sentiment"
@@ -167,7 +170,7 @@ export default function Dashboard({
             title="What people talk about"
             description="The subjects that keep coming back, and what is said about them."
           >
-            <div className="grid gap-4 xl:grid-cols-12">
+            <div className="grid items-start gap-4 xl:grid-cols-12">
               <div className="xl:col-span-7">
                 <TopicPanel
                   topics={insights.topics}
@@ -180,7 +183,7 @@ export default function Dashboard({
               </div>
             </div>
 
-            <div className="grid gap-4 lg:grid-cols-2">
+            <div className="grid items-start gap-4 lg:grid-cols-2">
               <ThemesPanel
                 themes={insights.praise}
                 polarity="positive"
@@ -202,7 +205,14 @@ export default function Dashboard({
               <NamedComparisonPanel company={company} requested={compareWith} result={named} />
             ) : null}
 
-            <div className="grid gap-4 xl:grid-cols-12">
+            {askedSubject && (rivalProduct || compareWith) ? (
+              <ProductComparisonPanel
+                requested={{ mine: askedSubject, theirs: rivalProduct || compareWith }}
+                result={productPair}
+              />
+            ) : null}
+
+            <div className="grid items-start gap-4 xl:grid-cols-12">
               <div className="xl:col-span-8">
                 <CompetitorPanel
                   competitors={insights.competitors}
@@ -226,15 +236,10 @@ export default function Dashboard({
             description="Every number above traces back to these threads."
           >
             <DiscussionsPanel
-              // A filter change replaces the corpus underneath the panel, so
-              // its paging, tab and drained flag start over with it.
               key={`${filters.timeRange}-${filters.subreddit}-${filters.sentiment}-${filters.topic}`}
               posts={posts}
               topDiscussions={insights.topDiscussions}
               onOpenPost={setSelectedPost}
-              // Counted against the filtered total rather than the paging
-              // cursor: once every post is loaded there is nothing left to
-              // offer, whatever the cursor happens to say.
               hasMore={posts.length < total}
               onLoadMore={loadMore}
             />
