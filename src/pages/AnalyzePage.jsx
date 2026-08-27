@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { Link, useLocation, useNavigate, useParams } from 'react-router'
+import { Link, useLocation, useNavigate, useParams, useSearchParams } from 'react-router'
 
 import Dashboard from '../components/dashboard/Dashboard.jsx'
 import RawDataView from '../components/rawdata/RawDataView.jsx'
@@ -98,10 +98,14 @@ export default function AnalyzePage() {
   const location = useLocation()
   const navigate = useNavigate()
 
+  const [params] = useSearchParams()
+
   const { status, company, error, meta, progress, analyze } = useCompanyAnalysis()
   const [view, setView] = useState('report')
 
   const name = location.state?.companyName || fromSlug(slug)
+  const compareWith = (params.get('vs') || '').trim()
+  const askedSubject = (params.get('ask') || '').trim()
 
   const startedFor = useRef(null)
   useEffect(() => {
@@ -122,7 +126,15 @@ export default function AnalyzePage() {
     return (
       <>
         <ViewToggle view={view} onChange={setView} />
-        {view === 'report' ? <Dashboard company={company} meta={meta} onRefresh={goHome} /> : null}
+        {view === 'report' ? (
+          <Dashboard
+            company={company}
+            meta={meta}
+            onRefresh={goHome}
+            compareWith={compareWith}
+            askedSubject={askedSubject}
+          />
+        ) : null}
         {view === 'buzz' ? <BuzzView company={company} onRefresh={goHome} /> : null}
         {view === 'raw' ? <RawDataView company={company} /> : null}
       </>

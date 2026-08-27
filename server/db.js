@@ -82,6 +82,44 @@ db.exec(`
     updated_at INTEGER NOT NULL
   );
 
+  -- Stage 4b. A head-to-head the user asked for by name, rather than one the
+  -- model picked. Keyed by the rival so several named comparisons can live
+  -- side by side, and cached against corpus size like the automatic read.
+  CREATE TABLE IF NOT EXISTS named_comparisons (
+    company    TEXT NOT NULL,
+    target     TEXT NOT NULL,          -- the rival the user typed, lowercased
+    data       TEXT NOT NULL,
+    source     TEXT NOT NULL,          -- 'llm' | 'none' | 'unavailable' | 'failed'
+    model      TEXT,
+    corpus     INTEGER NOT NULL,
+    updated_at INTEGER NOT NULL,
+    PRIMARY KEY (company, target)
+  );
+
+  -- What Reddit says about one product, service or question the user asked
+  -- about, read out of the same corpus and grounded in numbered excerpts.
+  CREATE TABLE IF NOT EXISTS voice_reads (
+    company    TEXT NOT NULL,
+    subject    TEXT NOT NULL,          -- the question the user typed, lowercased
+    data       TEXT NOT NULL,
+    source     TEXT NOT NULL,
+    model      TEXT,
+    corpus     INTEGER NOT NULL,
+    updated_at INTEGER NOT NULL,
+    PRIMARY KEY (company, subject)
+  );
+
+  -- The trending phrase list after a model has thrown out the debris that
+  -- frequency counting cannot tell from a subject.
+  CREATE TABLE IF NOT EXISTS trending_reads (
+    company    TEXT PRIMARY KEY,
+    data       TEXT NOT NULL,
+    source     TEXT NOT NULL,          -- 'llm' | 'heuristic' | 'failed' | 'none'
+    model      TEXT,
+    corpus     INTEGER NOT NULL,
+    updated_at INTEGER NOT NULL
+  );
+
   -- One row per (run, thing) so trend velocity can be a real derivative
   -- between runs instead of an inference from post dates inside one sample.
   CREATE TABLE IF NOT EXISTS snapshots (
@@ -423,6 +461,103 @@ export function cachedComparisons(company) {
   const row = db
     .prepare(
       'SELECT data, source, model, corpus, updated_at AS updatedAt FROM comparisons WHERE company = ?',
+    )
+    .get(key(company))
+  if (!row) return null
+  try {
+    return { ...JSON.parse(row.data), corpus: row.corpus, updatedAt: row.updatedAt }
+  } catch {
+    return null
+  }
+}
+
+export function saveNamedComparison(company, target, result, corpus) {
+  db.prepare(`
+    INSERT INTO named_comparisons (company, target, data, source, model, corpus, updated_at)
+    VALUES (?,?,?,?,?,?,?)
+    ON CONFLICT(company, target) DO UPDATE SET
+      data = excluded.data, source = excluded.source, model = excluded.model,
+      corpus = excluded.corpus, updated_at = excluded.updated_at
+  `).run(
+    key(company),
+    key(target),
+    JSON.stringify(result),
+    result.source || 'none',
+    result.model ?? null,
+    corpus,
+    Date.now(),
+  )
+}
+
+export function cachedNamedComparison(company, target) {
+  const row = db
+    .prepare(
+      `SELECT data, source, model, corpus, updated_at AS updatedAt
+       FROM named_comparisons WHERE company = ? AND target = ?`,
+    )
+    .get(key(company), key(target))
+  if (!row) return null
+  try {
+    return { ...JSON.parse(row.data), corpus: row.corpus, updatedAt: row.updatedAt }
+  } catch {
+    return null
+  }
+}
+
+export function saveVoiceRead(company, subject, result, corpus) {
+  db.prepare(`
+    INSERT INTO voice_reads (company, subject, data, source, model, corpus, updated_at)
+    VALUES (?,?,?,?,?,?,?)
+    ON CONFLICT(company, subject) DO UPDATE SET
+      data = excluded.data, source = excluded.source, model = excluded.model,
+      corpus = excluded.corpus, updated_at = excluded.updated_at
+  `).run(
+    key(company),
+    key(subject),
+    JSON.stringify(result),
+    result.source || 'none',
+    result.model ?? null,
+    corpus,
+    Date.now(),
+  )
+}
+
+export function cachedVoiceRead(company, subject) {
+  const row = db
+    .prepare(
+      `SELECT data, source, model, corpus, updated_at AS updatedAt
+       FROM voice_reads WHERE company = ? AND subject = ?`,
+    )
+    .get(key(company), key(subject))
+  if (!row) return null
+  try {
+    return { ...JSON.parse(row.data), corpus: row.corpus, updatedAt: row.updatedAt }
+  } catch {
+    return null
+  }
+}
+
+export function saveTrending(company, result, corpus) {
+  db.prepare(`
+    INSERT INTO trending_reads (company, data, source, model, corpus, updated_at)
+    VALUES (?,?,?,?,?,?)
+    ON CONFLICT(company) DO UPDATE SET
+      data = excluded.data, source = excluded.source, model = excluded.model,
+      corpus = excluded.corpus, updated_at = excluded.updated_at
+  `).run(
+    key(company),
+    JSON.stringify(result),
+    result.source || 'none',
+    result.model ?? null,
+    corpus,
+    Date.now(),
+  )
+}
+
+export function cachedTrending(company) {
+  const row = db
+    .prepare(
+      'SELECT data, source, model, corpus, updated_at AS updatedAt FROM trending_reads WHERE company = ?',
     )
     .get(key(company))
   if (!row) return null

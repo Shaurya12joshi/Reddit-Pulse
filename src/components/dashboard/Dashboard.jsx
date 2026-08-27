@@ -2,15 +2,17 @@ import { useState } from 'react'
 import { useReport } from '../../hooks/useReport.js'
 
 import FilterBar from './FilterBar.jsx'
+import Section from './Section.jsx'
 import { DEFAULT_FILTERS } from './filterOptions.js'
 import CompanyOverview from './CompanyOverview.jsx'
 import StatTiles from './StatTiles.jsx'
 import TakeawaysPanel from './TakeawaysPanel.jsx'
-import SentimentDistribution from './SentimentDistribution.jsx'
 import TopicPanel from './TopicPanel.jsx'
 import TrendingThemes from './TrendingThemes.jsx'
 import ThemesPanel from './ThemesPanel.jsx'
 import CompetitorPanel from './CompetitorPanel.jsx'
+import NamedComparisonPanel from './NamedComparisonPanel.jsx'
+import RedditVoicePanel from './RedditVoicePanel.jsx'
 import SubredditPanel from './SubredditPanel.jsx'
 import DiscussionsPanel from './DiscussionsPanel.jsx'
 import PostDetailModal from './PostDetailModal.jsx'
@@ -21,13 +23,26 @@ import Button from '../ui/Button.jsx'
 import SentimentTrendChart from '../charts/SentimentTrendChart.jsx'
 import VolumeChart from '../charts/VolumeChart.jsx'
 import { useComparisons } from '../../hooks/useComparisons.js'
+import { useNamedComparison } from '../../hooks/useNamedComparison.js'
+import { useVoice } from '../../hooks/useVoice.js'
+import { useTrending } from '../../hooks/useTrending.js'
 
-export default function Dashboard({ company, meta, onRefresh }) {
+export default function Dashboard({
+  company,
+  meta,
+  onRefresh,
+  compareWith = '',
+  askedSubject = '',
+}) {
   const [filters, setFilters] = useState(DEFAULT_FILTERS)
   const [selectedPost, setSelectedPost] = useState(null)
 
   const report = useReport(company, filters)
   const comparisons = useComparisons(company)
+  // Both optional. The automatic competitor read above runs either way.
+  const named = useNamedComparison(company, compareWith)
+  const voice = useVoice(company, askedSubject)
+  const trending = useTrending(company)
 
   if (report.status === 'loading') {
     return (
@@ -46,12 +61,12 @@ export default function Dashboard({ company, meta, onRefresh }) {
     )
   }
 
-  const { insights, filterOptions, posts, total, totalUnfiltered, nextOffset, loadMore } = report
+  const { insights, filterOptions, posts, total, totalUnfiltered, loadMore } = report
   const hasResults = total > 0
 
   return (
-    <main className="mx-auto w-full max-w-[1400px] px-5 pb-20 sm:px-8">
-      <div className="pt-8">
+    <main className="mx-auto w-full max-w-[1240px] px-5 pb-24 sm:px-8">
+      <div className="pt-16">
         <CompanyOverview
           company={company}
           insights={insights}
@@ -91,108 +106,139 @@ export default function Dashboard({ company, meta, onRefresh }) {
           </Button>
         </div>
       ) : (
-        <div className="animate-fade-up mt-7 space-y-4">
-          <StatTiles insights={insights} />
+        <div className="animate-fade-up mt-8 space-y-12">
+          <Section
+            title="At a glance"
+            description="The headline numbers, and what the discussions add up to."
+          >
+            <StatTiles insights={insights} />
 
-          <div className="grid gap-4 xl:grid-cols-12">
-            <div className="xl:col-span-7">
-              <TakeawaysPanel takeaways={insights.takeaways} />
-            </div>
-            <div className="xl:col-span-5">
-              <SentimentDistribution sentiment={insights.sentiment} />
-            </div>
-          </div>
+            <TakeawaysPanel takeaways={insights.takeaways} />
+          </Section>
 
-          <div className="grid gap-4 xl:grid-cols-12">
-            <div className="xl:col-span-7">
-              <Card className="h-full">
-                <CardHeader
-                  title="Sentiment over time"
-                  subtitle={`Average score per ${insights.timeline.granularity}`}
-                  icon={<Icon name="trendUp" className="h-3.5 w-3.5" />}
-                />
-                <CardBody className="px-2 pb-3">
-                  <SentimentTrendChart
-                    buckets={insights.timeline.buckets}
-                    granularity={insights.timeline.granularity}
-                  />
-                </CardBody>
-              </Card>
-            </div>
-            <div className="xl:col-span-5">
-              <Card className="h-full">
-                <CardHeader
-                  title="Discussion volume"
-                  subtitle="Mentions per period, stacked by sentiment"
-                  icon={<Icon name="chat" className="h-3.5 w-3.5" />}
-                />
-                <CardBody className="px-2 pb-3">
-                  <VolumeChart
-                    buckets={insights.timeline.buckets}
-                    granularity={insights.timeline.granularity}
-                  />
-                </CardBody>
-              </Card>
-            </div>
-          </div>
-
-          <div className="grid gap-4 xl:grid-cols-12">
-            <div className="xl:col-span-7">
-              <TopicPanel
-                topics={insights.topics}
-                activeTopic={filters.topic}
-                onSelectTopic={(topic) => setFilters({ ...filters, topic })}
-              />
-            </div>
-            <div className="xl:col-span-5">
-              <TrendingThemes phrases={insights.trending} />
-            </div>
-          </div>
-
-          <div className="grid gap-4 lg:grid-cols-2">
-            <ThemesPanel
-              themes={insights.praise}
-              polarity="positive"
-              total={insights.totals.mentions}
-            />
-            <ThemesPanel
-              themes={insights.complaints}
-              polarity="negative"
-              total={insights.totals.mentions}
-            />
-          </div>
-
-          <div className="grid gap-4 xl:grid-cols-12">
-            <div className="xl:col-span-8">
-              <CompetitorPanel
-                competitors={insights.competitors}
-                company={company}
-                market={insights.market}
-                comparisons={comparisons}
-              />
-            </div>
-            <div className="xl:col-span-4">
-              <SubredditPanel
-                subreddits={insights.subreddits}
-                activeSubreddit={filters.subreddit}
-                onSelect={(subreddit) => setFilters({ ...filters, subreddit })}
-              />
-            </div>
-          </div>
-
-          <DiscussionsPanel
-            posts={posts}
-            topDiscussions={insights.topDiscussions}
-            onOpenPost={setSelectedPost}
-          />
-
-          {nextOffset ? (
-            <div className="flex justify-center pt-2">
-              <Button variant="secondary" size="sm" onClick={loadMore}>
-                Load more ({posts.length} of {total})
-              </Button>
-            </div>
+          {askedSubject ? (
+            <Section
+              title="Your question"
+              description="Read from the same discussions, for the subject you asked about."
+            >
+              <RedditVoicePanel company={company} asked={askedSubject} result={voice} />
+            </Section>
           ) : null}
+
+          <Section
+            title="Movement over time"
+            description={`Tone and volume per ${insights.timeline.granularity}.`}
+          >
+            <div className="grid gap-4 xl:grid-cols-12">
+              <div className="xl:col-span-7">
+                <Card className="h-full">
+                  <CardHeader
+                    title="Sentiment over time"
+                    subtitle={`Average score per ${insights.timeline.granularity}`}
+                    icon={<Icon name="trendUp" className="h-3.5 w-3.5" />}
+                  />
+                  <CardBody className="px-2 pb-3">
+                    <SentimentTrendChart
+                      buckets={insights.timeline.buckets}
+                      granularity={insights.timeline.granularity}
+                    />
+                  </CardBody>
+                </Card>
+              </div>
+              <div className="xl:col-span-5">
+                <Card className="h-full">
+                  <CardHeader
+                    title="Discussion volume"
+                    subtitle="Mentions per period, stacked by sentiment"
+                    icon={<Icon name="chat" className="h-3.5 w-3.5" />}
+                  />
+                  <CardBody className="px-2 pb-3">
+                    <VolumeChart
+                      buckets={insights.timeline.buckets}
+                      granularity={insights.timeline.granularity}
+                    />
+                  </CardBody>
+                </Card>
+              </div>
+            </div>
+          </Section>
+
+          <Section
+            title="What people talk about"
+            description="The subjects that keep coming back, and what is said about them."
+          >
+            <div className="grid gap-4 xl:grid-cols-12">
+              <div className="xl:col-span-7">
+                <TopicPanel
+                  topics={insights.topics}
+                  activeTopic={filters.topic}
+                  onSelectTopic={(topic) => setFilters({ ...filters, topic })}
+                />
+              </div>
+              <div className="xl:col-span-5">
+                <TrendingThemes phrases={insights.trending} refined={trending} />
+              </div>
+            </div>
+
+            <div className="grid gap-4 lg:grid-cols-2">
+              <ThemesPanel
+                themes={insights.praise}
+                polarity="positive"
+                total={insights.totals.mentions}
+              />
+              <ThemesPanel
+                themes={insights.complaints}
+                polarity="negative"
+                total={insights.totals.mentions}
+              />
+            </div>
+          </Section>
+
+          <Section
+            title="Competition"
+            description="Who gets named alongside you, and where the talk happens."
+          >
+            {compareWith ? (
+              <NamedComparisonPanel company={company} requested={compareWith} result={named} />
+            ) : null}
+
+            <div className="grid gap-4 xl:grid-cols-12">
+              <div className="xl:col-span-8">
+                <CompetitorPanel
+                  competitors={insights.competitors}
+                  company={company}
+                  market={insights.market}
+                  comparisons={comparisons}
+                />
+              </div>
+              <div className="xl:col-span-4">
+                <SubredditPanel
+                  subreddits={insights.subreddits}
+                  activeSubreddit={filters.subreddit}
+                  onSelect={(subreddit) => setFilters({ ...filters, subreddit })}
+                />
+              </div>
+            </div>
+          </Section>
+
+          <Section
+            title="The discussions themselves"
+            description="Every number above traces back to these threads."
+          >
+            <DiscussionsPanel
+              // A filter change replaces the corpus underneath the panel, so
+              // its paging, tab and drained flag start over with it.
+              key={`${filters.timeRange}-${filters.subreddit}-${filters.sentiment}-${filters.topic}`}
+              posts={posts}
+              topDiscussions={insights.topDiscussions}
+              onOpenPost={setSelectedPost}
+              // Counted against the filtered total rather than the paging
+              // cursor: once every post is loaded there is nothing left to
+              // offer, whatever the cursor happens to say.
+              hasMore={posts.length < total}
+              onLoadMore={loadMore}
+            />
+          </Section>
         </div>
       )}
 

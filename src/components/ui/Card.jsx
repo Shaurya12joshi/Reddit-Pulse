@@ -15,10 +15,10 @@ export function CardHeader({ title, subtitle, icon, action, className = '' }) {
       className={`flex items-start justify-between gap-4 border-b border-line px-5 py-4 ${className}`}
     >
       <div className="min-w-0">
-        <h2 className="flex items-center gap-2 text-[13px] font-semibold tracking-wide text-ink uppercase">
+        <h3 className="flex items-center gap-2 text-[14.5px] font-semibold tracking-[-0.01em] text-ink">
           {icon ? <span className="text-ink-3">{icon}</span> : null}
           {title}
-        </h2>
+        </h3>
         {subtitle ? (
           <p className="mt-1 text-[13px] leading-snug text-ink-3">{subtitle}</p>
         ) : null}

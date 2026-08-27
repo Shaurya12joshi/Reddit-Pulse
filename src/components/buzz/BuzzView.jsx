@@ -4,6 +4,7 @@ import { Badge } from '../ui/Badge.jsx'
 import Icon from '../ui/Icon.jsx'
 import { formatCompact, formatNumber, formatRelative } from '../../utils/format.js'
 import { useBuzz } from '../../hooks/useBuzz.js'
+import { redditUrl } from '../../utils/reddit.js'
 
 const TABLE_PREVIEW = 12
 
@@ -132,7 +133,7 @@ function TopCommunity({ row }) {
           {row.examples.slice(0, 2).map((example) => (
             <li key={example.id} className="truncate text-[12px]">
               <a
-                href={example.url}
+                href={redditUrl(example.permalink, example.url)}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-ink-3 hover:text-ink hover:underline"

@@ -4,6 +4,7 @@ import { Badge, SentimentBadge } from '../ui/Badge.jsx'
 import Icon from '../ui/Icon.jsx'
 import { formatPercent, formatSigned, sentimentStyle } from '../../utils/format.js'
 import { labelFor } from '../../analysis/sentiment.js'
+import { redditUrl } from '../../utils/reddit.js'
 
 const VERDICT = {
   brand: { label: 'Favours', tone: 'positive' },
@@ -245,7 +246,7 @@ export default function CompetitorPanel({ competitors, company, market, comparis
                               </span>
                               {example.permalink ? (
                                 <a
-                                  href={example.permalink}
+                                  href={redditUrl(example.permalink)}
                                   target="_blank"
                                   rel="noreferrer"
                                   onClick={(event) => event.stopPropagation()}

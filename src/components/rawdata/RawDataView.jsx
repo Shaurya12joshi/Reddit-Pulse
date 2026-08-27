@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { apiFetch } from '../../services/aiConnection.js'
+import { redditUrl } from '../../utils/reddit.js'
 
 const PAGE_SIZE = 100
 
@@ -273,7 +274,7 @@ export default function RawDataView({ company }) {
                   <div className="max-w-2xl">
                     {post.title ? (
                       <a
-                        href={post.url}
+                        href={redditUrl(post.permalink, post.url)}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="font-semibold text-indigo-800 hover:underline"

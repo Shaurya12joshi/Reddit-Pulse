@@ -14,8 +14,8 @@ export default function ThemesPanel({ themes, polarity, total }) {
         title={isPraise ? 'What people like' : 'What people dislike'}
         subtitle={
           isPraise
-            ? 'Themes appearing in positively-scored sentences'
-            : 'Themes appearing in negatively-scored sentences'
+            ? 'Subjects the discussions lean positive on'
+            : 'Subjects the discussions lean negative on'
         }
         icon={
           <Icon name={isPraise ? 'trendUp' : 'trendDown'} className="h-3.5 w-3.5" />
@@ -43,6 +43,13 @@ export default function ThemesPanel({ themes, polarity, total }) {
                   style={{ width: `${(theme.count / peak) * 100}%` }}
                 />
               </div>
+
+              {theme.opposing > 0 ? (
+                <p className="tnum mt-1.5 text-[11px] text-ink-3">
+                  {theme.opposing} discussion{theme.opposing === 1 ? '' : 's'} take the
+                  other side
+                </p>
+              ) : null}
 
               {theme.examples[0] ? (
                 <blockquote className="mt-2.5 border-l-2 border-line pl-3 text-[12px] leading-relaxed text-ink-3 italic">

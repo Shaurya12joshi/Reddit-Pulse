@@ -20,14 +20,14 @@ export default function FilterBar({
     <div className="sticky top-14 z-20 -mx-5 border-b border-line bg-canvas/85 px-5 py-3 backdrop-blur-md sm:-mx-8 sm:px-8">
       <div className="flex flex-wrap items-end gap-3">
         <Select
-          label="Period"
+          ariaLabel="Period"
           value={filters.timeRange}
           onChange={set('timeRange')}
           options={TIME_RANGES}
           className="w-[132px]"
         />
         <Select
-          label="Subreddit"
+          ariaLabel="Subreddit"
           value={filters.subreddit}
           onChange={set('subreddit')}
           options={[
@@ -40,7 +40,7 @@ export default function FilterBar({
           className="w-[178px]"
         />
         <Select
-          label="Sentiment"
+          ariaLabel="Sentiment"
           value={filters.sentiment}
           onChange={set('sentiment')}
           options={[
@@ -52,7 +52,7 @@ export default function FilterBar({
           className="w-[150px]"
         />
         <Select
-          label="Topic"
+          ariaLabel="Topic"
           value={filters.topic}
           onChange={set('topic')}
           options={[

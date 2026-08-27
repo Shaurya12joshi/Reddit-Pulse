@@ -11,7 +11,7 @@ const TONE_ICON = {
 }
 
 export default function StatTiles({ insights }) {
-  const { sentiment, totals, timeline, competitors } = insights
+  const { totals, timeline, competitors, subreddits } = insights
 
   const buckets = timeline.buckets
   let delta = null
@@ -32,28 +32,22 @@ export default function StatTiles({ insights }) {
       tone: 'accent',
     },
     {
-      id: 'positive',
-      icon: 'trendUp',
-      label: 'Positive share',
-      value: formatPercent(sentiment.positivePct, 1),
-      caption: `${sentiment.positive} of ${totals.mentions} discussions`,
-      tone: 'positive',
-    },
-    {
-      id: 'negative',
-      icon: 'trendDown',
-      label: 'Negative share',
-      value: formatPercent(sentiment.negativePct, 1),
-      caption: `${sentiment.negative} of ${totals.mentions} discussions`,
-      tone: 'negative',
-    },
-    {
       id: 'engagement',
       icon: 'flame',
       label: 'Total upvotes',
       value: formatCompact(totals.upvotes),
       caption: `${formatCompact(totals.replies)} replies across threads`,
       tone: 'highlight',
+    },
+    {
+      id: 'communities',
+      icon: 'users',
+      label: 'Most active community',
+      value: subreddits.length ? `r/${subreddits[0].name}` : '—',
+      caption: subreddits.length
+        ? `${subreddits[0].count} of ${totals.mentions} discussions`
+        : 'No community stands out',
+      tone: 'default',
     },
     {
       id: 'competitors',
@@ -68,7 +62,7 @@ export default function StatTiles({ insights }) {
   ]
 
   return (
-    <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+    <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
       {tiles.map((tile) => (
         <div
           key={tile.id}

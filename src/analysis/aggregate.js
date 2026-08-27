@@ -216,6 +216,24 @@ function buildThemes(posts, polarity) {
     .sort((a, b) => b.count - a.count)
 }
 
+// A theme that shows up on both sides tells a reader nothing: "Design" as both
+// a like and a dislike reads as noise. Whichever side the corpus leans is the
+// side it belongs on, and the losing count rides along so the split stays
+// visible. Ties go to the complaint, since that is the actionable read.
+function splitByMajority(praise, complaints) {
+  const negById = new Map(complaints.map((theme) => [theme.id, theme.count]))
+  const posById = new Map(praise.map((theme) => [theme.id, theme.count]))
+
+  return {
+    praise: praise
+      .filter((theme) => theme.count > (negById.get(theme.id) ?? 0))
+      .map((theme) => ({ ...theme, opposing: negById.get(theme.id) ?? 0 })),
+    complaints: complaints
+      .filter((theme) => theme.count >= (posById.get(theme.id) ?? 0))
+      .map((theme) => ({ ...theme, opposing: posById.get(theme.id) ?? 0 })),
+  }
+}
+
 function competitorGate(roster = []) {
   if (!roster.length) return { allowed: null, canonical: new Map() }
 
@@ -528,8 +546,10 @@ export function buildInsights(
 
   const timeline = buildTimeline(posts)
   const topics = buildTopics(posts)
-  const praise = buildThemes(posts, 'positive')
-  const complaints = buildThemes(posts, 'negative')
+  const { praise, complaints } = splitByMajority(
+    buildThemes(posts, 'positive'),
+    buildThemes(posts, 'negative'),
+  )
   const competitors = buildCompetitors(posts, roster)
   const subreddits = buildSubreddits(posts)
   const trending = extractTrendingPhrases(

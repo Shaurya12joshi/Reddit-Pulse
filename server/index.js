@@ -20,6 +20,12 @@ import {
   brandIdentity,
   cachedComparisons,
   saveComparisons,
+  cachedNamedComparison,
+  saveNamedComparison,
+  cachedVoiceRead,
+  saveVoiceRead,
+  cachedTrending,
+  saveTrending,
   collectionStats,
   countPosts,
   knownIds,
@@ -45,12 +51,18 @@ import {
   subredditMeta,
 } from './db.js'
 import { scoreThreads, selectForDeepCollection } from '../src/analysis/importance.js'
+import { dropContentFree } from '../src/analysis/text.js'
 import { assessPromoRisk } from './intelligence/compliance.js'
 import { classifyAboutness } from './intelligence/relevance.js'
 import { heuristicIdentity, resolveBrand } from './intelligence/resolve.js'
 import { runIntelligence, snapshotHistory } from './intelligence/pipeline.js'
 import { buildSearchPlan, mergeQueries } from './intelligence/searchPlan.js'
 import { compareAgainstCompetitors } from './intelligence/comparison.js'
+import { compareWithNamed } from './intelligence/namedComparison.js'
+import { readVoice } from './intelligence/voice.js'
+import { refineTrending } from './intelligence/trending.js'
+import { extractTrendingPhrases } from '../src/analysis/topics.js'
+import { tokenize } from '../src/analysis/sentiment.js'
 import { catalogue, credentialContext, siteReady, testConnection } from './connection.js'
 
 const IDENTITY_MAX_AGE = 90 * 24 * 60 * 60 * 1000
@@ -109,7 +121,10 @@ app.post('/api/ingest', async (req, res) => {
 
   const started = Date.now()
 
-  const heuristically = filterRelevantPosts(posts, company)
+  // A comment that is only an image link or a removal stub has nothing to
+  // read. Dropped here rather than later, so it never reaches a count.
+  const readable = dropContentFree(posts)
+  const heuristically = filterRelevantPosts(readable, company)
 
   let identity = brandIdentity(company)
   const stale =
@@ -146,7 +161,8 @@ app.post('/api/ingest', async (req, res) => {
   }
 
   console.log(
-    `ingest ${company} [${phase}]: +${enriched.length} items (${total} total) in ${Date.now() - started}ms`,
+    `ingest ${company} [${phase}]: +${enriched.length} items (${total} total), ` +
+      `${posts.length - readable.length} content-free dropped, in ${Date.now() - started}ms`,
   )
   res.json({ ok: true, phase, received: posts.length, stored: enriched.length, total })
 
@@ -579,6 +595,173 @@ app.get('/api/comparisons', async (req, res) => {
   } catch (error) {
     console.warn(`[comparisons] ${company} failed:`, error.message)
     res.status(500).json({ error: 'Could not read the comparisons for this company.' })
+  }
+})
+
+// A head-to-head the user asked for by name. Separate from /api/comparisons
+// so the automatic read is never displaced by it: both can be on screen at
+// once, and each caches on its own key.
+const namedInFlight = new Map()
+
+app.get('/api/comparisons/named', async (req, res) => {
+  const { company, against } = req.query
+  if (!company || !String(company).trim()) {
+    return res.status(400).json({ error: 'Missing "company" query parameter' })
+  }
+  if (!against || !String(against).trim()) {
+    return res.status(400).json({ error: 'Missing "against" query parameter' })
+  }
+
+  const target = String(against).trim().slice(0, 80)
+  const corpus = countPosts(company)
+  if (corpus === 0) {
+    return res.status(404).json({ error: `No Reddit data has been collected for "${company}" yet.` })
+  }
+
+  const cached = cachedNamedComparison(company, target)
+  const refresh = req.query.refresh === 'true'
+  const GROWTH = 1.15
+
+  if (cached && !refresh && cached.source === 'llm' && corpus < cached.corpus * GROWTH) {
+    return res.json({ ...cached, cached: true })
+  }
+
+  const key = `${String(company).trim().toLowerCase()}::${target.toLowerCase()}`
+  if (namedInFlight.has(key)) return res.json(await namedInFlight.get(key))
+
+  const identity = brandIdentity(company) || {}
+  const run = (async () => {
+    const started = Date.now()
+    const posts = selectPosts(company, {})
+    const result = await compareWithNamed(String(company).trim(), posts, identity, target)
+    saveNamedComparison(company, target, result, corpus)
+    console.log(
+      `named comparison ${company} vs ${target}: ${result.source} ` +
+        `(${result.coverage?.headToHead ?? 0} head-to-head excerpts) in ${Date.now() - started}ms`,
+    )
+    return { ...result, corpus, cached: false }
+  })().finally(() => namedInFlight.delete(key))
+
+  namedInFlight.set(key, run)
+
+  try {
+    res.json(await run)
+  } catch (error) {
+    console.warn(`[named comparison] ${company} vs ${target} failed:`, error.message)
+    res.status(500).json({ error: 'Could not read that comparison.' })
+  }
+})
+
+// What Reddit says about one product, service or question the user typed.
+const voiceInFlight = new Map()
+
+app.get('/api/voice', async (req, res) => {
+  const { company, subject } = req.query
+  if (!company || !String(company).trim()) {
+    return res.status(400).json({ error: 'Missing "company" query parameter' })
+  }
+  if (!subject || !String(subject).trim()) {
+    return res.status(400).json({ error: 'Missing "subject" query parameter' })
+  }
+
+  const asked = String(subject).trim().slice(0, 200)
+  const corpus = countPosts(company)
+  if (corpus === 0) {
+    return res.status(404).json({ error: `No Reddit data has been collected for "${company}" yet.` })
+  }
+
+  const cached = cachedVoiceRead(company, asked)
+  const refresh = req.query.refresh === 'true'
+  const GROWTH = 1.15
+
+  if (cached && !refresh && cached.source === 'llm' && corpus < cached.corpus * GROWTH) {
+    return res.json({ ...cached, cached: true })
+  }
+
+  const key = `${String(company).trim().toLowerCase()}::${asked.toLowerCase()}`
+  if (voiceInFlight.has(key)) return res.json(await voiceInFlight.get(key))
+
+  const identity = brandIdentity(company) || {}
+  const run = (async () => {
+    const started = Date.now()
+    const posts = selectPosts(company, {})
+    const result = await readVoice(String(company).trim(), posts, identity, asked)
+    saveVoiceRead(company, asked, result, corpus)
+    console.log(
+      `voice ${company} "${asked}": ${result.source} ` +
+        `(${result.coverage?.matched ?? 0} matching excerpts) in ${Date.now() - started}ms`,
+    )
+    return { ...result, corpus, cached: false }
+  })().finally(() => voiceInFlight.delete(key))
+
+  voiceInFlight.set(key, run)
+
+  try {
+    res.json(await run)
+  } catch (error) {
+    console.warn(`[voice] ${company} "${asked}" failed:`, error.message)
+    res.status(500).json({ error: 'Could not read that question.' })
+  }
+})
+
+// Trending phrases, after a model has separated subjects from the debris that
+// frequency counting drags along. Its own endpoint so /api/report stays a
+// deterministic, synchronous read.
+const trendingInFlight = new Map()
+
+app.get('/api/trending', async (req, res) => {
+  const company = req.query.company
+  if (!company || !String(company).trim()) {
+    return res.status(400).json({ error: 'Missing "company" query parameter' })
+  }
+
+  const corpus = countPosts(company)
+  if (corpus === 0) {
+    return res.status(404).json({ error: `No Reddit data has been collected for "${company}" yet.` })
+  }
+
+  const cached = cachedTrending(company)
+  const refresh = req.query.refresh === 'true'
+  const GROWTH = 1.15
+
+  if (cached && !refresh && cached.source === 'llm' && corpus < cached.corpus * GROWTH) {
+    return res.json({ ...cached, cached: true })
+  }
+
+  const key = String(company).trim().toLowerCase()
+  if (trendingInFlight.has(key)) return res.json(await trendingInFlight.get(key))
+
+  const identity = brandIdentity(company) || {}
+  const run = (async () => {
+    const started = Date.now()
+    const posts = selectPosts(company, {})
+    const label = displayName(company)
+
+    const candidates = extractTrendingPhrases(
+      posts.map((post) => post.text || [post.title, post.body].filter(Boolean).join('. ')),
+      {
+        limit: 40,
+        minCount: Math.max(2, Math.round(posts.length * 0.02)),
+        exclude: tokenize(label),
+      },
+    )
+
+    const result = await refineTrending(String(company).trim(), candidates, posts, identity)
+    saveTrending(company, result, corpus)
+    console.log(
+      `trending ${company}: ${result.themes.length} kept from ${candidates.length} candidates ` +
+        `(${result.source}) in ${Date.now() - started}ms`,
+    )
+    return { ...result, candidates: candidates.length, corpus, cached: false }
+  })().finally(() => trendingInFlight.delete(key))
+
+  trendingInFlight.set(key, run)
+
+  try {
+    res.json(await run)
+  } catch (error) {
+    console.warn(`[trending] ${company} failed:`, error.message)
+    res.status(500).json({ error: 'Could not read the trending themes.' })
   }
 })
 

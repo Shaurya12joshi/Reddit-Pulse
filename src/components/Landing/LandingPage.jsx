@@ -3,10 +3,8 @@ import AnalyzeCta from './AnalyzeCta.jsx'
 import ProductPreviewSection from './ProductPreviewSection.jsx'
 import Footer from './Footer.jsx'
 
-export default function LandingPage({ onAnalyze, dataSource }) {
-  const cta = (
-    <AnalyzeCta onAnalyze={onAnalyze} dataSource={dataSource} />
-  )
+export default function LandingPage({ onAnalyze }) {
+  const cta = <AnalyzeCta onAnalyze={onAnalyze} />
 
   return (
     <main className="paper-grain">

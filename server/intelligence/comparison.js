@@ -52,11 +52,11 @@ const EXCERPT_CHARS = 420
 
 const lower = (value) => String(value || '').trim().toLowerCase()
 
-function escapeRegex(value) {
+export function escapeRegex(value) {
   return String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 }
 
-function patternsFor(names = []) {
+export function patternsFor(names = []) {
   return names
     .map((value) => String(value || '').trim())
     .filter((value) => value.length >= 2)

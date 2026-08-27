@@ -1,13 +1,30 @@
+import { useState } from 'react'
+
 import AiConnectionNote from './AiConnectionNote.jsx'
 import ExtensionNote from './ExtensionNote.jsx'
+import OptionalExtras from './OptionalExtras.jsx'
 import { SEARCH_ANCHOR } from '../../experience/goToSearch.js'
 import SearchBar from './SearchBar.jsx'
 import { EXAMPLE_COMPANIES } from '../../data/exampleCompanies.js'
 
-export default function AnalyzeCta({ onAnalyze, dataSource, id = SEARCH_ANCHOR }) {
+export default function AnalyzeCta({ onAnalyze, id = SEARCH_ANCHOR }) {
+  const [extras, setExtras] = useState({ compareWith: '', subject: '' })
+
+  const start = (name) =>
+    onAnalyze(name, {
+      compareWith: extras.compareWith.trim(),
+      subject: extras.subject.trim(),
+    })
+
   return (
     <div id={id} className="w-full max-w-xl scroll-mt-24">
-      <SearchBar onSubmit={onAnalyze} id="company-search" />
+      <SearchBar onSubmit={start} id="company-search" />
+
+      <OptionalExtras
+        compareWith={extras.compareWith}
+        subject={extras.subject}
+        onChange={setExtras}
+      />
 
       <div className="mt-5 flex flex-wrap items-center justify-center gap-2.5">
         <AiConnectionNote />
@@ -20,7 +37,7 @@ export default function AnalyzeCta({ onAnalyze, dataSource, id = SEARCH_ANCHOR }
           <button
             key={name}
             type="button"
-            onClick={() => onAnalyze(name)}
+            onClick={() => start(name)}
             className="rounded-full border border-line bg-surface px-3 py-1.5 text-[12px] text-ink-2 transition-colors hover:border-ink hover:text-ink"
           >
             {name}
@@ -28,13 +45,6 @@ export default function AnalyzeCta({ onAnalyze, dataSource, id = SEARCH_ANCHOR }
         ))}
       </div>
 
-      <p className="mx-auto mt-5 max-w-md text-[12px] leading-relaxed text-ink-3">
-        {dataSource === 'live' ? (
-          <>Live mode: results are loaded from whatever the Reddit scraper extension most recently collected.</>
-        ) : (
-          <>Running on a realistic sample dataset, no scrape needed.</>
-        )}
-      </p>
     </div>
   )
 }

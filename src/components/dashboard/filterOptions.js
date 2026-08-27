@@ -5,6 +5,12 @@ export const TIME_RANGES = [
   { value: 'all', label: 'All time' },
 ]
 
+export const POST_TYPES = [
+  { value: 'all', label: 'Posts & comments' },
+  { value: 'post', label: 'Posts only' },
+  { value: 'comment', label: 'Comments only' },
+]
+
 export const DEFAULT_FILTERS = {
   timeRange: 'all',
   subreddit: 'all',

@@ -14,6 +14,10 @@ export function useReport(company, filters) {
   const [state, setState] = useState({ status: 'loading' })
   const [extraPosts, setExtraPosts] = useState([])
   const requestId = useRef(0)
+  // The paging cursor lives in a ref as well as in state: a caller that fetches
+  // several pages inside one handler would otherwise re-send the offset it was
+  // rendered with and pull the same page twice.
+  const offsetRef = useRef(null)
 
   useEffect(() => {
     if (!company) return
@@ -38,7 +42,15 @@ export function useReport(company, filters) {
         const data = await res.json()
         if (id !== requestId.current) return
 
-        setState({ status: 'ready', ...data })
+        // A re-poll must not rewind paging: pages already pulled are still in
+        // extraPosts, so the cursor stays where it got to.
+        if (attempt === 0) offsetRef.current = data.nextOffset ?? null
+        setState((prev) => ({
+          status: 'ready',
+          ...data,
+          nextOffset: attempt === 0 ? data.nextOffset : offsetRef.current,
+          posts: attempt === 0 ? data.posts : prev.posts,
+        }))
 
         if (data.analysing && attempt < RECHECKS) {
           timer = setTimeout(() => load(attempt + 1), RECHECK_MS)
@@ -56,18 +68,24 @@ export function useReport(company, filters) {
     }
   }, [company, filters])
 
+  // Returns what it fetched so a caller can tell an empty page from a page
+  // that simply held nothing matching its own filters.
   const loadMore = useCallback(async () => {
-    if (!state.nextOffset) return
+    const offset = offsetRef.current
+    if (offset === null || offset === undefined) return { posts: [], nextOffset: null }
+
     const params = buildQuery(company, filters)
-    params.set('offset', String(state.nextOffset))
+    params.set('offset', String(offset))
 
     const res = await apiFetch(`/api/posts?${params}`)
-    if (!res.ok) return
+    if (!res.ok) return { posts: [], nextOffset: offset }
 
     const data = await res.json()
+    offsetRef.current = data.nextOffset ?? null
     setExtraPosts((prev) => [...prev, ...data.posts])
     setState((prev) => ({ ...prev, nextOffset: data.nextOffset }))
-  }, [company, filters, state.nextOffset])
+    return { posts: data.posts, nextOffset: data.nextOffset ?? null }
+  }, [company, filters])
 
   const posts = state.posts ? [...state.posts, ...extraPosts] : []
 

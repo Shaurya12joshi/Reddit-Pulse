@@ -9,6 +9,7 @@ import {
   sentimentStyle,
 } from '../../utils/format.js'
 import { escapeRegex } from '../../analysis/topics.js'
+import { redditUrl } from '../../utils/reddit.js'
 
 export default function PostDetailModal({ post, open, onClose }) {
   const highlighted = useMemo(() => {
@@ -103,9 +104,9 @@ export default function PostDetailModal({ post, open, onClose }) {
         </DetailBlock>
       </div>
 
-      {post.permalink ? (
+      {redditUrl(post.permalink, post.url) ? (
         <a
-          href={post.permalink}
+          href={redditUrl(post.permalink, post.url)}
           target="_blank"
           rel="noreferrer"
           className="mt-5 inline-flex items-center gap-1.5 text-[13px] text-accent-ink hover:text-accent"

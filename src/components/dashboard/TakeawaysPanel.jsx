@@ -12,10 +12,9 @@ export default function TakeawaysPanel({ takeaways }) {
     <Card>
       <CardHeader
         title="Key takeaways"
-        subtitle="Generated from the aggregates below"
         icon={<Icon name="spark" className="h-3.5 w-3.5" />}
       />
-      <CardBody className="space-y-3">
+      <CardBody className="max-w-[80ch] space-y-3.5">
         {takeaways.length === 0 ? (
           <p className="py-4 text-center text-[13px] text-ink-3">
             Not enough data in the current selection to summarise.
@@ -42,9 +41,7 @@ export default function TakeawaysPanel({ takeaways }) {
         )}
 
         <p className="border-t border-line pt-3 text-[11px] leading-relaxed text-ink-3">
-          These statements are assembled deterministically from the counts and
-          scores in this report, so every claim traces back to the data on this
-          page.
+          Assembled from the counts and scores on this page, so every claim traces back to them.
         </p>
       </CardBody>
     </Card>
