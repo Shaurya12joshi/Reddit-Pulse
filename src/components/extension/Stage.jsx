@@ -14,6 +14,7 @@ export default function Stage({
   variant = 'lift',
   active = true,
   parallax = 1,
+  fade = true,
   className = '',
 }) {
   const ref = useRef(null)
@@ -44,9 +45,11 @@ export default function Stage({
       node.style.transform =
         `perspective(1500px) translate3d(0, ${translateY.toFixed(2)}px, ${translateZ.toFixed(2)}px) ` +
         `rotateX(${rotateX.toFixed(2)}deg) rotateY(${rotateY.toFixed(2)}deg) scale(${Math.max(0.82, scale).toFixed(3)})`
-      node.style.opacity = Math.max(0, Math.min(1, 1 - away * 0.85)).toFixed(3)
+      node.style.opacity = fade
+        ? Math.max(0, Math.min(1, 1 - away * 0.85)).toFixed(3)
+        : ''
     })
-  }, [active, variant, parallax])
+  }, [active, variant, parallax, fade])
 
   return (
     <div

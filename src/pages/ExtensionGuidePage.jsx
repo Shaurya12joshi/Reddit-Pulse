@@ -9,6 +9,7 @@ import PinnedActs from '../components/extension/PinnedActs.jsx'
 import ScatterText from '../components/extension/ScatterText.jsx'
 import RunThread from '../components/extension/RunThread.jsx'
 import Stage from '../components/extension/Stage.jsx'
+import useReveal from '../components/extension/useReveal.js'
 import SceneBoundary from '../experience/SceneBoundary.jsx'
 import useEnvironment from '../experience/useEnvironment.js'
 import { EXTENSION_REPO_URL, EXTENSION_ZIP_URL } from '../services/links.js'
@@ -81,41 +82,47 @@ function useSceneDrivers(active) {
   return { progress, pointer }
 }
 
-function Step({ number, title, children, immersive, done, onToggle }) {
+function Step({ number, title, children, done, onToggle, order = 0 }) {
   return (
-    <li className="relative pb-4 last:pb-0">
-      <Stage variant="flat" active={immersive} parallax={0.5}>
-        <div
-          className={`relative flex gap-3 rounded-[10px] border bg-surface/85 p-3.5 backdrop-blur-sm transition-colors ${
-            done ? 'border-[#ff4500]/45' : 'border-line hover:border-line-strong'
-          }`}
-        >
-          <VoteRail
-            score={done ? number * 7 + 12 : number * 7 + 11}
-            voted={done}
-            onVote={onToggle}
-            label={`step ${number}`}
-          />
+    <li className="reveal reveal-slide relative pb-4 last:pb-0" style={{ '--d': `${order * 40}ms` }}>
+      <div
+        className={`install-card relative flex gap-3.5 rounded-[12px] border-[1.5px] py-4 pr-4 pl-5 ${
+          done ? 'is-done' : ''
+        }`}
+      >
+        <span className="install-rail" aria-hidden="true" />
 
-          <div className={`min-w-0 flex-1 transition-opacity ${done ? 'opacity-55' : ''}`}>
-            <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] text-ink-3">
-              <span className="font-semibold text-ink-2">u/collector</span>
-              <span aria-hidden="true">·</span>
-              <span>step {number} of {STEP_COUNT}</span>
-              {done ? (
-                <span
-                  className="rounded-full px-1.5 py-0.5 text-[10px] font-semibold tracking-wide uppercase"
-                  style={{ backgroundColor: '#ffe9df', color: ORANGE_INK }}
-                >
-                  Done
-                </span>
-              ) : null}
-            </p>
-            <h3 className="mt-1 text-[15.5px] font-semibold text-ink">{title}</h3>
-            <div className="mt-2 space-y-2.5 text-[14px] leading-relaxed text-ink-2">{children}</div>
-          </div>
+        <VoteRail
+          score={done ? number * 7 + 12 : number * 7 + 11}
+          voted={done}
+          onVote={onToggle}
+          label={`step ${number}`}
+        />
+
+        <div className="min-w-0 flex-1">
+          <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[11.5px] text-ink-2">
+            <span className="font-semibold" style={{ color: ORANGE_INK }}>
+              u/collector
+            </span>
+            <span aria-hidden="true">&middot;</span>
+            <span>
+              step {number} of {STEP_COUNT}
+            </span>
+            {done ? (
+              <span
+                className="rounded-full px-1.5 py-0.5 text-[10px] font-semibold tracking-wide uppercase"
+                style={{ backgroundColor: '#ffdcc9', color: ORANGE_INK }}
+              >
+                Done
+              </span>
+            ) : null}
+          </p>
+          <h3 className="mt-1 text-[17px] leading-snug font-semibold tracking-[-0.01em] text-ink">
+            {title}
+          </h3>
+          <div className="mt-2 space-y-2.5 text-[14.5px] leading-[1.65] text-ink">{children}</div>
         </div>
-      </Stage>
+      </div>
     </li>
   )
 }
@@ -198,6 +205,7 @@ export default function ExtensionGuidePage() {
   const [sceneFailed, setSceneFailed] = useState(false)
   const immersive = ready && webgl && !reducedMotion && !sceneFailed
   const { progress, pointer } = useSceneDrivers(immersive)
+  const revealRef = useReveal()
   const [done, setDone] = useState(() => {
     const stored = attemptRead()
     return stored instanceof Set ? stored : new Set()
@@ -206,7 +214,6 @@ export default function ExtensionGuidePage() {
   const [party, setParty] = useState(0)
 
   const stepProps = (number) => ({
-    immersive,
     done: done.has(number),
     onToggle: () =>
       setDone((current) => {
@@ -444,16 +451,37 @@ export default function ExtensionGuidePage() {
           </div>
         </Stage>
 
-        <Stage variant="deck" active={immersive} className="mt-24 scroll-mt-24">
-          <div id="install">
-            <h2 className="text-[26px] leading-tight font-semibold tracking-tight text-balance">
+        <div className="mt-24 scroll-mt-24">
+          <div id="install" ref={revealRef} className="install-panel px-5 py-8 sm:px-8 sm:py-10">
+            <p
+              className="reveal reveal-zoom eyebrow inline-flex items-center gap-2 rounded-full px-3 py-1.5"
+              style={{ backgroundColor: '#ffe0d0', color: ORANGE_INK }}
+            >
+              <Icon name="arrowUp" className="h-3.5 w-3.5" strokeWidth={2.6} />
+              Setup &middot; {STEP_COUNT} steps &middot; 2 minutes
+            </p>
+
+            <h2
+              className="reveal reveal-wipe mt-4 text-[34px] leading-[1.05] font-semibold tracking-[-0.03em] text-balance text-ink sm:text-[42px]"
+              style={{ '--d': '90ms' }}
+            >
               Install it
             </h2>
-            <p className="mt-3 max-w-2xl text-[15px] leading-relaxed text-ink-2">
+            <p
+              className="reveal reveal-wipe mt-3 max-w-2xl text-[15.5px] leading-relaxed text-ink-2"
+              style={{ '--d': '180ms' }}
+            >
               Works in Chrome, Edge, Brave and other Chromium browsers. Not Safari or Firefox.
             </p>
 
-            <div className="mt-7 flex flex-wrap items-center gap-4 rounded-[14px] border border-line bg-surface/80 px-5 py-4 backdrop-blur-sm">
+            <div
+              className="reveal reveal-zoom mt-7 flex flex-wrap items-center gap-4 rounded-[14px] border px-5 py-4"
+              style={{
+                '--d': '260ms',
+                borderColor: 'rgb(255 69 0 / 0.35)',
+                backgroundColor: '#fff4ec',
+              }}
+            >
               <div className="flex items-center gap-2.5">
                 <Icon name="arrowUp" className="h-4 w-4" strokeWidth={2.4} style={{ color: ORANGE }} />
                 <p className="text-[13.5px] text-ink-2">
@@ -462,43 +490,27 @@ export default function ExtensionGuidePage() {
                 </p>
               </div>
               <div className="ml-auto flex items-center gap-3">
-                <div className="h-1.5 w-28 overflow-hidden rounded-full bg-raised">
+                <div
+                  className="h-2 w-28 overflow-hidden rounded-full"
+                  style={{ backgroundColor: '#ffd9c6' }}
+                >
                   <div
                     className="h-full rounded-full transition-[width] duration-500 ease-out"
                     style={{
                       width: `${(done.size / STEP_COUNT) * 100}%`,
-                      backgroundColor: ORANGE,
+                      backgroundImage: `linear-gradient(90deg, #ff8352, ${ORANGE})`,
+                      boxShadow: done.size ? '0 0 10px rgb(255 69 0 / 0.55)' : 'none',
                     }}
                   />
                 </div>
-                <span className="tnum text-[12px] font-medium text-ink-3">
+                <span className="tnum text-[12px] font-semibold" style={{ color: ORANGE_INK }}>
                   {done.size} / {STEP_COUNT}
                 </span>
               </div>
             </div>
 
-            {done.size === STEP_COUNT ? (
-              <div
-                className="animate-fade-up mt-4 flex flex-wrap items-center gap-3 rounded-[14px] border px-5 py-4"
-                style={{ borderColor: ORANGE, backgroundColor: '#ffe9df' }}
-              >
-                <Icon name="check" className="h-5 w-5" style={{ color: ORANGE_INK }} />
-                <p className="text-[14px] font-medium" style={{ color: ORANGE_INK }}>
-                  Installed, and every step upvoted. Go and search a company.
-                </p>
-                <Link
-                  to="/#analyze"
-                  className="ml-auto inline-flex items-center gap-1.5 rounded-lg px-3.5 py-2 text-[13px] font-medium text-white"
-                  style={{ backgroundColor: ORANGE }}
-                >
-                  Open Reddit Pulse
-                  <Icon name="chevronRight" className="h-3.5 w-3.5" />
-                </Link>
-              </div>
-            ) : null}
-
             <ol className="mt-9">
-              <Step {...stepProps('1')} number="1" title="Download the files">
+              <Step {...stepProps('1')} order={0} number="1" title="Download the files">
                 <p>
                   Open the{' '}
                   <a
@@ -524,7 +536,7 @@ export default function ExtensionGuidePage() {
                 </p>
               </Step>
 
-              <Step {...stepProps('2')} number="2" title="Unzip it">
+              <Step {...stepProps('2')} order={1} number="2" title="Unzip it">
                 <p>
                   Double-click the downloaded file. You get a folder called{' '}
                   <Code>Reddit-Scraper-Extension-main</Code>. Keep it somewhere you will not delete
@@ -532,7 +544,7 @@ export default function ExtensionGuidePage() {
                 </p>
               </Step>
 
-              <Step {...stepProps('3')} number="3" title="Know which folder to pick">
+              <Step {...stepProps('3')} order={2} number="3" title="Know which folder to pick">
                 <p>
                   That unzipped folder <em>is</em> the extension. You will select the folder itself
                   in a moment, not anything inside it.
@@ -544,7 +556,7 @@ export default function ExtensionGuidePage() {
     └── popup.html`}</Block>
               </Step>
 
-              <Step {...stepProps('4')} number="4" title="Open your browser's extensions page">
+              <Step {...stepProps('4')} order={3} number="4" title="Open your browser's extensions page">
                 <p className="flex flex-wrap items-center gap-2">
                   Paste this into the address bar and press Enter:
                   <CopyLine value="chrome://extensions" label="the extensions address" />
@@ -555,7 +567,7 @@ export default function ExtensionGuidePage() {
                 </p>
               </Step>
 
-              <Step {...stepProps('5')} number="5" title="Turn on Developer mode">
+              <Step {...stepProps('5')} order={4} number="5" title="Turn on Developer mode">
                 <p>
                   There is a switch labelled{' '}
                   <strong className="font-semibold text-ink">Developer mode</strong> in the top
@@ -567,18 +579,18 @@ export default function ExtensionGuidePage() {
                 </p>
               </Step>
 
-              <Step {...stepProps('6')} number="6" title="Click Load unpacked">
+              <Step {...stepProps('6')} order={5} number="6" title="Click Load unpacked">
                 <p>It is the first of the new buttons, on the top left. A file picker opens.</p>
               </Step>
 
-              <Step {...stepProps('7')} number="7" title="Select the extension folder">
+              <Step {...stepProps('7')} order={6} number="7" title="Select the extension folder">
                 <p>
                   Navigate to <Code>Reddit-Scraper-Extension-main</Code> from step 3, select it, and
                   confirm. Select the folder itself, not a file inside it.
                 </p>
               </Step>
 
-              <Step {...stepProps('8')} number="8" title="Check it appeared">
+              <Step {...stepProps('8')} order={7} number="8" title="Check it appeared">
                 <p>
                   A card titled{' '}
                   <strong className="font-semibold text-ink">Reddit Company Scraper</strong> should
@@ -587,7 +599,7 @@ export default function ExtensionGuidePage() {
                 </p>
               </Step>
 
-              <Step {...stepProps('9')} number="9" title="Sign in to Reddit">
+              <Step {...stepProps('9')} order={8} number="9" title="Sign in to Reddit">
                 <p className="flex flex-wrap items-center gap-2">
                   Open <CopyLine value="https://www.reddit.com" label="the Reddit address" /> in the
                   same browser and sign in if you are not already.
@@ -595,15 +607,35 @@ export default function ExtensionGuidePage() {
                 <p>The collector uses that session to read.</p>
               </Step>
 
-              <Step {...stepProps('10')} number="10" title="Go back and search">
+              <Step {...stepProps('10')} order={9} number="10" title="Go back and search">
                 <p>
                   Return to Reddit Pulse, type a company and press Analyze. The status will say it
                   is collecting. First run takes a couple of minutes.
                 </p>
               </Step>
             </ol>
+
+            {done.size === STEP_COUNT ? (
+              <div
+                className="animate-fade-up mt-6 flex flex-wrap items-center gap-3 rounded-[14px] border px-5 py-4"
+                style={{ borderColor: ORANGE, backgroundColor: '#ffe9df' }}
+              >
+                <Icon name="check" className="h-5 w-5" style={{ color: ORANGE_INK }} />
+                <p className="text-[14px] font-medium" style={{ color: ORANGE_INK }}>
+                  Installed, and every step upvoted. Go and search a company.
+                </p>
+                <Link
+                  to="/#analyze"
+                  className="ml-auto inline-flex items-center gap-1.5 rounded-lg px-3.5 py-2 text-[13px] font-medium text-white"
+                  style={{ backgroundColor: ORANGE }}
+                >
+                  Open Reddit Pulse
+                  <Icon name="chevronRight" className="h-3.5 w-3.5" />
+                </Link>
+              </div>
+            ) : null}
           </div>
-        </Stage>
+        </div>
 
         <Stage variant="deck" active={immersive} className="mt-24">
           <h2 className="text-[26px] leading-tight font-semibold tracking-tight text-balance">

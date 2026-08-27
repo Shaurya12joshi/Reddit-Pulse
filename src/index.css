@@ -283,3 +283,181 @@ body {
     color: var(--color-accent-ink);
   }
 }
+
+/* ── Install section: bright panel + non-vertical reveals ─────────────── */
+
+@keyframes rp-sheen {
+  from {
+    opacity: 1;
+    background-position: -60% 0;
+  }
+  to {
+    opacity: 0;
+    background-position: 170% 0;
+  }
+}
+
+@layer components {
+  /* The panel itself: warm, lit, clearly the brightest block on the page. */
+  .install-panel {
+    position: relative;
+    isolation: isolate;
+    border-radius: 22px;
+    border: 1.5px solid rgb(255 69 0 / 0.3);
+    background:
+      radial-gradient(120% 90% at 12% 0%, rgb(255 226 209 / 0.9), transparent 60%),
+      linear-gradient(168deg, #fffaf4 0%, #fffdf8 42%, #fff5ec 100%);
+    box-shadow:
+      inset 0 1px 0 rgb(255 255 255 / 0.9),
+      0 1px 2px rgb(23 23 23 / 0.04),
+      0 30px 70px -34px rgb(255 69 0 / 0.55);
+  }
+
+  /* Warm light wash across the top of the panel. */
+  .install-panel::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    border-radius: inherit;
+    pointer-events: none;
+    background: radial-gradient(
+      120% 78% at 22% -12%,
+      rgb(255 106 51 / 0.22),
+      rgb(255 149 96 / 0.08) 45%,
+      transparent 72%
+    );
+  }
+
+  /* One sheen sweep when the panel first comes into view. */
+  .install-panel::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    border-radius: inherit;
+    pointer-events: none;
+    opacity: 0;
+    background-image: linear-gradient(
+      100deg,
+      transparent 36%,
+      rgb(255 255 255 / 0.7) 47%,
+      rgb(255 219 197 / 0.55) 53%,
+      transparent 64%
+    );
+    background-size: 260% 100%;
+    background-repeat: no-repeat;
+    background-position: -60% 0;
+  }
+
+  .install-panel.is-in::after {
+    animation: rp-sheen 1.2s cubic-bezier(0.4, 0, 0.2, 1) 0.15s both;
+  }
+
+  .install-panel > * {
+    position: relative;
+    z-index: 2;
+  }
+
+  /* Step card: pure white, real edge, real shadow — must out-read the panel. */
+  .install-card {
+    overflow: hidden;
+    background-color: #ffffff;
+    border-color: rgb(255 69 0 / 0.26);
+    box-shadow:
+      0 1px 1px rgb(23 23 23 / 0.04),
+      0 8px 20px -14px rgb(23 23 23 / 0.35);
+    transition:
+      border-color 180ms ease,
+      box-shadow 180ms ease,
+      transform 180ms ease;
+  }
+
+  .install-card:hover {
+    border-color: rgb(255 69 0 / 0.5);
+    box-shadow:
+      0 1px 1px rgb(23 23 23 / 0.04),
+      0 14px 30px -16px rgb(255 69 0 / 0.4);
+  }
+
+  /* Left accent rail — fills in solid once the step is upvoted. */
+  .install-rail {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    width: 4px;
+    background-color: #ffd3bd;
+    transition: background-color 220ms ease;
+  }
+
+  .install-card.is-done {
+    border-color: rgb(255 69 0 / 0.5);
+    background-color: #fffaf6;
+  }
+
+  .install-card.is-done .install-rail {
+    background-color: #ff4500;
+  }
+
+  /* ── Reveals ──
+     Deliberately not bottom-to-top: cards unfold sideways on a hinge,
+     the heading wipes open horizontally, the meter grows from its left edge. */
+
+  .reveal {
+    --d: 0ms;
+    --dir: 1;
+    opacity: 0;
+    will-change: transform, opacity;
+  }
+
+  .reveal.is-in {
+    opacity: 1;
+    transform: none;
+    clip-path: inset(0 0 0 0);
+  }
+
+  /* Steps slide in from the left. Flat — no rotation, no depth, so text is
+     never skewed or blurred while it is arriving. */
+  .reveal-slide {
+    transform: translate3d(-26px, 0, 0);
+    transition:
+      opacity 300ms ease-out var(--d),
+      transform 420ms cubic-bezier(0.22, 1, 0.36, 1) var(--d);
+  }
+
+  /* Horizontal wipe for headings. */
+  .reveal-wipe {
+    clip-path: inset(0 100% 0 0);
+    transform: translate3d(-10px, 0, 0);
+    transition:
+      clip-path 620ms cubic-bezier(0.62, 0.02, 0.16, 1) var(--d),
+      transform 620ms cubic-bezier(0.22, 1, 0.36, 1) var(--d),
+      opacity 200ms linear var(--d);
+  }
+
+  /* Zoom-through for the callout bar. */
+  .reveal-zoom {
+    transform: scale(0.9) translate3d(0, 0, -80px);
+    transition:
+      opacity 380ms ease-out var(--d),
+      transform 620ms cubic-bezier(0.2, 1.06, 0.32, 1) var(--d);
+  }
+
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reveal,
+  .reveal-slide,
+  .reveal-wipe,
+  .reveal-zoom {
+    opacity: 1;
+    transform: none;
+    clip-path: none;
+  }
+
+  .install-panel.is-in::after {
+    animation: none;
+    opacity: 0;
+  }
+}
