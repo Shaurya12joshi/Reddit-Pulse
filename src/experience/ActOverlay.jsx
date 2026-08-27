@@ -61,8 +61,15 @@ function ActBlock({ act, index, isFirst, children }) {
       className={`pointer-events-none absolute inset-0 flex flex-col ${ALIGNMENT[act.align]} ${POSITION[act.align]} justify-center`}
       style={{ opacity: 0, visibility: 'hidden', willChange: 'transform, opacity' }}
     >
-      <div className={`flex max-w-2xl flex-col ${ALIGNMENT[act.align]}`}>
-        <div ref={metaRef} className="mb-6 flex items-center gap-3">
+      <div
+        className={`flex flex-col ${ALIGNMENT[act.align]} ${
+          children ? 'max-w-3xl' : 'max-w-2xl'
+        }`}
+      >
+        <div
+          ref={metaRef}
+          className={`flex items-center gap-3 ${children ? 'mb-3' : 'mb-6'}`}
+        >
           {act.step ? (
             <span className="tnum flex h-8 w-8 items-center justify-center rounded-full border border-ink text-[12px] font-semibold text-ink">
               {act.step}
@@ -77,7 +84,9 @@ function ActBlock({ act, index, isFirst, children }) {
           className={`display text-ink ${
             isFirst
               ? 'text-[13vw] leading-[0.9] sm:text-[9vw] lg:text-[6.6vw]'
-              : 'text-[10vw] sm:text-[7vw] lg:text-[4.6vw]'
+              : children
+                ? 'text-[min(9vw,7vh)] leading-[1.02] lg:text-[min(4.2vw,7vh)]'
+                : 'text-[10vw] sm:text-[7vw] lg:text-[4.6vw]'
           }`}
         >
           {act.title.map((line, lineIndex) => (
@@ -89,16 +98,16 @@ function ActBlock({ act, index, isFirst, children }) {
 
         <p
           ref={bodyRef}
-          className={`mt-7 text-[15px] leading-relaxed text-ink-2 sm:text-[17px] ${
-            act.align === 'center' ? 'max-w-xl' : 'max-w-md'
-          }`}
+          className={`text-[15px] leading-relaxed text-ink-2 ${
+            children ? 'mt-3.5' : 'mt-7 sm:text-[17px]'
+          } ${act.align === 'center' ? 'max-w-xl' : 'max-w-md'}`}
           style={{ opacity: 0 }}
         >
           {act.body}
         </p>
 
         {children ? (
-          <div className="pointer-events-auto mt-9">{children}</div>
+          <div className="pointer-events-auto mt-5 w-full">{children}</div>
         ) : null}
       </div>
     </div>

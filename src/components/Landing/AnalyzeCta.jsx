@@ -18,7 +18,7 @@ export default function AnalyzeCta({ onAnalyze, id = SEARCH_ANCHOR }) {
     })
 
   return (
-    <div id={id} className="w-full max-w-xl scroll-mt-24">
+    <div id={id} className="w-full max-w-2xl scroll-mt-24">
       <SearchBar onSubmit={start} id="company-search" />
 
       <OptionalExtras
@@ -28,12 +28,12 @@ export default function AnalyzeCta({ onAnalyze, id = SEARCH_ANCHOR }) {
         onChange={setExtras}
       />
 
-      <div className="mt-5 flex flex-wrap items-center justify-center gap-2.5">
+      <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
         <AiConnectionNote />
         <ExtensionNote />
       </div>
 
-      <div className="mt-7 flex flex-wrap items-center justify-center gap-2">
+      <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
         <span className="eyebrow mr-1 text-ink-3">Try</span>
         {EXAMPLE_COMPANIES.map((name) => (
           <button
