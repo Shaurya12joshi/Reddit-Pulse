@@ -35,16 +35,13 @@ export default function OptionalExtras({
   compareWith,
   subject,
   rivalProduct,
-  keywords,
   onChange,
 }) {
   const compareId = useId()
   const subjectId = useId()
   const rivalId = useId()
-  const keywordsId = useId()
 
-  const set = (patch) =>
-    onChange({ compareWith, subject, rivalProduct, keywords, ...patch })
+  const set = (patch) => onChange({ compareWith, subject, rivalProduct, ...patch })
 
   const pairReady = Boolean(subject.trim()) && Boolean(rivalProduct.trim() || compareWith.trim())
 
@@ -87,17 +84,6 @@ export default function OptionalExtras({
           onChange={(value) => set({ rivalProduct: value })}
           badge={pairReady ? 'On' : null}
           hint="Blank is fine: the counterpart is worked out from the rival company."
-        />
-
-        <Field
-          icon="search"
-          title="Your field, in keywords"
-          id={keywordsId}
-          placeholder="e.g. tax provision software"
-          value={keywords}
-          onChange={(value) => set({ keywords: value })}
-          badge={keywords.trim() ? 'Field scan on' : null}
-          hint="For a startup nobody discusses yet: the field is mapped, its companies are found, and the market conversation is collected and reported."
         />
       </div>
     </div>
