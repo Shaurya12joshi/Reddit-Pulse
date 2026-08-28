@@ -71,6 +71,14 @@ function intelligenceTasks(name, extras) {
   const rival = String(extras.compareWith || '').trim()
   const subject = String(extras.subject || '').trim()
   const rivalProduct = String(extras.rivalProduct || '').trim()
+  const keywords = String(extras.keywords || '').trim()
+
+  if (keywords) {
+    tasks.push({
+      label: `Mapping the ${keywords} field`,
+      path: `/api/field?company=${encoded}&keywords=${encodeURIComponent(keywords)}`,
+    })
+  }
 
   if (rival) {
     tasks.push({
@@ -181,6 +189,7 @@ export function useCompanyAnalysis() {
 
           scrapeJob = await requestScrape(name, {
             signal: controller.signal,
+            keywords: String(extras.keywords || '').trim(),
             onProgress: (job) =>
               setProgress((prev) => ({ ...prev, stage: 'scraping', message: job.step || prev.message })),
           })

@@ -5,16 +5,17 @@ export default function SearchBar({
   onSubmit,
   id,
   disabled = false,
+  pending = false,
   initialValue = '',
   size = 'lg',
-  placeholder = 'Enter a company or brand',
+  placeholder = 'Company name or website',
 }) {
   const [value, setValue] = useState(initialValue)
 
   const handleSubmit = (event) => {
     event.preventDefault()
     const trimmed = value.trim()
-    if (trimmed && !disabled) onSubmit(trimmed)
+    if (trimmed && !disabled && !pending) onSubmit(trimmed)
   }
 
   const large = size === 'lg'
@@ -36,7 +37,7 @@ export default function SearchBar({
           value={value}
           onChange={(event) => setValue(event.target.value)}
           placeholder={placeholder}
-          disabled={disabled}
+          disabled={disabled || pending}
           aria-label="Company or brand name"
           className={`min-w-0 flex-1 bg-transparent text-ink placeholder:text-ink-3/70 focus:outline-none ${
             large ? 'text-[20px] sm:text-[24px]' : 'text-[14px]'
@@ -44,12 +45,12 @@ export default function SearchBar({
         />
         <button
           type="submit"
-          disabled={disabled || !value.trim()}
+          disabled={disabled || pending || !value.trim()}
           className={`shrink-0 rounded-full bg-primary font-medium text-primary-ink transition-colors hover:bg-primary-hover disabled:cursor-not-allowed disabled:bg-raised disabled:text-ink-3 ${
             large ? 'h-11 px-6 text-[14px]' : 'h-8 px-4 text-[12px]'
           }`}
         >
-          Analyze
+          {pending ? 'Reading…' : 'Analyze'}
         </button>
       </div>
     </form>

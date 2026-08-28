@@ -13,6 +13,7 @@ import ThemesPanel from './ThemesPanel.jsx'
 import CompetitorPanel from './CompetitorPanel.jsx'
 import NamedComparisonPanel from './NamedComparisonPanel.jsx'
 import ProductComparisonPanel from './ProductComparisonPanel.jsx'
+import FieldPanel from './FieldPanel.jsx'
 import RedditVoicePanel from './RedditVoicePanel.jsx'
 import SubredditPanel from './SubredditPanel.jsx'
 import DiscussionsPanel from './DiscussionsPanel.jsx'
@@ -26,6 +27,7 @@ import VolumeChart from '../charts/VolumeChart.jsx'
 import { useComparisons } from '../../hooks/useComparisons.js'
 import { useNamedComparison } from '../../hooks/useNamedComparison.js'
 import { useProductComparison } from '../../hooks/useProductComparison.js'
+import { useField } from '../../hooks/useField.js'
 import { useVoice } from '../../hooks/useVoice.js'
 import { useTrending } from '../../hooks/useTrending.js'
 
@@ -36,6 +38,7 @@ export default function Dashboard({
   compareWith = '',
   askedSubject = '',
   rivalProduct = '',
+  keywords = '',
 }) {
   const [filters, setFilters] = useState(DEFAULT_FILTERS)
   const [selectedPost, setSelectedPost] = useState(null)
@@ -44,6 +47,7 @@ export default function Dashboard({
   const comparisons = useComparisons(company)
   const named = useNamedComparison(company, compareWith)
   const productPair = useProductComparison(company, askedSubject, rivalProduct, compareWith)
+  const field = useField(company, keywords)
   const voice = useVoice(company, askedSubject)
   const trending = useTrending(company)
 
@@ -201,6 +205,8 @@ export default function Dashboard({
             title="Competition"
             description="Who gets named alongside you, and where the talk happens."
           >
+            {keywords ? <FieldPanel keywords={keywords} result={field} /> : null}
+
             {compareWith ? (
               <NamedComparisonPanel company={company} requested={compareWith} result={named} />
             ) : null}

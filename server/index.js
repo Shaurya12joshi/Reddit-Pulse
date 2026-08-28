@@ -28,6 +28,8 @@ import {
   saveTrending,
   cachedProductComparison,
   saveProductComparison,
+  cachedFieldScan,
+  saveFieldScan,
   collectionStats,
   countPosts,
   knownIds,
@@ -64,6 +66,8 @@ import { compareWithNamed } from './intelligence/namedComparison.js'
 import { readVoice } from './intelligence/voice.js'
 import { refineTrending } from './intelligence/trending.js'
 import { compareProducts } from './intelligence/productComparison.js'
+import { identifyCompany } from './intelligence/identify.js'
+import { mapField, scanField } from './intelligence/field.js'
 import { extractTrendingPhrases } from '../src/analysis/topics.js'
 import { tokenize } from '../src/analysis/sentiment.js'
 import { catalogue, credentialContext, siteReady, testConnection } from './connection.js'
@@ -830,6 +834,96 @@ app.get('/api/comparisons/product', async (req, res) => {
   } catch (error) {
     console.warn(`[product comparison] ${company} failed:`, error.message)
     res.status(500).json({ error: 'Could not read that product comparison.' })
+  }
+})
+
+// A website address is a perfectly good way to name a company, so the search
+// box takes one. The model reads it back into the name Reddit uses.
+app.get('/api/identify', async (req, res) => {
+  const input = String(req.query.input || '').trim()
+  if (!input) return res.status(400).json({ error: 'Missing "input" query parameter' })
+
+  try {
+    res.json(await identifyCompany(input.slice(0, 200)))
+  } catch (error) {
+    console.warn(`[identify] "${input}" failed:`, error.message)
+    res.status(500).json({ error: 'Could not work out which company that is.' })
+  }
+})
+
+// Search terms for a field, handed to the collector before it starts, so a
+// startup with no Reddit presence of its own still gets a corpus to report on.
+app.get('/api/field-plan', async (req, res) => {
+  const keywords = String(req.query.keywords || '').trim()
+  if (!keywords) return res.status(400).json({ error: 'Missing "keywords" query parameter' })
+
+  const brand = String(req.query.company || '').trim()
+
+  try {
+    const map = await mapField(keywords.slice(0, 200), brand)
+    if (!map) return res.json({ field: null, queries: [] })
+
+    const queries = [
+      ...(map.search_terms || []).map((term) => ({ term, kind: 'field' })),
+      ...(map.companies || [])
+        .slice(0, 6)
+        .map((company) => ({ term: company.name, kind: 'field-company' })),
+    ]
+
+    res.json({ field: map.field, description: map.description, queries })
+  } catch (error) {
+    console.warn(`[field-plan] "${keywords}" failed:`, error.message)
+    res.status(500).json({ error: 'Could not map that field.' })
+  }
+})
+
+const fieldInFlight = new Map()
+
+app.get('/api/field', async (req, res) => {
+  const { company, keywords } = req.query
+  if (!company || !String(company).trim()) {
+    return res.status(400).json({ error: 'Missing "company" query parameter' })
+  }
+  if (!keywords || !String(keywords).trim()) {
+    return res.status(400).json({ error: 'Missing "keywords" query parameter' })
+  }
+
+  const terms = String(keywords).trim().slice(0, 200)
+  const corpus = countPosts(company)
+  if (corpus === 0) {
+    return res.status(404).json({ error: `No Reddit data has been collected for "${company}" yet.` })
+  }
+
+  const cached = cachedFieldScan(company, terms)
+  const refresh = req.query.refresh === 'true'
+  const GROWTH = 1.15
+
+  if (cached && !refresh && cached.source === 'llm' && corpus < cached.corpus * GROWTH) {
+    return res.json({ ...cached, cached: true })
+  }
+
+  const key = `${String(company).trim().toLowerCase()}::${terms.toLowerCase()}`
+  if (fieldInFlight.has(key)) return res.json(await fieldInFlight.get(key))
+
+  const run = (async () => {
+    const started = Date.now()
+    const posts = selectPosts(company, {})
+    const result = await scanField(terms, posts, displayName(company))
+    saveFieldScan(company, terms, result, corpus)
+    console.log(
+      `field ${company} "${terms}": ${result.companies.length} companies, ` +
+        `${result.excerpts ?? 0} excerpts (${result.source}) in ${Date.now() - started}ms`,
+    )
+    return { ...result, corpus, cached: false }
+  })().finally(() => fieldInFlight.delete(key))
+
+  fieldInFlight.set(key, run)
+
+  try {
+    res.json(await run)
+  } catch (error) {
+    console.warn(`[field] ${company} failed:`, error.message)
+    res.status(500).json({ error: 'Could not read that field.' })
   }
 })
 

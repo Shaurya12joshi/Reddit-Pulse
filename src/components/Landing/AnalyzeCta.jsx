@@ -7,24 +7,31 @@ import { SEARCH_ANCHOR } from '../../experience/goToSearch.js'
 import SearchBar from './SearchBar.jsx'
 import { EXAMPLE_COMPANIES } from '../../data/exampleCompanies.js'
 
-export default function AnalyzeCta({ onAnalyze, id = SEARCH_ANCHOR }) {
-  const [extras, setExtras] = useState({ compareWith: '', subject: '', rivalProduct: '' })
+export default function AnalyzeCta({ onAnalyze, resolving = false, id = SEARCH_ANCHOR }) {
+  const [extras, setExtras] = useState({
+    compareWith: '',
+    subject: '',
+    rivalProduct: '',
+    keywords: '',
+  })
 
   const start = (name) =>
     onAnalyze(name, {
       compareWith: extras.compareWith.trim(),
       subject: extras.subject.trim(),
       rivalProduct: extras.rivalProduct.trim(),
+      keywords: extras.keywords.trim(),
     })
 
   return (
     <div id={id} className="w-full max-w-2xl scroll-mt-24">
-      <SearchBar onSubmit={start} id="company-search" />
+      <SearchBar onSubmit={start} id="company-search" pending={resolving} />
 
       <OptionalExtras
         compareWith={extras.compareWith}
         subject={extras.subject}
         rivalProduct={extras.rivalProduct}
+        keywords={extras.keywords}
         onChange={setExtras}
       />
 

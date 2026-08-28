@@ -44,7 +44,7 @@ export async function isExtensionAvailable(timeoutMs = 2500) {
 const sameCompany = (a, b) =>
   String(a || '').trim().toLowerCase() === String(b || '').trim().toLowerCase()
 
-export function requestScrape(company, { onProgress, signal } = {}) {
+export function requestScrape(company, { onProgress, signal, keywords = '' } = {}) {
   return new Promise((resolve, reject) => {
     let settled = false
 
@@ -98,6 +98,7 @@ export function requestScrape(company, { onProgress, signal } = {}) {
         source: PAGE_SOURCE,
         type: 'SCRAPE',
         company,
+        keywords,
         apiBase: API || window.location.origin,
       },
       window.location.origin,

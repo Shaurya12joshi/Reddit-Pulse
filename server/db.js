@@ -135,6 +135,19 @@ db.exec(`
     PRIMARY KEY (company, mine, theirs)
   );
 
+  -- A market mapped from the user's keywords, plus what the corpus says about
+  -- it. Keyed by the keywords so several fields can be scanned per company.
+  CREATE TABLE IF NOT EXISTS field_scans (
+    company    TEXT NOT NULL,
+    keywords   TEXT NOT NULL,
+    data       TEXT NOT NULL,
+    source     TEXT NOT NULL,
+    model      TEXT,
+    corpus     INTEGER NOT NULL,
+    updated_at INTEGER NOT NULL,
+    PRIMARY KEY (company, keywords)
+  );
+
   -- One row per (run, thing) so trend velocity can be a real derivative
   -- between runs instead of an inference from post dates inside one sample.
   CREATE TABLE IF NOT EXISTS snapshots (
@@ -609,6 +622,39 @@ export function cachedProductComparison(company, mine, theirs) {
        FROM product_comparisons WHERE company = ? AND mine = ? AND theirs = ?`,
     )
     .get(key(company), key(mine), key(theirs))
+  if (!row) return null
+  try {
+    return { ...JSON.parse(row.data), corpus: row.corpus, updatedAt: row.updatedAt }
+  } catch {
+    return null
+  }
+}
+
+export function saveFieldScan(company, keywords, result, corpus) {
+  db.prepare(`
+    INSERT INTO field_scans (company, keywords, data, source, model, corpus, updated_at)
+    VALUES (?,?,?,?,?,?,?)
+    ON CONFLICT(company, keywords) DO UPDATE SET
+      data = excluded.data, source = excluded.source, model = excluded.model,
+      corpus = excluded.corpus, updated_at = excluded.updated_at
+  `).run(
+    key(company),
+    key(keywords),
+    JSON.stringify(result),
+    result.source || 'none',
+    result.model ?? null,
+    corpus,
+    Date.now(),
+  )
+}
+
+export function cachedFieldScan(company, keywords) {
+  const row = db
+    .prepare(
+      `SELECT data, source, model, corpus, updated_at AS updatedAt
+       FROM field_scans WHERE company = ? AND keywords = ?`,
+    )
+    .get(key(company), key(keywords))
   if (!row) return null
   try {
     return { ...JSON.parse(row.data), corpus: row.corpus, updatedAt: row.updatedAt }

@@ -107,13 +107,14 @@ export default function AnalyzePage() {
   const compareWith = (params.get('vs') || '').trim()
   const askedSubject = (params.get('ask') || '').trim()
   const rivalProduct = (params.get('theirs') || '').trim()
+  const keywords = (params.get('field') || '').trim()
 
   const extras = useMemo(
-    () => ({ compareWith, subject: askedSubject, rivalProduct }),
-    [compareWith, askedSubject, rivalProduct],
+    () => ({ compareWith, subject: askedSubject, rivalProduct, keywords }),
+    [compareWith, askedSubject, rivalProduct, keywords],
   )
 
-  const runKey = `${slug}|${compareWith}|${askedSubject}|${rivalProduct}`
+  const runKey = `${slug}|${compareWith}|${askedSubject}|${rivalProduct}|${keywords}`
   const startedFor = useRef(null)
   useEffect(() => {
     if (!name || startedFor.current === runKey) return
@@ -141,6 +142,7 @@ export default function AnalyzePage() {
             compareWith={compareWith}
             askedSubject={askedSubject}
             rivalProduct={rivalProduct}
+            keywords={keywords}
           />
         ) : null}
         {view === 'buzz' ? <BuzzView company={company} onRefresh={goHome} /> : null}
