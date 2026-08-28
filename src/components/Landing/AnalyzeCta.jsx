@@ -17,17 +17,30 @@ export default function AnalyzeCta({ onAnalyze, resolving = false, id = SEARCH_A
     keywords: '',
   })
 
-  const start = (name) =>
-    onAnalyze(name, {
+  const keywords = extras.keywords.trim()
+
+  const start = (name) => {
+    const company = String(name || '').trim()
+    if (!company && !keywords) return
+
+    onAnalyze(company, {
       compareWith: extras.compareWith.trim(),
       subject: extras.subject.trim(),
       rivalProduct: extras.rivalProduct.trim(),
-      keywords: extras.keywords.trim(),
+      keywords,
+      // A field on its own is a whole report: there is no company to search for.
+      fieldOnly: !company,
     })
+  }
 
   return (
     <div id={id} className="w-full max-w-2xl scroll-mt-24">
-      <SearchBar onSubmit={start} id="company-search" pending={resolving} />
+      <SearchBar
+        onSubmit={start}
+        id="company-search"
+        pending={resolving}
+        allowEmpty={Boolean(keywords)}
+      />
 
       <div className="mt-3.5 flex items-center gap-3 border-b border-ink/15 pb-2 transition-colors focus-within:border-ink/50">
         <Icon name="layers" className="h-4 w-4 shrink-0 text-ink-3" />
@@ -39,8 +52,7 @@ export default function AnalyzeCta({ onAnalyze, resolving = false, id = SEARCH_A
           onChange={(event) => setExtras({ ...extras, keywords: event.target.value })}
           onKeyDown={(event) => {
             if (event.key === 'Enter') {
-              const name = document.getElementById('company-search')?.value?.trim()
-              if (name) start(name)
+              start(document.getElementById('company-search')?.value ?? '')
             }
           }}
           aria-label="Your field, in keywords"
@@ -56,7 +68,8 @@ export default function AnalyzeCta({ onAnalyze, resolving = false, id = SEARCH_A
       <p className="mt-2 text-left text-[11.5px] leading-relaxed text-ink-3">
         A startup or a quiet brand has little on Reddit to read. Name the field instead, for example
         <span className="text-ink-2"> expense management software</span>, and the report covers the
-        market: who is in it, what buyers ask for, and where the gaps are.
+        market: who is in it, what buyers ask for, and where the gaps are. The company name is
+        optional once a field is named.
       </p>
 
       <OptionalExtras

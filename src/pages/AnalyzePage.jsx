@@ -108,13 +108,14 @@ export default function AnalyzePage() {
   const askedSubject = (params.get('ask') || '').trim()
   const rivalProduct = (params.get('theirs') || '').trim()
   const keywords = (params.get('field') || '').trim()
+  const fieldOnly = params.get('mode') === 'field'
 
   const extras = useMemo(
-    () => ({ compareWith, subject: askedSubject, rivalProduct, keywords }),
-    [compareWith, askedSubject, rivalProduct, keywords],
+    () => ({ compareWith, subject: askedSubject, rivalProduct, keywords, fieldOnly }),
+    [compareWith, askedSubject, rivalProduct, keywords, fieldOnly],
   )
 
-  const runKey = `${slug}|${compareWith}|${askedSubject}|${rivalProduct}|${keywords}`
+  const runKey = `${slug}|${compareWith}|${askedSubject}|${rivalProduct}|${keywords}|${fieldOnly}`
   const startedFor = useRef(null)
   useEffect(() => {
     if (!name || startedFor.current === runKey) return

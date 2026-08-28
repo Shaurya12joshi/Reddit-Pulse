@@ -25,10 +25,14 @@ export default function LandingRoute() {
   // first, and the report is built from the name it comes back with.
   const handleAnalyze = async (rawInput, extras = {}) => {
     const typed = String(rawInput ?? '').trim()
-    if (!typed) return
+    const keywords = String(extras.keywords ?? '').trim()
 
-    let name = typed
-    if (URL_LIKE.test(typed) && !/\s/.test(typed)) {
+    // With no company named, the field itself is the subject: it becomes the
+    // report's name and the key everything is stored under.
+    if (!typed && !keywords) return
+
+    let name = typed || keywords
+    if (typed && URL_LIKE.test(typed) && !/\s/.test(typed)) {
       setResolving(true)
       const resolved = await apiFetch(`/api/identify?input=${encodeURIComponent(typed)}`)
         .then((response) => (response.ok ? response.json() : null))
@@ -45,12 +49,12 @@ export default function LandingRoute() {
     const compareWith = String(extras.compareWith ?? '').trim()
     const subject = String(extras.subject ?? '').trim()
     const rivalProduct = String(extras.rivalProduct ?? '').trim()
-    const keywords = String(extras.keywords ?? '').trim()
 
     if (compareWith) params.set('vs', compareWith)
     if (subject) params.set('ask', subject)
     if (rivalProduct) params.set('theirs', rivalProduct)
     if (keywords) params.set('field', keywords)
+    if (!typed && keywords) params.set('mode', 'field')
 
     const query = params.toString()
     navigate(`/analyze/${slug}${query ? `?${query}` : ''}`, { state: { companyName: name } })

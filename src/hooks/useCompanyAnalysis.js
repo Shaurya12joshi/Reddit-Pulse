@@ -190,6 +190,7 @@ export function useCompanyAnalysis() {
           scrapeJob = await requestScrape(name, {
             signal: controller.signal,
             keywords: String(extras.keywords || '').trim(),
+            fieldOnly: Boolean(extras.fieldOnly),
             onProgress: (job) =>
               setProgress((prev) => ({ ...prev, stage: 'scraping', message: job.step || prev.message })),
           })

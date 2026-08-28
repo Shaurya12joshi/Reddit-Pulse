@@ -6,6 +6,7 @@ export default function SearchBar({
   id,
   disabled = false,
   pending = false,
+  allowEmpty = false,
   initialValue = '',
   size = 'lg',
   placeholder = 'Company name or website',
@@ -15,7 +16,7 @@ export default function SearchBar({
   const handleSubmit = (event) => {
     event.preventDefault()
     const trimmed = value.trim()
-    if (trimmed && !disabled && !pending) onSubmit(trimmed)
+    if ((trimmed || allowEmpty) && !disabled && !pending) onSubmit(trimmed)
   }
 
   const large = size === 'lg'
@@ -45,7 +46,7 @@ export default function SearchBar({
         />
         <button
           type="submit"
-          disabled={disabled || pending || !value.trim()}
+          disabled={disabled || pending || (!value.trim() && !allowEmpty)}
           className={`shrink-0 rounded-full bg-primary font-medium text-primary-ink transition-colors hover:bg-primary-hover disabled:cursor-not-allowed disabled:bg-raised disabled:text-ink-3 ${
             large ? 'h-11 px-6 text-[14px]' : 'h-8 px-4 text-[12px]'
           }`}
