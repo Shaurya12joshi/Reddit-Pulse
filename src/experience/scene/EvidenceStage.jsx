@@ -152,12 +152,12 @@ export default function EvidenceStage({ posts, onOpenPost, reducedMotion = false
   const shown = useMemo(() => (posts ?? []).slice(0, 6), [posts])
   const slots = useMemo(() => arrange(shown.length), [shown.length])
 
-  const active = useStageActive(ACT_INDEX.evidence, { lead: 0.25, tail: 0.08 })
+  const active = useStageActive(ACT_INDEX.evidence, { lead: 0.32, tail: 0.28 })
 
   useFrame((_, delta) => {
     const target = reducedMotion
       ? 1
-      : stagePresence(driver.damped, ACT_INDEX.evidence, { lead: 0.25, tail: 0.08 })
+      : stagePresence(driver.damped, ACT_INDEX.evidence, { lead: 0.32, tail: 0.28 })
     revealRef.current = THREE.MathUtils.damp(
       revealRef.current,
       target,

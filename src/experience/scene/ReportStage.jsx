@@ -4,7 +4,7 @@ import { ACT_INDEX, stagePresence } from '../acts.js'
 import useStageActive from '../useStageActive.js'
 
 export default function ReportStage({ insights, company, reducedMotion = false }) {
-  const active = useStageActive(ACT_INDEX.report, { lead: 0.25, tail: 0.08 })
+  const active = useStageActive(ACT_INDEX.report, { lead: 0.32, tail: 0.28 })
 
   if (!insights || (!active && !reducedMotion)) return null
 
@@ -17,7 +17,7 @@ export default function ReportStage({ insights, company, reducedMotion = false }
         presence={() =>
           reducedMotion
             ? 1
-            : stagePresence(driver.damped, ACT_INDEX.report, { lead: 0.25, tail: 0.08 })
+            : stagePresence(driver.damped, ACT_INDEX.report, { lead: 0.32, tail: 0.28 })
         }
       />
     </group>

@@ -14,8 +14,8 @@ const KEYFRAMES = [
   { pos: [-2.4, 3.2, 23], look: [0, 0.2, 0] },
   { pos: [0, -0.6, 20.5], look: [-1.2, -0.4, 0] },
   { pos: [3.4, 0.4, 16], look: [-1.6, -0.2, 0] },
-  { pos: [-3.6, 0.8, 12.5], look: [1.4, -0.3, -1] },
-  { pos: [0, 4.2, 19], look: [0, -1.4, 0] },
+  { pos: [1.1, 1.0, 13.4], look: [-0.5, -0.3, -0.6] },
+  { pos: [-1.4, 2.6, 17.4], look: [0.3, -0.9, -0.2] },
   { pos: [0, 0.6, 24], look: [0, 0, 0] },
   { pos: [0, 0, 18], look: [0, 0, 0] },
 ]
@@ -55,7 +55,7 @@ export default function CameraRig({ reducedMotion = false }) {
       currentLook.copy(targetLook)
       initialised.current = true
     } else {
-      const ease = 1 - Math.exp(-3.4 * Math.min(delta, 0.05))
+      const ease = 1 - Math.exp(-2.6 * Math.min(delta, 0.05))
       camera.position.lerp(targetPos, ease)
       currentLook.lerp(targetLook, ease)
     }

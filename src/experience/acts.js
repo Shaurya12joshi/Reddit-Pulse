@@ -171,7 +171,7 @@ export function stagePresence(progress, index, { lead = 0.35, tail = 0.35 } = {}
   return easeInOutCubic(Math.min(rampIn, rampOut))
 }
 
-const HOLD = 0.4
+const HOLD = 0.22
 
 export function layoutBlend(progress) {
   const index = actIndexAt(progress)
@@ -189,8 +189,8 @@ export function layoutBlend(progress) {
 
 export function copyEnvelope(progress, index) {
   const local = actLocalProgress(progress, index)
-  const inT = clamp01(local / 0.3)
-  const outT = clamp01((local - 0.72) / 0.28)
+  const inT = clamp01(local / 0.34)
+  const outT = clamp01((local - 0.62) / 0.38)
   return {
     local,
     reveal: easeOutCubic(inT),

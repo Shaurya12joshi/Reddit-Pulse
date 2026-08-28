@@ -47,7 +47,7 @@ function frame(time) {
   if (Math.abs(next - driver.progress) > 0.0002) driver.moved = true
   driver.progress = next
 
-  const ease = 1 - Math.exp(-7.5 * dt)
+  const ease = 1 - Math.exp(-5.2 * dt)
   const previousDamped = driver.damped
   driver.damped += (driver.progress - driver.damped) * ease
   driver.velocity = dt > 0 ? (driver.damped - previousDamped) / dt : 0
