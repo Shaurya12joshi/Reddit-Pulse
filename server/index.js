@@ -117,7 +117,15 @@ app.post('/api/providers/test', async (req, res) => {
 })
 
 app.post('/api/ingest', async (req, res) => {
-  const { company, posts, subreddits, brandContext: context, rules, phase = 'discovery' } = req.body || {}
+  const {
+    company,
+    posts,
+    subreddits,
+    brandContext: context,
+    rules,
+    phase = 'discovery',
+    scope = 'brand',
+  } = req.body || {}
 
   if (!company || typeof company !== 'string' || !company.trim()) {
     return res.status(400).json({ error: 'Expected a non-empty "company" string in the body' })
@@ -129,7 +137,12 @@ app.post('/api/ingest', async (req, res) => {
   const started = Date.now()
 
   const readable = dropContentFree(posts)
-  const heuristically = filterRelevantPosts(readable, company)
+
+  // Field sweeps deliberately collect threads about the market and its other
+  // companies, so the brand filter would throw all of them away. They are kept
+  // whole, flagged, and left out of every brand number.
+  const fieldScope = scope === 'field'
+  const heuristically = fieldScope ? readable : filterRelevantPosts(readable, company)
 
   let identity = brandIdentity(company)
   const stale =
@@ -144,13 +157,14 @@ app.post('/api/ingest', async (req, res) => {
       .then((resolved) => saveBrandIdentity(company, resolved.identity, { source: resolved.source, model: resolved.model }))
       .catch((error) => console.warn(`[ingest] identity resolution failed for ${company}:`, error.message))
   }
-  const relevanceOf = makeRelevanceTest(company, identity)
-  const relevant = filterByRelevance(heuristically, relevanceOf)
+  const relevant = fieldScope
+    ? heuristically
+    : filterByRelevance(heuristically, makeRelevanceTest(company, identity))
 
   const enriched = enrichPosts(relevant, displayName(company), {
     knownBrands: resolvedMarket(company).competitors,
   })
-  const total = savePosts(company, enriched)
+  const total = savePosts(company, enriched, { scope })
 
   if (Array.isArray(subreddits)) saveSubreddits(company, subreddits)
   if (context) saveBrandContext(company, context)
@@ -161,17 +175,18 @@ app.post('/api/ingest', async (req, res) => {
     )
   }
 
-  if (phase === 'discovery') {
+  if (phase === 'discovery' && !fieldScope) {
     saveSnapshot(company, snapshotRows(company))
   }
 
   console.log(
-    `ingest ${company} [${phase}]: +${enriched.length} items (${total} total), ` +
-      `${posts.length - readable.length} content-free dropped, in ${Date.now() - started}ms`,
+    `ingest ${company} [${phase}${fieldScope ? '/field' : ''}]: +${enriched.length} items ` +
+      `(${total} total), ${posts.length - readable.length} content-free dropped, ` +
+      `in ${Date.now() - started}ms`,
   )
-  res.json({ ok: true, phase, received: posts.length, stored: enriched.length, total })
+  res.json({ ok: true, phase, scope, received: posts.length, stored: enriched.length, total })
 
-  ensureAboutnessPass(company)
+  if (!fieldScope) ensureAboutnessPass(company)
 })
 
 const passesInFlight = new Map()
@@ -445,7 +460,13 @@ app.get('/api/report', (req, res) => {
     return res.status(400).json({ error: 'Missing "company" query parameter' })
   }
 
-  if (countPosts(company) === 0) {
+  // A company nobody discusses can still have a busy field. When only the field
+  // sweep found anything, the report is built from that and says so, rather
+  // than turning the reader away.
+  const brandPosts = countPosts(company)
+  const fieldOnly = brandPosts === 0 && countPosts(company, { includeField: true }) > 0
+
+  if (brandPosts === 0 && !fieldOnly) {
     return res.status(404).json({
       error: `No Reddit data has been collected for "${String(company).trim()}" yet.`,
     })
@@ -466,13 +487,13 @@ app.get('/api/report', (req, res) => {
   const label = displayName(company)
 
   let analysing = false
-  let all = selectPosts(company, {})
-  let filtered = selectPosts(company, filters)
+  let all = selectPosts(company, { includeField: fieldOnly })
+  let filtered = selectPosts(company, { ...filters, includeField: fieldOnly })
 
   if (all.length === 0) {
     analysing = true
-    all = selectPosts(company, { includeUnchecked: true })
-    filtered = selectPosts(company, { ...filters, includeUnchecked: true })
+    all = selectPosts(company, { includeUnchecked: true, includeField: fieldOnly })
+    filtered = selectPosts(company, { ...filters, includeUnchecked: true, includeField: fieldOnly })
   }
 
   const insights = buildInsights(filtered, label, {
@@ -497,6 +518,7 @@ app.get('/api/report', (req, res) => {
     },
     subredditMeta: subredditMeta(company),
     market: { ...market, roster: undefined },
+    fieldOnly,
     analysing,
     posts: page,
     total: filtered.length,
@@ -889,7 +911,7 @@ app.get('/api/field', async (req, res) => {
   }
 
   const terms = String(keywords).trim().slice(0, 200)
-  const corpus = countPosts(company)
+  const corpus = countPosts(company, { includeField: true })
   if (corpus === 0) {
     return res.status(404).json({ error: `No Reddit data has been collected for "${company}" yet.` })
   }
@@ -907,7 +929,7 @@ app.get('/api/field', async (req, res) => {
 
   const run = (async () => {
     const started = Date.now()
-    const posts = selectPosts(company, {})
+    const posts = selectPosts(company, { includeField: true })
     const result = await scanField(terms, posts, displayName(company))
     saveFieldScan(company, terms, result, corpus)
     console.log(

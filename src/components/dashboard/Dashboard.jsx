@@ -68,12 +68,22 @@ export default function Dashboard({
     )
   }
 
-  const { insights, filterOptions, posts, total, totalUnfiltered, loadMore } = report
+  const { insights, filterOptions, posts, total, totalUnfiltered, fieldOnly, loadMore } = report
   const hasResults = total > 0
 
   return (
     <main className="mx-auto w-full max-w-[1240px] px-5 pb-24 sm:px-8">
       <div className="pt-16">
+        {fieldOnly ? (
+          <div className="mb-5 flex items-start gap-2.5 rounded-[12px] border border-highlight/40 bg-highlight/15 px-4 py-3">
+            <Icon name="alert" className="mt-0.5 h-4 w-4 shrink-0 text-highlight-ink" />
+            <p className="text-[13px] leading-relaxed text-highlight-ink">
+              No Reddit thread mentions {company} itself yet. Everything below is the field around
+              it, collected from your keywords: the numbers describe the market, not the company.
+            </p>
+          </div>
+        ) : null}
+
         <CompanyOverview
           company={company}
           insights={insights}
@@ -122,6 +132,15 @@ export default function Dashboard({
 
             <TakeawaysPanel takeaways={insights.takeaways} />
           </Section>
+
+          {keywords ? (
+            <Section
+              title={field?.map?.field ? `The ${field.map.field} field` : 'Your field'}
+              description="Mapped from your keywords, then read from the discussions collected about it."
+            >
+              <FieldPanel keywords={keywords} result={field} />
+            </Section>
+          ) : null}
 
           {askedSubject ? (
             <Section
@@ -205,7 +224,6 @@ export default function Dashboard({
             title="Competition"
             description="Who gets named alongside you, and where the talk happens."
           >
-            {keywords ? <FieldPanel keywords={keywords} result={field} /> : null}
 
             {compareWith ? (
               <NamedComparisonPanel company={company} requested={compareWith} result={named} />

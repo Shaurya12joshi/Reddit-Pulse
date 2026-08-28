@@ -260,13 +260,19 @@ if (!columns.includes('search_text')) {
 
 addColumn('posts', 'about_checked', 'INTEGER DEFAULT 0')
 
+// Posts pulled in by a field sweep are about the market, not the brand. They
+// are stored alongside so the field can be read, and excluded from every brand
+// number so the report never claims a rival's thread as its own.
+addColumn('posts', 'field_scope', 'INTEGER DEFAULT 0')
+
 const key = (company) => String(company).trim().toLowerCase()
 
 const insertPost = db.prepare(`
   INSERT INTO posts
     (company, id, type, subreddit, author, score, num_comments, timestamp,
-     sentiment_label, sentiment_score, topic_ids, data, collected_at, search_text)
-  VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+     sentiment_label, sentiment_score, topic_ids, data, collected_at, search_text,
+     field_scope, about_checked)
+  VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
   ON CONFLICT(company, id) DO UPDATE SET
     score           = excluded.score,
     num_comments    = excluded.num_comments,
@@ -274,10 +280,12 @@ const insertPost = db.prepare(`
     sentiment_score = excluded.sentiment_score,
     topic_ids       = excluded.topic_ids,
     data            = excluded.data,
-    search_text     = excluded.search_text
+    search_text     = excluded.search_text,
+    field_scope     = MIN(posts.field_scope, excluded.field_scope)
 `)
 
-export function savePosts(company, enrichedPosts) {
+export function savePosts(company, enrichedPosts, { scope = 'brand' } = {}) {
+  const isField = scope === 'field' ? 1 : 0
   const now = Date.now()
   const key = company.trim().toLowerCase()
 
@@ -300,6 +308,10 @@ export function savePosts(company, enrichedPosts) {
         JSON.stringify(post),
         now,
         `${post.title || ''} ${post.body || ''}`.toLowerCase(),
+        isField,
+        // A field post is never judged against the brand, so it skips the pass
+        // that would delete it for not being about the brand.
+        isField,
       )
     }
     db.prepare('COMMIT').run()
@@ -877,9 +889,13 @@ export function lastRun(company) {
   )
 }
 
-export function countPosts(company) {
+export function countPosts(company, { includeField = false } = {}) {
   const row = db
-    .prepare('SELECT COUNT(*) AS n FROM posts WHERE company = ?')
+    .prepare(
+      includeField
+        ? 'SELECT COUNT(*) AS n FROM posts WHERE company = ?'
+        : 'SELECT COUNT(*) AS n FROM posts WHERE company = ? AND field_scope = 0',
+    )
     .get(company.trim().toLowerCase())
   return row?.n ?? 0
 }
@@ -977,6 +993,9 @@ export function selectPosts(company, filters = {}) {
   } else if (!filters.includeUnchecked) {
     where.push('about_checked = 1')
   }
+
+  if (filters.scope === 'field') where.push('field_scope = 1')
+  else if (!filters.includeField) where.push('field_scope = 0')
 
   const rows = db
     .prepare(`SELECT data FROM posts WHERE ${where.join(' AND ')} ORDER BY timestamp DESC`)
