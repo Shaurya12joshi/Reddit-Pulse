@@ -8,6 +8,12 @@ const DEFAULTS = {
 const clean = (value) => String(value || '').trim()
 const lower = (value) => clean(value).toLowerCase()
 
+const phrase = (value) => {
+  const term = clean(value)
+  if (!term || term.startsWith('"')) return term
+  return /\s/.test(term) ? `"${term}"` : term
+}
+
 function searchName(name, aliases = []) {
   const full = clean(name)
   if (!full) return clean(aliases.find(Boolean))
@@ -41,14 +47,16 @@ export function buildSearchPlan(brand, identity = {}, options = {}) {
     .filter((term) => lower(term) !== lower(label))
     .slice(0, categoryTerms)
 
-  const comparison = rivals.map((rival) => pick(`${label} vs ${rival}`, 'comparison', rival))
+  const comparison = rivals.map((rival) =>
+    pick(`${phrase(label)} vs ${phrase(rival)}`, 'comparison', rival),
+  )
 
-  const categorised = terms.map((term) => pick(`${label} ${term}`, 'category', term))
-  if (category) categorised.push(pick(`${label} ${category}`, 'category', category))
+  const categorised = terms.map((term) => pick(`${phrase(label)} ${term}`, 'category', term))
+  if (category) categorised.push(pick(`${phrase(label)} ${category}`, 'category', category))
 
   const openMarket = rivals
     .slice(0, market)
-    .map((rival) => pick(`${rival} alternatives`, 'market', rival))
+    .map((rival) => pick(`${phrase(rival)} alternatives`, 'market', rival))
   if (category && openMarket.length < market) {
     openMarket.push(pick(`best ${category}`, 'market', category))
   }

@@ -192,22 +192,20 @@ async function runAboutnessPass(company) {
 
   const started = Date.now()
   const offTopicIds = new Set()
+  let kept = 0
 
   await classifyAboutness(company, pending, {
     identity: brandIdentity(company),
     onBatch: (batchVerdicts) => {
       const onTopicIds = []
-      const newOffTopic = []
       for (const [id, onTopic] of batchVerdicts) {
-        if (onTopic === false) {
-          offTopicIds.add(id)
-          newOffTopic.push(id)
-        } else {
-          onTopicIds.push(id)
-        }
+        if (onTopic === false) offTopicIds.add(id)
+        else onTopicIds.push(id)
       }
-      if (onTopicIds.length) markAboutChecked(company, onTopicIds)
-      if (newOffTopic.length) deletePosts(company, newOffTopic)
+      if (onTopicIds.length) {
+        kept += onTopicIds.length
+        markAboutChecked(company, onTopicIds)
+      }
     },
   })
 
@@ -216,6 +214,19 @@ async function runAboutnessPass(company) {
     console.log(`[aboutness] ${company}: all ${pending.length} clear (${Date.now() - started}ms)`)
     return
   }
+
+  if (!kept) {
+    markAboutChecked(company, [...offTopicIds])
+    markCommentsChecked(company)
+    console.warn(
+      `[aboutness] ${company}: every one of ${pending.length} threads was judged off-topic, ` +
+        'so none were removed. A total prune points at a wrong brand identity rather than an ' +
+        'irrelevant corpus, and an empty report tells the reader nothing.',
+    )
+    return
+  }
+
+  deletePosts(company, [...offTopicIds])
 
   const comments = selectPosts(company, { type: 'comment', includeUnchecked: true })
   const orphanIds = comments
@@ -226,8 +237,8 @@ async function runAboutnessPass(company) {
   const released = markCommentsChecked(company)
 
   console.log(
-    `[aboutness] ${company}: pruned ${offTopicIds.size} thread(s) + ${orphanIds.length} comment(s), ` +
-      `released ${released} comment(s) (${Date.now() - started}ms)`,
+    `[aboutness] ${company}: kept ${kept}, pruned ${offTopicIds.size} thread(s) + ` +
+      `${orphanIds.length} comment(s), released ${released} comment(s) (${Date.now() - started}ms)`,
   )
 }
 
@@ -414,6 +425,7 @@ app.get('/api/freshness', (req, res) => {
     exists: postCount > 0,
     postCount,
     lastRunAt: run?.lastRunAt ?? null,
+    lastCount: run?.lastCount ?? 0,
     freshForMs: INGESTION_FRESH_MS,
     stale: age === null || age > INGESTION_FRESH_MS,
   })

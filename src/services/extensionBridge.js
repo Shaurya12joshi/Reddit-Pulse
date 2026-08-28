@@ -5,28 +5,40 @@ const PAGE_SOURCE = 'reddit-dashboard'
 
 const SCRAPE_TIMEOUT_MS = 600_000
 
-export function isExtensionAvailable(timeoutMs = 1000) {
+export function probeExtension(timeoutMs = 2500) {
   return new Promise((resolve) => {
+    const timers = []
     let settled = false
 
     const finish = (value) => {
       if (settled) return
       settled = true
       window.removeEventListener('message', onMessage)
-      clearTimeout(timer)
+      timers.forEach(clearTimeout)
       resolve(value)
     }
 
     const onMessage = (event) => {
       if (event.source !== window) return
-      if (event.data?.source === EXT_SOURCE && event.data.type === 'READY') finish(true)
+      if (event.data?.source !== EXT_SOURCE) return
+      if (event.data.type === 'READY') finish('ready')
+      if (event.data.type === 'ORPHANED') finish('orphaned')
     }
 
     window.addEventListener('message', onMessage)
-    window.postMessage({ source: PAGE_SOURCE, type: 'PING' }, window.location.origin)
 
-    const timer = setTimeout(() => finish(false), timeoutMs)
+    const ping = () =>
+      window.postMessage({ source: PAGE_SOURCE, type: 'PING' }, window.location.origin)
+
+    timers.push(setTimeout(() => finish('missing'), timeoutMs))
+    timers.push(setTimeout(ping, 600))
+    timers.push(setTimeout(ping, 1400))
+    ping()
   })
+}
+
+export async function isExtensionAvailable(timeoutMs = 2500) {
+  return (await probeExtension(timeoutMs)) === 'ready'
 }
 
 const sameCompany = (a, b) =>

@@ -1,5 +1,5 @@
 import { useCallback, useRef, useState } from 'react'
-import { isExtensionAvailable, requestScrape } from '../services/extensionBridge.js'
+import { probeExtension, requestScrape } from '../services/extensionBridge.js'
 import { API, apiFetch } from '../services/aiConnection.js'
 
 async function waitForAnalysis(company, signal, onProgress) {
@@ -33,6 +33,10 @@ async function waitForStoredPosts(company, signal, onProgress) {
   const EVERY_MS = 1500
   const DEADLINE_MS = 45 * 1000
   const until = Date.now() + DEADLINE_MS
+  const startedAt = Date.now()
+
+  let emptyRuns = 0
+  let lastCount = 0
 
   while (!signal.aborted && Date.now() < until) {
     const freshness = await apiFetch(
@@ -42,13 +46,19 @@ async function waitForStoredPosts(company, signal, onProgress) {
       .then((response) => (response.ok ? response.json() : null))
       .catch(() => null)
 
-    if (freshness?.postCount > 0) return freshness.postCount
+    if (freshness?.postCount > 0) return { postCount: freshness.postCount, lastCount: 0 }
+
+    if (freshness?.lastRunAt && freshness.lastRunAt >= startedAt) {
+      lastCount = freshness.lastCount ?? 0
+      emptyRuns += 1
+      if (emptyRuns >= 3) break
+    }
 
     onProgress('Waiting for the collected discussions to land')
     await new Promise((settle) => setTimeout(settle, EVERY_MS))
   }
 
-  return 0
+  return { postCount: 0, lastCount }
 }
 
 function intelligenceTasks(name, extras) {
@@ -157,22 +167,26 @@ export function useCompanyAnalysis() {
       const needsCollection = !freshness || freshness.stale
 
       let hasExtension = false
+      let collector = 'missing'
+      let landed = null
+      let scrapeJob = null
       if (needsCollection) {
         setProgress({ stage: 'starting', message: 'Looking for the collector extension' })
-        hasExtension = await isExtensionAvailable()
+        collector = await probeExtension()
+        hasExtension = collector === 'ready'
         if (controller.signal.aborted) return
 
         if (hasExtension) {
           setProgress({ stage: 'scraping', message: `Collecting Reddit discussions about ${name}` })
 
-          await requestScrape(name, {
+          scrapeJob = await requestScrape(name, {
             signal: controller.signal,
             onProgress: (job) =>
               setProgress((prev) => ({ ...prev, stage: 'scraping', message: job.step || prev.message })),
           })
           if (controller.signal.aborted) return
 
-          await waitForStoredPosts(name, controller.signal, (message) =>
+          landed = await waitForStoredPosts(name, controller.signal, (message) =>
             setProgress({ stage: 'scraping', message }),
           )
           if (controller.signal.aborted) return
@@ -213,13 +227,34 @@ export function useCompanyAnalysis() {
             .then((body) => body?.companies?.length ?? null)
             .catch(() => null)
 
-          if (!hasExtension) {
+          err.collector = collector
+          if (collector === 'orphaned') {
+            err.fix = 'Hard reload this page, then search again.'
+            err.action = 'reload'
             err.hint =
-              'The collector extension is not installed, so live data cannot be gathered. Load it from chrome://extensions, then search again.'
+              'The extension was reloaded after this tab was opened, so the page lost its connection to it. A hard reload reconnects them.'
+          } else if (!hasExtension) {
+            err.fix = 'Hard reload this page, then search again.'
+            err.action = 'reload'
+            err.hint =
+              'The page got no answer from the collector. That is usually a stale tab rather than a missing extension: a tab loses contact with any extension reloaded after it. If a hard reload does not help, check the extension is switched on at chrome://extensions.'
           } else if (stored === 0) {
-            err.hint = `The collector ran, but ${target} is holding no data for any company. Its database was probably reset, which happens on hosts without a persistent disk. Collect again and it should stick until the next restart.`
+            err.fix = 'Search again to collect it a second time.'
+            err.hint = `The collector ran, but ${target} is holding no data for any company. Its database was probably reset, which happens on hosts without a persistent disk.`
+          } else if (scrapeJob?.collected > 0) {
+            const stored = scrapeJob.stored ?? 0
+            err.fix = `Try a name people actually type on Reddit, or the parent brand.`
+            err.hint =
+              `The collector read ${scrapeJob.collected} posts that matched those words, but only ` +
+              `${stored} of them were about ${name} itself. Reddit matched "${name.split(' ')[0]}" ` +
+              'far more often than the product. A niche B2B name often has almost no Reddit presence ' +
+              'to report on.'
+          } else if (landed?.lastCount > 0) {
+            err.fix = 'Try the fuller name, or the name people actually type.'
+            err.hint = `The collector saved ${landed.lastCount} discussions, but none of them turned out to be about ${name}. Reddit matched the words without matching the company.`
           } else {
-            err.hint = `The collector ran, but this page found nothing at ${target}. Either it saved to a different backend, or you are not signed in to Reddit in this browser.`
+            err.fix = 'Check you are signed in to Reddit in this browser, then search again.'
+            err.hint = `The collector ran, but this page found nothing at ${target}. Either it saved to a different backend, or Reddit returned nothing for a signed-out session.`
           }
         }
         throw err
@@ -244,6 +279,9 @@ export function useCompanyAnalysis() {
       if (caught?.name === 'AbortError') return
       setError({
         message: caught?.message || 'Something went wrong while analysing.',
+        fix: caught?.fix || null,
+        action: caught?.action || null,
+        collector: caught?.collector || null,
         hint: caught?.hint || null,
         rateLimited: Boolean(caught?.rateLimited),
         retryAt: caught?.retryAt || null,

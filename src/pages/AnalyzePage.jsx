@@ -154,20 +154,60 @@ export default function AnalyzePage() {
       return <RateLimitWait company={label} retryAt={error.retryAt} onRetry={retry} />
     }
 
+    const shortcut = /Mac|iPhone|iPad/.test(navigator.platform || navigator.userAgent)
+      ? 'Cmd + Shift + R'
+      : 'Ctrl + Shift + R'
+
     return (
-      <div className="flex min-h-screen flex-col items-center justify-center gap-3 px-6 text-center">
+      <div className="flex min-h-screen flex-col items-center justify-center gap-4 px-6 text-center">
         <p className="text-[15px] font-medium text-ink">Couldn't analyse {label}</p>
         <p className="max-w-sm text-[13px] text-ink-3">{error?.message}</p>
-        {error?.hint ? (
-          <p className="max-w-md text-[13px] text-ink-3">{error.hint}</p>
+
+        {error?.fix ? (
+          <div className="w-full max-w-md rounded-[12px] border border-accent/30 bg-accent-dim px-4 py-3.5">
+            <p className="text-[13.5px] font-medium text-accent-ink">{error.fix}</p>
+            {error.action === 'reload' ? (
+              <div className="mt-3 flex flex-wrap items-center justify-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => window.location.reload()}
+                  className="rounded-full bg-primary px-4 py-2 text-[13px] font-medium text-primary-ink transition-colors hover:bg-primary-hover"
+                >
+                  Reload the page
+                </button>
+                <span className="text-[12px] text-accent-ink/80">
+                  or press <span className="font-medium">{shortcut}</span> for a hard reload
+                </span>
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={retry}
+                className="mt-3 rounded-full bg-primary px-4 py-2 text-[13px] font-medium text-primary-ink transition-colors hover:bg-primary-hover"
+              >
+                Try again
+              </button>
+            )}
+          </div>
         ) : null}
+
+        {error?.hint ? (
+          <p className="max-w-md text-[13px] leading-relaxed text-ink-3">{error.hint}</p>
+        ) : null}
+
         <button
           type="button"
           onClick={goHome}
-          className="mt-2 text-[13px] text-accent-ink underline underline-offset-2"
+          className="text-[13px] text-accent-ink underline underline-offset-2"
         >
           Try another company
         </button>
+
+        {error?.collector ? (
+          <p className="mt-1 font-mono text-[11px] text-ink-3/70">
+            collector probe: {error.collector}
+          </p>
+        ) : null}
       </div>
     )
   }

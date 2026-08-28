@@ -61,24 +61,37 @@ export default function StatTiles({ insights }) {
     },
   ]
 
+  const valueSize = (value) => {
+    const length = String(value).length
+    if (length <= 8) return 'text-[26px] leading-none'
+    if (length <= 14) return 'text-[21px] leading-tight'
+    if (length <= 20) return 'text-[17px] leading-tight'
+    return 'text-[15px] leading-snug'
+  }
+
   return (
     <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
       {tiles.map((tile) => (
         <div
           key={tile.id}
-          className="rounded-[14px] border border-line bg-surface p-4"
+          className="min-w-0 rounded-[14px] border border-line bg-surface p-4"
         >
-          <div className="flex items-center gap-2">
+          <div className="flex min-w-0 items-center gap-2">
             <Icon
               name={tile.icon}
               className={`h-3.5 w-3.5 ${TONE_ICON[tile.tone] || TONE_ICON.default}`}
             />
-            <span className="text-[11px] tracking-wide text-ink-3 uppercase">
+            <span className="truncate text-[11px] tracking-wide text-ink-3 uppercase">
               {tile.label}
             </span>
           </div>
 
-          <p className="tnum mt-2.5 text-[26px] leading-none font-semibold text-ink">
+          <p
+            title={tile.value}
+            className={`tnum mt-2.5 font-semibold text-ink [overflow-wrap:anywhere] ${valueSize(
+              tile.value,
+            )}`}
+          >
             {tile.value}
           </p>
 
