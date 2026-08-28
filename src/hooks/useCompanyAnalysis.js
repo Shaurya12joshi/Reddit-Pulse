@@ -29,6 +29,28 @@ async function waitForAnalysis(company, signal, onProgress) {
   }
 }
 
+async function waitForStoredPosts(company, signal, onProgress) {
+  const EVERY_MS = 1500
+  const DEADLINE_MS = 45 * 1000
+  const until = Date.now() + DEADLINE_MS
+
+  while (!signal.aborted && Date.now() < until) {
+    const freshness = await apiFetch(
+      `/api/freshness?company=${encodeURIComponent(company)}`,
+      { signal },
+    )
+      .then((response) => (response.ok ? response.json() : null))
+      .catch(() => null)
+
+    if (freshness?.postCount > 0) return freshness.postCount
+
+    onProgress('Waiting for the collected discussions to land')
+    await new Promise((settle) => setTimeout(settle, EVERY_MS))
+  }
+
+  return 0
+}
+
 function intelligenceTasks(name, extras) {
   const encoded = encodeURIComponent(name)
   const tasks = [
@@ -149,6 +171,11 @@ export function useCompanyAnalysis() {
               setProgress((prev) => ({ ...prev, stage: 'scraping', message: job.step || prev.message })),
           })
           if (controller.signal.aborted) return
+
+          await waitForStoredPosts(name, controller.signal, (message) =>
+            setProgress({ stage: 'scraping', message }),
+          )
+          if (controller.signal.aborted) return
         }
       } else {
         setProgress({ stage: 'scraping', message: `Using ${freshness.postCount} already-collected posts` })
@@ -169,9 +196,11 @@ export function useCompanyAnalysis() {
       let res = await report()
 
       if (res.status === 404 && hasExtension) {
-        await new Promise((settle) => setTimeout(settle, 2000))
-        if (controller.signal.aborted) return
-        res = await report()
+        for (let attempt = 0; attempt < 4 && res.status === 404; attempt += 1) {
+          await new Promise((settle) => setTimeout(settle, 2500))
+          if (controller.signal.aborted) return
+          res = await report()
+        }
       }
 
       if (!res.ok) {
@@ -179,9 +208,19 @@ export function useCompanyAnalysis() {
         const err = new Error(body.error || `No Reddit data found for "${name}"`)
         if (res.status === 404) {
           const target = API || window.location.origin
-          err.hint = hasExtension
-            ? `The collector ran, but this page found nothing at ${target}. Either it saved to a different backend, or you are not signed in to Reddit in this browser.`
-            : 'The collector extension is not installed, so live data cannot be gathered. Load it from chrome://extensions, then search again.'
+          const stored = await apiFetch('/api/companies', { signal: controller.signal })
+            .then((response) => (response.ok ? response.json() : null))
+            .then((body) => body?.companies?.length ?? null)
+            .catch(() => null)
+
+          if (!hasExtension) {
+            err.hint =
+              'The collector extension is not installed, so live data cannot be gathered. Load it from chrome://extensions, then search again.'
+          } else if (stored === 0) {
+            err.hint = `The collector ran, but ${target} is holding no data for any company. Its database was probably reset, which happens on hosts without a persistent disk. Collect again and it should stick until the next restart.`
+          } else {
+            err.hint = `The collector ran, but this page found nothing at ${target}. Either it saved to a different backend, or you are not signed in to Reddit in this browser.`
+          }
         }
         throw err
       }

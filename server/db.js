@@ -2,7 +2,8 @@ import { DatabaseSync } from 'node:sqlite'
 import { existsSync, readFileSync, renameSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 
-const DB_PATH = fileURLToPath(new URL('./reddit.db', import.meta.url))
+const DB_PATH =
+  process.env.REDDIT_DB_PATH || fileURLToPath(new URL('./reddit.db', import.meta.url))
 const LEGACY_JSON = fileURLToPath(new URL('./scraped-data.json', import.meta.url))
 
 export const db = new DatabaseSync(DB_PATH)

@@ -54,8 +54,13 @@ docker run -p 3001:3001 --env-file server/.env -v pulse-data:/app/server reddit-
 ## 3. Persist the database
 
 Collected posts live in `server/reddit.db`. Mount a volume at `/app/server` (or
-whatever the equivalent is on your platform). Without it, every redeploy starts
-with an empty database and every company has to be collected again.
+set `REDDIT_DB_PATH` to a file on whatever disk your platform mounts). Without
+one, the database is inside the container: every restart, redeploy and idle
+spin-down starts empty, and every company has to be collected again.
+
+Free tiers usually have no persistent disk. Render free instances in particular
+spin down after about fifteen minutes of inactivity and come back with a blank
+database, so a report collected in the morning is gone by the afternoon.
 
 The file grows roughly 1 MB per 1,000 stored posts.
 
