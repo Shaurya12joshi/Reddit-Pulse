@@ -128,6 +128,15 @@ export default function AnalyzePage() {
     if (name) analyze(name, extras)
   }, [name, extras, analyze])
 
+  // Collect from Reddit again and re-read everything, rather than leaving the
+  // report behind.
+  const rerun = useCallback(() => {
+    if (name) {
+      startedFor.current = null
+      analyze(name, extras, { force: true })
+    }
+  }, [name, extras, analyze])
+
   // Straight to the search box, not the top of the landing page: whoever hit
   // this wants to run another company, not read the pitch again.
   const goHome = () => navigate({ pathname: '/', hash: `#${SEARCH_ANCHOR}` })
@@ -142,14 +151,15 @@ export default function AnalyzePage() {
           <Dashboard
             company={company}
             meta={meta}
-            onRefresh={goHome}
+            onRefresh={rerun}
+            onNewSearch={goHome}
             compareWith={compareWith}
             askedSubject={askedSubject}
             rivalProduct={rivalProduct}
             keywords={keywords}
           />
         ) : null}
-        {view === 'buzz' ? <BuzzView company={company} onRefresh={goHome} /> : null}
+        {view === 'buzz' ? <BuzzView company={company} onRefresh={rerun} /> : null}
         {view === 'raw' ? <RawDataView company={company} /> : null}
       </>
     )

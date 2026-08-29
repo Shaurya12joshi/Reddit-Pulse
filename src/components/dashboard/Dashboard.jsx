@@ -35,6 +35,7 @@ export default function Dashboard({
   company,
   meta,
   onRefresh,
+  onNewSearch,
   compareWith = '',
   askedSubject = '',
   rivalProduct = '',
@@ -89,6 +90,7 @@ export default function Dashboard({
           insights={insights}
           meta={meta}
           onRefresh={onRefresh}
+          onNewSearch={onNewSearch}
         />
       </div>
 

@@ -3,7 +3,7 @@ import Icon from '../ui/Icon.jsx'
 import StackedShareBar from '../charts/StackedShareBar.jsx'
 import { formatNumber, formatSigned } from '../../utils/format.js'
 
-export default function CompanyOverview({ company, insights, meta, onRefresh }) {
+export default function CompanyOverview({ company, insights, meta, onRefresh, onNewSearch }) {
   const { sentiment, totals, market } = insights
 
   return (
@@ -44,11 +44,22 @@ export default function CompanyOverview({ company, insights, meta, onRefresh }) 
           <button
             type="button"
             onClick={onRefresh}
+            title="Collect from Reddit again and rebuild this report"
             className="inline-flex items-center gap-1.5 text-ink-3 transition-colors hover:text-ink"
           >
             <Icon name="refresh" className="h-3.5 w-3.5" />
             Re-run
           </button>
+          {onNewSearch ? (
+            <button
+              type="button"
+              onClick={onNewSearch}
+              className="inline-flex items-center gap-1.5 text-ink-3 transition-colors hover:text-ink"
+            >
+              <Icon name="search" className="h-3.5 w-3.5" />
+              New search
+            </button>
+          ) : null}
         </div>
       </div>
 

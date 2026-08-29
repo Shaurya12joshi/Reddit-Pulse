@@ -108,8 +108,10 @@ function intelligenceTasks(name, extras) {
   return tasks
 }
 
-async function runIntelligence(name, extras, signal, onProgress) {
-  const tasks = intelligenceTasks(name, extras)
+async function runIntelligence(name, extras, signal, onProgress, { force = false } = {}) {
+  const tasks = intelligenceTasks(name, extras).map((task) =>
+    force ? { ...task, path: `${task.path}&refresh=true` } : task,
+  )
   let done = 0
 
   onProgress(`${tasks[0].label} (0 of ${tasks.length})`)
@@ -150,7 +152,7 @@ export function useCompanyAnalysis() {
     setMeta(null)
   }, [])
 
-  const analyze = useCallback(async (rawName, extras = {}) => {
+  const analyze = useCallback(async (rawName, extras = {}, { force = false } = {}) => {
     const name = rawName.trim()
     if (!name) return
 
@@ -172,7 +174,9 @@ export function useCompanyAnalysis() {
         .catch(() => null)
       if (controller.signal.aborted) return
 
-      const needsCollection = !freshness || freshness.stale
+      // A re-run collects again whatever the freshness says: the point of
+      // asking for it is to go back to Reddit.
+      const needsCollection = force || !freshness || freshness.stale
 
       let hasExtension = false
       let collector = 'missing'
@@ -273,8 +277,12 @@ export function useCompanyAnalysis() {
       const data = await res.json()
       if (controller.signal.aborted) return
 
-      await runIntelligence(name, extras, controller.signal, (message) =>
-        setProgress({ stage: 'reading', message }),
+      await runIntelligence(
+        name,
+        extras,
+        controller.signal,
+        (message) => setProgress({ stage: 'reading', message }),
+        { force },
       )
       if (controller.signal.aborted) return
 
