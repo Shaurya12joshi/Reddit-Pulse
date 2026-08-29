@@ -17,7 +17,7 @@ export default function AnalyzeCta({ onAnalyze, resolving = false, id = SEARCH_A
     keywords: '',
   })
 
-  const keywords = extras.keywords.trim()
+  const keywords = (extras.keywords ?? '').trim()
 
   const start = (name) => {
     const company = String(name || '').trim()
@@ -47,9 +47,11 @@ export default function AnalyzeCta({ onAnalyze, resolving = false, id = SEARCH_A
         <input
           id={fieldId}
           type="text"
-          value={extras.keywords}
+          value={extras.keywords ?? ''}
           placeholder="Your field, if Reddit barely mentions you yet"
-          onChange={(event) => setExtras({ ...extras, keywords: event.target.value })}
+          onChange={(event) =>
+            setExtras((current) => ({ ...current, keywords: event.target.value }))
+          }
           onKeyDown={(event) => {
             if (event.key === 'Enter') {
               start(document.getElementById('company-search')?.value ?? '')
@@ -58,7 +60,7 @@ export default function AnalyzeCta({ onAnalyze, resolving = false, id = SEARCH_A
           aria-label="Your field, in keywords"
           className="min-w-0 flex-1 bg-transparent text-[15px] text-ink placeholder:text-ink-3/70 focus:outline-none"
         />
-        {extras.keywords.trim() ? (
+        {keywords ? (
           <span className="shrink-0 rounded-full bg-accent-dim px-2 py-0.5 text-[10px] font-medium text-accent-ink">
             Field scan on
           </span>
@@ -77,7 +79,7 @@ export default function AnalyzeCta({ onAnalyze, resolving = false, id = SEARCH_A
         subject={extras.subject}
         rivalProduct={extras.rivalProduct}
         keywords={extras.keywords}
-        onChange={setExtras}
+        onChange={(patch) => setExtras((current) => ({ ...current, ...patch }))}
       />
 
       <div className="mt-4 flex flex-wrap items-center justify-center gap-2">

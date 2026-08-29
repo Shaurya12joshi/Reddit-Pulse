@@ -7,6 +7,7 @@ import BuzzView from '../components/buzz/BuzzView.jsx'
 import LoadingScreen from '../components/loading/LoadingScreen.jsx'
 import { useCompanyAnalysis } from '../hooks/useCompanyAnalysis.js'
 import { fromSlug } from '../utils/slug.js'
+import { SEARCH_ANCHOR } from '../experience/goToSearch.js'
 
 function ViewToggle({ view, onChange }) {
   return (
@@ -127,7 +128,9 @@ export default function AnalyzePage() {
     if (name) analyze(name, extras)
   }, [name, extras, analyze])
 
-  const goHome = () => navigate('/')
+  // Straight to the search box, not the top of the landing page: whoever hit
+  // this wants to run another company, not read the pitch again.
+  const goHome = () => navigate({ pathname: '/', hash: `#${SEARCH_ANCHOR}` })
 
   const label = company || name
 

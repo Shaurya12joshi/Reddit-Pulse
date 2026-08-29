@@ -41,7 +41,9 @@ export default function OptionalExtras({
   const subjectId = useId()
   const rivalId = useId()
 
-  const set = (patch) => onChange({ compareWith, subject, rivalProduct, ...patch })
+  // Sends only what changed. Rebuilding the whole object here would drop any
+  // field this component does not own, such as the keywords above it.
+  const set = (patch) => onChange(patch)
 
   const pairReady = Boolean(subject.trim()) && Boolean(rivalProduct.trim() || compareWith.trim())
 

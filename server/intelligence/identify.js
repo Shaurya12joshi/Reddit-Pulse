@@ -2,14 +2,16 @@ import { structured, activeModel, llmAvailable } from './client.js'
 
 const SYSTEM = `You turn whatever a user typed into the brand name a Reddit monitoring system should search for.
 
-The input is usually a company name already, but it may be a website address, a full URL with a path, an email domain, or a product page. Work out which company it belongs to.
+The input is either a company name already, or the domain of a website.
+
+When you are given a domain, the answer is the company that OWNS that domain, and nothing else. A domain is handed to you stripped of its path for a reason: a page on that site may be about some other company's product, and that other company is never the answer. amazon.in is Amazon, whatever is being sold on it. etsy.com is Etsy, whoever made the item. Ignore any brand you happen to know sells there.
 
 - name: what to search Reddit for. The name people actually type when discussing it, not the legal entity. Prefer "Bloomberg Tax" over "Bloomberg Industry Group LLC", "Figma" over "Figma Inc".
-- input_kind: "name" when the input was already a brand name, "url" when it was an address or link, "unclear" when you cannot tell what it refers to.
+- input_kind: "name" when the input was already a brand name, "url" when it came from a web address, "unclear" when you cannot tell what it refers to.
 - what_it_is: one short sentence on what the company does, for a reader who has never heard of it.
 - confidence: how sure you are that this is the right company.
 
-When the input is a site you do not recognise, read the domain honestly: "getharvest.com" is Harvest, "tryramp.com" is Ramp. Strip www, the TLD, and marketing prefixes like get, try, use, join, app, my. Never invent a company for a domain that carries no readable name.`
+For a domain you do not recognise, read it honestly: "getharvest.com" is Harvest, "tryramp.com" is Ramp. Strip the country or generic suffix and marketing prefixes like get, try, use, join, app, my. A regional suffix does not make a different company: amazon.in, amazon.co.uk and amazon.com are all Amazon. Never invent a company for a domain that carries no readable name.`
 
 const SCHEMA = {
   type: 'object',
@@ -26,6 +28,45 @@ const SCHEMA = {
 const URL_LIKE = /^(https?:\/\/|www\.)|^[a-z0-9-]+(\.[a-z0-9-]+)+(\/|$)/i
 const PREFIXES = ['get', 'try', 'use', 'join', 'app', 'my', 'the', 'go']
 
+// Suffixes that are structure rather than name. Without these, "tesco.co.uk"
+// reads as the company "co".
+const COMPOUND_SUFFIXES = new Set([
+  'co', 'com', 'net', 'org', 'gov', 'edu', 'ac', 'or', 'ne', 'go', 'in', 'firm', 'gen', 'ind',
+])
+
+// Hosts that front many companies. The site owner is still the answer, but a
+// subdomain there is the real name: mycompany.myshopify.com is My Company.
+const PLATFORM_HOSTS = new Set([
+  'myshopify.com', 'squarespace.com', 'wixsite.com', 'webflow.io', 'github.io',
+  'notion.site', 'substack.com', 'wordpress.com', 'blogspot.com', 'netlify.app', 'vercel.app',
+])
+
+export function hostOf(value) {
+  const input = String(value || '').trim()
+  if (!input) return ''
+  try {
+    return new URL(input.startsWith('http') ? input : `https://${input}`).hostname.toLowerCase()
+  } catch {
+    return input.split('/')[0].toLowerCase()
+  }
+}
+
+// The label that names the company: the domain minus www, minus the public
+// suffix, however many parts that suffix has.
+export function registrableLabel(host) {
+  const parts = String(host || '').replace(/^www\./, '').split('.').filter(Boolean)
+  if (parts.length <= 1) return parts[0] || ''
+
+  const bare = parts.join('.')
+  for (const platform of PLATFORM_HOSTS) {
+    if (bare.endsWith(`.${platform}`)) return parts[0]
+  }
+
+  let end = parts.length - 1
+  if (end > 0 && COMPOUND_SUFFIXES.has(parts[end - 1])) end -= 1
+  return parts[end - 1] || parts[0]
+}
+
 export function looksLikeUrl(value) {
   const input = String(value || '').trim()
   if (!input || /\s/.test(input)) return false
@@ -33,18 +74,8 @@ export function looksLikeUrl(value) {
 }
 
 export function nameFromUrl(value) {
-  const input = String(value || '').trim()
-  if (!input) return ''
-
-  let host = input
-  try {
-    host = new URL(input.startsWith('http') ? input : `https://${input}`).hostname
-  } catch {
-    host = input.split('/')[0]
-  }
-
-  const parts = host.replace(/^www\./i, '').split('.')
-  const core = parts.length > 2 && parts[0] !== 'www' ? parts[parts.length - 2] : parts[0]
+  const core = registrableLabel(hostOf(value))
+  if (!core) return ''
 
   const words = core.split(/[-_]+/).filter(Boolean)
   while (words.length > 1 && PREFIXES.includes(words[0].toLowerCase())) words.shift()
@@ -82,9 +113,18 @@ export async function identifyCompany(input) {
     }
   }
 
+  // Only the host reaches the model. A product path on a marketplace names a
+  // company that does not own the site, and that is the trap this closes.
+  const host = isUrl ? hostOf(typed) : ''
+  const user = isUrl
+    ? `Domain: ${host}\nReading of the domain alone: ${nameFromUrl(typed)}\n` +
+      'Name the company that owns this domain. Any product or seller elsewhere in the ' +
+      'original link is irrelevant.'
+    : `The user typed: ${typed}`
+
   const result = await structured({
     system: SYSTEM,
-    user: `The user typed: ${typed}`,
+    user,
     schema: SCHEMA,
     effort: 'low',
     maxTokens: 600,

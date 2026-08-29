@@ -17,7 +17,9 @@ export default function LandingRoute() {
 
   useEffect(() => {
     if (hash !== `#${SEARCH_ANCHOR}`) return
-    goToSearch()
+    // Arriving from a report means the scroll driver is still starting up, so
+    // it gets longer to take over before falling back to a plain scroll.
+    goToSearch({ graceMs: 1400 })
   }, [hash])
 
   // A website address names a company just as well as its name does, so the
