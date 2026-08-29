@@ -16,8 +16,8 @@ const KEYFRAMES = [
   { pos: [3.4, 0.4, 16], look: [-1.6, -0.2, 0] },
   { pos: [1.1, 1.0, 13.4], look: [-0.5, -0.3, -0.6] },
   { pos: [-1.4, 2.6, 17.4], look: [0.3, -0.9, -0.2] },
-  { pos: [0, 0.6, 24], look: [0, 0, 0] },
-  { pos: [0, 0, 18], look: [0, 0, 0] },
+  { pos: [0, 0.6, 23], look: [0, 0, 0] },
+  { pos: [0, 0.15, 19], look: [0, 0, 0] },
 ]
 
 const targetPos = new THREE.Vector3()
@@ -55,7 +55,7 @@ export default function CameraRig({ reducedMotion = false }) {
       currentLook.copy(targetLook)
       initialised.current = true
     } else {
-      const ease = 1 - Math.exp(-2.6 * Math.min(delta, 0.05))
+      const ease = 1 - Math.exp(-2.1 * Math.min(delta, 0.05))
       camera.position.lerp(targetPos, ease)
       currentLook.lerp(targetLook, ease)
     }

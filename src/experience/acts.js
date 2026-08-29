@@ -8,7 +8,7 @@ export const ACTS = [
     body: 'Discover what Reddit really thinks about your company, your competitors, and everything in between.',
     align: 'center',
     start: 0.0,
-    end: 0.085,
+    end: 0.08,
   },
   {
     id: 'enter',
@@ -17,8 +17,8 @@ export const ACTS = [
     title: ['Enter a company.'],
     body: 'Thousands of unstructured posts and comments exist for almost every brand. Scattered across hundreds of subreddits, none of it is organised, and none of it was written for you.',
     align: 'left',
-    start: 0.085,
-    end: 0.17,
+    start: 0.08,
+    end: 0.16,
   },
   {
     id: 'signals',
@@ -27,8 +27,8 @@ export const ACTS = [
     title: ['Collect Reddit', 'conversations.'],
     body: 'Relevant threads are gathered straight from Reddit and connected to each other. What looked like noise starts to show structure.',
     align: 'right',
-    start: 0.17,
-    end: 0.26,
+    start: 0.16,
+    end: 0.245,
   },
   {
     id: 'sentiment',
@@ -37,8 +37,8 @@ export const ACTS = [
     title: ['Analyze the', 'conversation.'],
     body: 'Every sentence is scored, with negation and intensifiers handled properly, then split into positive, neutral and negative.',
     align: 'left',
-    start: 0.26,
-    end: 0.35,
+    start: 0.245,
+    end: 0.33,
   },
   {
     id: 'topics',
@@ -48,8 +48,8 @@ export const ACTS = [
     serifWord: 'emerge',
     body: 'Pricing, reliability, support, design. Discussions organise into the subjects people actually keep returning to.',
     align: 'right',
-    start: 0.35,
-    end: 0.44,
+    start: 0.33,
+    end: 0.41,
   },
   {
     id: 'competitors',
@@ -58,8 +58,8 @@ export const ACTS = [
     title: ['Rivals take shape.'],
     body: 'The brands people mention in the same breath form a relationship network, and the reason behind each comparison comes with it.',
     align: 'left',
-    start: 0.44,
-    end: 0.53,
+    start: 0.41,
+    end: 0.49,
   },
   {
     id: 'insights',
@@ -69,8 +69,8 @@ export const ACTS = [
     serifWord: 'signal',
     body: 'The chaos resolves into structure: sentiment shares, ranked topics, praise and complaints, competitor mentions, momentum over time.',
     align: 'center',
-    start: 0.53,
-    end: 0.62,
+    start: 0.49,
+    end: 0.575,
   },
   {
     id: 'report',
@@ -80,8 +80,8 @@ export const ACTS = [
     serifWord: 'real',
     body: 'Not a mockup. Column height is share of mentions, colour is how a subject is going, and distance from the centre is how often a rival gets named alongside you.',
     align: 'left',
-    start: 0.62,
-    end: 0.71,
+    start: 0.575,
+    end: 0.66,
   },
   {
     id: 'evidence',
@@ -91,8 +91,8 @@ export const ACTS = [
     serifWord: 'thread',
     body: 'Nothing here is inferred from a summary. Open any measurement and the actual Reddit conversations behind it are still there, with the words that drove the score.',
     align: 'right',
-    start: 0.71,
-    end: 0.79,
+    start: 0.66,
+    end: 0.74,
   },
   {
     id: 'audience',
@@ -102,8 +102,8 @@ export const ACTS = [
     serifWord: 'truth',
     body: 'Founders validating an idea, product teams hunting complaints, marketers borrowing the language customers already use, researchers who would rather not read threads by hand.',
     align: 'left',
-    start: 0.79,
-    end: 0.87,
+    start: 0.74,
+    end: 0.815,
   },
   {
     id: 'rest',
@@ -113,8 +113,8 @@ export const ACTS = [
     serifWord: 'stop',
     body: 'It carries on after you close the tab. Come back and the world has moved: new threads, new complaints, new comparisons.',
     align: 'center',
-    start: 0.87,
-    end: 0.94,
+    start: 0.815,
+    end: 0.91,
   },
   {
     id: 'start',
@@ -124,7 +124,7 @@ export const ACTS = [
     serifWord: 'Reddit',
     body: 'Pick any company and read its Reddit reputation in a couple of minutes.',
     align: 'center',
-    start: 0.94,
+    start: 0.91,
     end: 1.0001,
   },
 ]
@@ -171,7 +171,7 @@ export function stagePresence(progress, index, { lead = 0.35, tail = 0.35 } = {}
   return easeInOutCubic(Math.min(rampIn, rampOut))
 }
 
-const HOLD = 0.22
+const HOLD = 0.14
 
 export function layoutBlend(progress) {
   const index = actIndexAt(progress)
@@ -189,8 +189,8 @@ export function layoutBlend(progress) {
 
 export function copyEnvelope(progress, index) {
   const local = actLocalProgress(progress, index)
-  const inT = clamp01(local / 0.34)
-  const outT = clamp01((local - 0.62) / 0.38)
+  const inT = clamp01(local / 0.38)
+  const outT = clamp01((local - 0.58) / 0.42)
   return {
     local,
     reveal: easeOutCubic(inT),

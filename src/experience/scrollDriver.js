@@ -47,7 +47,7 @@ function frame(time) {
   if (Math.abs(next - driver.progress) > 0.0002) driver.moved = true
   driver.progress = next
 
-  const ease = 1 - Math.exp(-5.2 * dt)
+  const ease = 1 - Math.exp(-4.2 * dt)
   const previousDamped = driver.damped
   driver.damped += (driver.progress - driver.damped) * ease
   driver.velocity = dt > 0 ? (driver.damped - previousDamped) / dt : 0
@@ -64,6 +64,22 @@ export function isDriverActive() {
   return Boolean(targetEl)
 }
 
+const easeInOutCubic = (t) => (t < 0.5 ? 4 * t * t * t : 1 - (-2 * t + 2) ** 3 / 2)
+
+let tweenId = null
+
+function stopTween() {
+  if (tweenId === null) return
+  cancelAnimationFrame(tweenId)
+  tweenId = null
+  window.removeEventListener('wheel', stopTween)
+  window.removeEventListener('touchstart', stopTween)
+  window.removeEventListener('keydown', stopTween)
+}
+
+// The browser's own smooth scroll takes about the same time whatever the
+// distance, so jumping several acts flings the whole scene past in one blink.
+// This paces the travel by how far it actually is.
 export function scrollToProgress(progress) {
   if (!targetEl || typeof window === 'undefined') return
 
@@ -71,12 +87,38 @@ export function scrollToProgress(progress) {
   if (total <= 0) return
 
   const sectionTop = targetEl.getBoundingClientRect().top + window.scrollY
-  const prefersReducedMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
+  const to = sectionTop + clamp01(progress) * total
+  const from = window.scrollY
+  const distance = to - from
 
-  window.scrollTo({
-    top: sectionTop + clamp01(progress) * total,
-    behavior: prefersReducedMotion ? 'auto' : 'smooth',
-  })
+  stopTween()
+
+  const prefersReducedMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
+  if (prefersReducedMotion || Math.abs(distance) < 4) {
+    window.scrollTo({ top: to, behavior: 'auto' })
+    return
+  }
+
+  const screens = Math.abs(distance) / Math.max(1, window.innerHeight)
+  const duration = Math.min(4200, Math.max(560, 420 + screens * 520))
+  const started = performance.now()
+
+  window.addEventListener('wheel', stopTween, { passive: true, once: true })
+  window.addEventListener('touchstart', stopTween, { passive: true, once: true })
+  window.addEventListener('keydown', stopTween, { once: true })
+
+  const step = (now) => {
+    const t = Math.min(1, (now - started) / duration)
+    window.scrollTo({ top: from + distance * easeInOutCubic(t), behavior: 'auto' })
+
+    if (t < 1) {
+      tweenId = requestAnimationFrame(step)
+      return
+    }
+    stopTween()
+  }
+
+  tweenId = requestAnimationFrame(step)
 }
 
 export function startDriver() {

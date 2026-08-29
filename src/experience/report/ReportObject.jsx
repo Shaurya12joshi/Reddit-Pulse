@@ -1,4 +1,4 @@
-import { useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { createContext, useContext, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { useFrame } from '@react-three/fiber'
 import { Html } from '@react-three/drei'
 import * as THREE from 'three'
@@ -15,6 +15,10 @@ const dummy = new THREE.Object3D()
 
 const BAR_GEOMETRY = [0.82, 1, 0.82]
 const RIBBON_GEOMETRY = [0.3, 1, 0.3]
+
+// Every label in the report is DOM inside an Html portal, so none of them can
+// inherit the material fade. They read the same two values the geometry uses.
+const FadeContext = createContext(null)
 
 const smoothstep = (t) => t * t * (3 - 2 * t)
 
@@ -75,6 +79,18 @@ function Sheet({ width, height, position, rotation, reveal }) {
 }
 
 function Label({ position, children, align = 'center' }) {
+  const nodeRef = useRef(null)
+  const fade = useContext(FadeContext)
+
+  useFrame(() => {
+    const node = nodeRef.current
+    if (!node || !fade) return
+    const gone = Math.min(1, Math.max(0, fade.exit.current))
+    const shown = Math.min(1, Math.max(0, fade.reveal.current)) * (1 - gone * gone)
+    node.style.opacity = String(shown)
+    node.style.visibility = shown > 0.01 ? 'visible' : 'hidden'
+  })
+
   return (
     <Html
       position={position}
@@ -84,7 +100,9 @@ function Label({ position, children, align = 'center' }) {
       zIndexRange={[10, 0]}
       style={{ pointerEvents: 'none', userSelect: 'none' }}
     >
-      <div className={`w-44 text-${align} leading-tight`}>{children}</div>
+      <div ref={nodeRef} className={`w-44 text-${align} leading-tight`}>
+        {children}
+      </div>
     </Html>
   )
 }
@@ -337,142 +355,178 @@ function CompetitorConstellation({ competitors, company, reveal }) {
 
   return (
     <group ref={groupRef}>
-      <mesh>
-        <boxGeometry args={[0.5, 0.5, 0.5]} />
-        <meshStandardMaterial color={PAPER_3D.ink} roughness={0.7} metalness={0} />
-      </mesh>
-      <Label position={[0, -0.62, 0]}>
-        <span className="eyebrow text-ink">{company}</span>
-      </Label>
+        <mesh>
+          <boxGeometry args={[0.5, 0.5, 0.5]} />
+          <meshStandardMaterial color={PAPER_3D.ink} roughness={0.7} metalness={0} />
+        </mesh>
+        <Label position={[0, -0.62, 0]}>
+          <span className="eyebrow text-ink">{company}</span>
+        </Label>
 
-      <lineSegments ref={lineRef} geometry={lineGeometry}>
-        <lineBasicMaterial color={PAPER_3D.muted} transparent opacity={0} depthWrite={false} />
-      </lineSegments>
+        <lineSegments ref={lineRef} geometry={lineGeometry}>
+          <lineBasicMaterial color={PAPER_3D.muted} transparent opacity={0} depthWrite={false} />
+        </lineSegments>
 
-      {nodes.map((node, index) => (
-        <group
-          key={node.name}
-          position={[node.x, node.y, 0]}
-          ref={(object) => {
-            nodeRefs.current[index] = object
-          }}
-          onPointerOver={(event) => {
-            event.stopPropagation()
-            setHovered(index)
-            cursor.enter()
-          }}
-          onPointerOut={() => {
-            setHovered(null)
-            cursor.leave()
-          }}
-        >
-          {node.palette ? (
-            node.palette.map((band, bandIndex) => (
-              <mesh
-                key={band}
-                scale={node.scale}
-                position={[
-                  0,
-                  ((bandIndex - (node.palette.length - 1) / 2) * node.scale) /
-                    node.palette.length,
-                  0,
-                ]}
-              >
-                <boxGeometry args={[1, 1 / node.palette.length, 1]} />
-                <meshStandardMaterial color={band} roughness={0.82} metalness={0} />
+        {nodes.map((node, index) => (
+          <group
+            key={node.name}
+            position={[node.x, node.y, 0]}
+            ref={(object) => {
+              nodeRefs.current[index] = object
+            }}
+            onPointerOver={(event) => {
+              event.stopPropagation()
+              setHovered(index)
+              cursor.enter()
+            }}
+            onPointerOut={() => {
+              setHovered(null)
+              cursor.leave()
+            }}
+          >
+            {node.palette ? (
+              node.palette.map((band, bandIndex) => (
+                <mesh
+                  key={band}
+                  scale={node.scale}
+                  position={[
+                    0,
+                    ((bandIndex - (node.palette.length - 1) / 2) * node.scale) /
+                      node.palette.length,
+                    0,
+                  ]}
+                >
+                  <boxGeometry args={[1, 1 / node.palette.length, 1]} />
+                  <meshStandardMaterial color={band} roughness={0.82} metalness={0} />
+                </mesh>
+              ))
+            ) : (
+              <mesh scale={node.scale}>
+                <boxGeometry args={[1, 1, 1]} />
+                <meshStandardMaterial
+                  color={node.accent}
+                  roughness={0.82}
+                  metalness={0}
+                />
               </mesh>
-            ))
-          ) : (
-            <mesh scale={node.scale}>
-              <boxGeometry args={[1, 1, 1]} />
-              <meshStandardMaterial
-                color={node.accent}
-                roughness={0.82}
-                metalness={0}
-              />
-            </mesh>
-          )}
-          <Label position={[0, -0.42, 0]}>
-            <span className="block truncate text-[14px] font-medium text-ink">
-              {node.name}
-            </span>
-            <span className="tnum block text-[12px] text-ink-3">{node.mentions}</span>
-          </Label>
-        </group>
-      ))}
-    </group>
+            )}
+            <Label position={[0, -0.42, 0]}>
+              <span className="block truncate text-[14px] font-medium text-ink">
+                {node.name}
+              </span>
+              <span className="tnum block text-[12px] text-ink-3">{node.mentions}</span>
+            </Label>
+          </group>
+        ))}
+      </group>
   )
 }
 
-export default function ReportObject({ insights, company, presence, parallax = true }) {
+export default function ReportObject({
+  insights,
+  company,
+  presence,
+  exit,
+  parallax = true,
+}) {
   const reveal = useRef(0)
+  const gone = useRef(0)
   const groupRef = useRef(null)
+  const fadeables = useRef([])
 
   useFrame((state, delta) => {
-    const target = presence()
-    reveal.current = THREE.MathUtils.damp(reveal.current, target, 2.2, Math.min(delta, 0.05))
+    const step = Math.min(delta, 0.05)
+    reveal.current = THREE.MathUtils.damp(reveal.current, presence(), 2.2, step)
+    gone.current = THREE.MathUtils.damp(gone.current, exit ? exit() : 0, 4.2, step)
 
     const group = groupRef.current
     if (!group) return
 
-    group.visible = reveal.current > 0.004
+    // Gathered on the first frame the group exists, so the report can fade
+    // instead of blinking out of existence at the edge of its act.
+    if (!fadeables.current.length) {
+      const found = []
+      group.traverse((child) => {
+        const materials = Array.isArray(child.material) ? child.material : [child.material]
+        for (const material of materials) {
+          if (!material || found.some((entry) => entry.material === material)) continue
+          material.transparent = true
+          found.push({ material, base: material.opacity ?? 1 })
+        }
+      })
+      fadeables.current = found
+    }
+
+    // Leaving is a withdrawal into the depth of the scene, finished before the
+    // next act opens, not the entrance run backwards.
+    const receded = Math.min(1, Math.max(0, gone.current)) ** 2
+    const fade = Math.min(1, Math.max(0, reveal.current)) * (1 - receded)
+
+    for (const entry of fadeables.current) entry.material.opacity = entry.base * fade
+
+    group.visible = fade > 0.002
     if (!group.visible) return
 
-    const ease = 1 - Math.exp(-2.6 * Math.min(delta, 0.05))
+    const ease = 1 - Math.exp(-2.6 * step)
 
     if (parallax) {
       group.rotation.y += (state.pointer.x * 0.16 - group.rotation.y) * ease
       group.rotation.x += (-state.pointer.y * 0.1 - group.rotation.x) * ease
     }
     group.position.y += (reveal.current * 0.4 - 0.4 - group.position.y) * ease
+    group.position.z = -receded * 30
+    group.scale.setScalar(1 - receded * 0.32)
   })
 
   const { sentiment, topics, timeline, competitors } = insights
+  const fade = useMemo(() => ({ reveal, exit: gone }), [])
 
   return (
-    <group ref={groupRef}>
-      <group position={[-4.9, -1.4, 1.2]} rotation={[0, 0.34, 0]}>
-        <Sheet
-          width={5.6}
-          height={5.4}
-          position={[0, 1.6, -0.7]}
-          rotation={[0, 0, 0]}
-          reveal={reveal}
-        />
-        <SentimentColumns sentiment={sentiment} reveal={reveal} />
-        <Label position={[0, -1.55, -0.6]}>
-          <span className="eyebrow text-ink-3">Sentiment</span>
-        </Label>
-      </group>
+    <FadeContext.Provider value={fade}>
+      <group ref={groupRef}>
+        <group position={[-4.9, -1.4, 1.2]} rotation={[0, 0.34, 0]}>
+          <Sheet
+            width={5.6}
+            height={5.4}
+            position={[0, 1.6, -0.7]}
+            rotation={[0, 0, 0]}
+            reveal={reveal}
+          />
+          <SentimentColumns sentiment={sentiment} reveal={reveal} />
+          <Label position={[0, -1.55, -0.6]}>
+            <span className="eyebrow text-ink-3">Sentiment</span>
+          </Label>
+        </group>
 
-      <group position={[3.4, -1.2, -0.4]} rotation={[0, -0.16, 0]}>
-        <Sheet
-          width={13.4}
-          height={5}
-          position={[0, 1.5, -0.6]}
-          rotation={[0, 0, 0]}
-          reveal={reveal}
-        />
-        <TopicRidge topics={topics} reveal={reveal} />
-        <Label position={[0, -2.05, -0.5]}>
-          <span className="eyebrow text-ink-3">Topics</span>
-        </Label>
-      </group>
+        <group position={[3.4, -1.2, -0.4]} rotation={[0, -0.16, 0]}>
+          <Sheet
+            width={13.4}
+            height={5}
+            position={[0, 1.5, -0.6]}
+            rotation={[0, 0, 0]}
+            reveal={reveal}
+          />
+          <TopicRidge topics={topics} reveal={reveal} />
+          <Label position={[0, -2.05, -0.5]}>
+            <span className="eyebrow text-ink-3">Topics</span>
+          </Label>
+        </group>
 
-      <group position={[-1.1, -4.6, 2.4]} rotation={[-0.28, 0, 0]}>
-        <VolumeRibbon timeline={timeline} reveal={reveal} />
-        <Label position={[0, -0.7, 0]}>
-          <span className="eyebrow text-ink-3">Volume over time</span>
-        </Label>
-      </group>
+        <group position={[-1.1, -4.6, 2.4]} rotation={[-0.28, 0, 0]}>
+          <VolumeRibbon timeline={timeline} reveal={reveal} />
+          <Label position={[0, -0.7, 0]}>
+            <span className="eyebrow text-ink-3">Volume over time</span>
+          </Label>
+        </group>
 
-      <group position={[5.4, 3.1, -3.4]} rotation={[0, -0.42, 0]}>
-        <CompetitorConstellation
-          competitors={competitors}
-          company={company}
-          reveal={reveal}
-        />
+        <group position={[5.4, 3.1, -3.4]} rotation={[0, -0.42, 0]}>
+          <CompetitorConstellation
+            competitors={competitors}
+            company={company}
+            reveal={reveal}
+          />
+        </group>
       </group>
-    </group>
+    </FadeContext.Provider>
   )
 }

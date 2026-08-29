@@ -10,6 +10,9 @@ const dummy = new THREE.Object3D()
 const CARD_GEOMETRY_ARGS = [0.66, 0.42, 0.03]
 
 const ACT_REST = 10
+const TAU = Math.PI * 2
+// How much of a formation change is spent letting the stragglers catch up.
+const STAGGER = 0.42
 
 export default function ConversationField({ count = 620, reducedMotion = false }) {
   const meshRef = useRef(null)
@@ -85,9 +88,16 @@ export default function ConversationField({ count = 620, reducedMotion = false }
       const i3 = i * 3
       const phase = phases[i]
 
-      let x = a.positions[i3] + (b.positions[i3] - a.positions[i3]) * t
-      let y = a.positions[i3 + 1] + (b.positions[i3 + 1] - a.positions[i3 + 1]) * t
-      let z = a.positions[i3 + 2] + (b.positions[i3 + 2] - a.positions[i3 + 2]) * t
+      // Each card sets off at its own moment, so the cloud crosses as a wave
+      // rather than as one rigid block. Lockstep is what made the change of
+      // formation read as a jump.
+      const lead = (phase / TAU) * STAGGER
+      const staged = Math.max(0, Math.min(1, (t - lead) / (1 - STAGGER)))
+      const ti = staged * staged * (3 - 2 * staged)
+
+      let x = a.positions[i3] + (b.positions[i3] - a.positions[i3]) * ti
+      let y = a.positions[i3 + 1] + (b.positions[i3 + 1] - a.positions[i3 + 1]) * ti
+      let z = a.positions[i3 + 2] + (b.positions[i3 + 2] - a.positions[i3 + 2]) * ti
 
       if (drift > 0.001) {
         x += Math.sin(time * 0.42 + phase) * drift

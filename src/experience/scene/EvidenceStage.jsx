@@ -4,7 +4,7 @@ import { Html } from '@react-three/drei'
 import * as THREE from 'three'
 
 import { driver } from '../scrollDriver.js'
-import { ACT_INDEX, stagePresence } from '../acts.js'
+import { ACT_INDEX, actLocalProgress, stagePresence } from '../acts.js'
 import useStageActive from '../useStageActive.js'
 import { ACCENT_3D, PAPER_3D } from '../palette.js'
 import { SENTIMENT_3D } from '../report/reportGeometry.js'
@@ -40,9 +40,13 @@ function arrange(count) {
   })
 }
 
-function ThreadPanel({ post, slot, revealRef, index, total, onOpen }) {
+function ThreadPanel({ post, slot, revealRef, exitRef, index, total, onOpen }) {
   const accent = PANEL_ACCENTS[index % PANEL_ACCENTS.length]
   const groupRef = useRef(null)
+  const cardRef = useRef(null)
+  const edgeRef = useRef(null)
+  const spineRef = useRef(null)
+  const htmlRef = useRef(null)
   const [hovered, setHovered] = useState(false)
 
   const geometry = useMemo(() => new THREE.PlaneGeometry(SHEET.w, SHEET.h), [])
@@ -58,38 +62,64 @@ function ThreadPanel({ post, slot, revealRef, index, total, onOpen }) {
     const local = THREE.MathUtils.clamp(reveal * 1.5 - (index / total) * 0.45, 0, 1)
     const eased = local * local * (3 - 2 * local)
 
-    group.visible = eased > 0.01
+    // Leaving is not entering played backwards. The cards draw back into the
+    // depth of the scene and are gone before the next act arrives, so the two
+    // never share the screen.
+    const leaving = THREE.MathUtils.clamp(
+      exitRef.current * 1.35 - ((total - 1 - index) / total) * 0.3,
+      0,
+      1,
+    )
+    const gone = leaving * leaving
+    const shown = eased * (1 - gone)
+
+    if (cardRef.current) cardRef.current.opacity = 0.97 * shown
+    if (edgeRef.current) edgeRef.current.opacity = 0.95 * shown
+    if (spineRef.current) spineRef.current.opacity = shown
+    if (htmlRef.current) {
+      htmlRef.current.style.opacity = String(shown)
+      htmlRef.current.style.visibility = shown > 0.02 ? 'visible' : 'hidden'
+    }
+
+    group.visible = shown > 0.002
     if (!group.visible) return
 
     const time = state.clock.elapsedTime
     const lift = hovered ? 0.32 : 0
 
     group.position.set(
-      slot.x,
+      slot.x * (1 - gone * 0.25),
       slot.y + (1 - eased) * -2.6 + Math.sin(time * 0.5 + slot.phase) * 0.09 + lift,
-      slot.z + (1 - eased) * -3.4,
+      slot.z + (1 - eased) * -3.4 - gone * 26,
     )
     group.rotation.y = slot.rotationY + (1 - eased) * 0.4
-    group.scale.setScalar((0.92 + eased * 0.08) * (hovered ? 1.04 : 1))
+    group.scale.setScalar((0.92 + eased * 0.08) * (1 - gone * 0.35) * (hovered ? 1.04 : 1))
   })
 
   return (
     <group ref={groupRef}>
       <mesh geometry={geometry}>
         <meshStandardMaterial
+          ref={cardRef}
           color={PAPER_3D.card}
           roughness={0.86}
           metalness={0}
           transparent
-          opacity={0.97}
+          opacity={0}
         />
       </mesh>
       <lineSegments geometry={edges}>
-        <lineBasicMaterial color={accent} transparent opacity={0.95} depthWrite={false} />
+        <lineBasicMaterial
+          ref={edgeRef}
+          color={accent}
+          transparent
+          opacity={0}
+          depthWrite={false}
+        />
       </lineSegments>
       <mesh position={[-SHEET.w / 2 + 0.05, 0, 0.012]}>
         <planeGeometry args={[0.09, SHEET.h]} />
-        <meshBasicMaterial color={accent} />
+        <meshBasicMaterial ref={spineRef} color={accent} transparent opacity={0} />
       </mesh>
 
       <Html
@@ -104,10 +134,12 @@ function ThreadPanel({ post, slot, revealRef, index, total, onOpen }) {
         }}
       >
         <button
+          ref={htmlRef}
           type="button"
           onClick={() => onOpen(post)}
           onPointerEnter={() => setHovered(true)}
           onPointerLeave={() => setHovered(false)}
+          style={{ opacity: 0 }}
           className="flex h-full w-full cursor-pointer flex-col justify-center overflow-hidden py-9 pr-10 pl-12 text-left"
         >
           <div className="flex items-baseline gap-4">
@@ -147,24 +179,33 @@ function ThreadPanel({ post, slot, revealRef, index, total, onOpen }) {
 
 export default function EvidenceStage({ posts, onOpenPost, reducedMotion = false }) {
   const revealRef = useRef(0)
+  const exitRef = useRef(0)
   const groupRef = useRef(null)
 
   const shown = useMemo(() => (posts ?? []).slice(0, 6), [posts])
   const slots = useMemo(() => arrange(shown.length), [shown.length])
 
-  const active = useStageActive(ACT_INDEX.evidence, { lead: 0.32, tail: 0.28 })
+  const active = useStageActive(ACT_INDEX.evidence, { lead: 0.32, tail: 0.45 })
 
   useFrame((_, delta) => {
+    const step = Math.min(delta, 0.05)
+
     const target = reducedMotion
       ? 1
-      : stagePresence(driver.damped, ACT_INDEX.evidence, { lead: 0.32, tail: 0.28 })
-    revealRef.current = THREE.MathUtils.damp(
-      revealRef.current,
-      target,
-      2.6,
-      Math.min(delta, 0.05),
-    )
-    if (groupRef.current) groupRef.current.visible = revealRef.current > 0.004
+      : stagePresence(driver.damped, ACT_INDEX.evidence, { lead: 0.32, tail: 0.45 })
+    revealRef.current = THREE.MathUtils.damp(revealRef.current, target, 2.6, step)
+
+    // The withdrawal runs on the act's own clock and completes at 96% of it,
+    // so the cards have cleared the frame before the next act opens.
+    const local = actLocalProgress(driver.damped, ACT_INDEX.evidence)
+    const leaving = reducedMotion
+      ? 0
+      : THREE.MathUtils.clamp((local - 0.55) / 0.41, 0, 1)
+    exitRef.current = THREE.MathUtils.damp(exitRef.current, leaving, 4.2, step)
+
+    if (groupRef.current) {
+      groupRef.current.visible = revealRef.current > 0.004 && exitRef.current < 0.999
+    }
   })
 
   if (!shown.length || (!active && !reducedMotion)) return null
@@ -179,6 +220,7 @@ export default function EvidenceStage({ posts, onOpenPost, reducedMotion = false
           index={index}
           total={shown.length}
           revealRef={revealRef}
+          exitRef={exitRef}
           onOpen={onOpenPost}
         />
       ))}

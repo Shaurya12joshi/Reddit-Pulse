@@ -12,8 +12,10 @@ import PostDetailModal from '../components/dashboard/PostDetailModal.jsx'
 
 const ExperienceCanvas = lazy(() => import('./ExperienceCanvas.jsx'))
 
-const DESKTOP_VH_PER_ACT = 98
-const MOBILE_VH_PER_ACT = 70
+// How much scrolling each act gets. Every transition is paced by this: the
+// same movement spread over more distance is the same movement, slower.
+const DESKTOP_VH_PER_ACT = 155
+const MOBILE_VH_PER_ACT = 115
 
 export default function Experience({ children, fallbackSections }) {
   const sectionRef = useRef(null)
