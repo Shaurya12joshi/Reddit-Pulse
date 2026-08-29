@@ -295,6 +295,17 @@ function resolvedMarket(company) {
   }
 }
 
+// A field scan stores its discussions under the field's own name with no brand
+// posts at all. Every read has to fall back to them, or the whole report,
+// buzz ranking and raw view come back empty for a company that has data.
+function corpusScope(company) {
+  const brandPosts = countPosts(company)
+  if (brandPosts > 0) return { fieldOnly: false, includeField: false, total: brandPosts }
+
+  const withField = countPosts(company, { includeField: true })
+  return { fieldOnly: withField > 0, includeField: withField > 0, total: withField }
+}
+
 function snapshotRows(company) {
   return subredditBreakdown(company).map((row) => ({
     scope: 'community',
@@ -436,7 +447,7 @@ app.get('/api/freshness', (req, res) => {
   const company = req.query.company
   if (!company) return res.status(400).json({ error: 'Missing "company" query parameter' })
 
-  const postCount = countPosts(company)
+  const postCount = corpusScope(company).total
   const run = lastRun(company)
   const age = run?.lastRunAt ? Date.now() - run.lastRunAt : null
 
@@ -463,10 +474,9 @@ app.get('/api/report', (req, res) => {
   // A company nobody discusses can still have a busy field. When only the field
   // sweep found anything, the report is built from that and says so, rather
   // than turning the reader away.
-  const brandPosts = countPosts(company)
-  const fieldOnly = brandPosts === 0 && countPosts(company, { includeField: true }) > 0
+  const { fieldOnly, total: brandPosts } = corpusScope(company)
 
-  if (brandPosts === 0 && !fieldOnly) {
+  if (brandPosts === 0) {
     return res.status(404).json({
       error: `No Reddit data has been collected for "${String(company).trim()}" yet.`,
     })
@@ -535,7 +545,8 @@ app.get('/api/buzz', (req, res) => {
   }
 
   const name = String(company).trim()
-  if (countPosts(name) === 0) {
+  const scope = corpusScope(name)
+  if (scope.total === 0) {
     return res.status(404).json({
       error: `No Reddit data has been collected for "${name}" yet.`,
       needsCollection: true,
@@ -543,7 +554,7 @@ app.get('/api/buzz', (req, res) => {
   }
 
   const started = Date.now()
-  const posts = selectPosts(name, {})
+  const posts = selectPosts(name, { includeField: scope.includeField })
   const stored = brandContext(name)
 
   const result = rankCommunities({
@@ -552,6 +563,7 @@ app.get('/api/buzz', (req, res) => {
     brand: name.toLowerCase(),
     brandContext: stored,
     history: snapshotHistory(name),
+    matchAll: scope.fieldOnly,
   })
 
   const run = lastRun(name)
@@ -984,13 +996,14 @@ app.get('/api/results', (req, res) => {
     return res.status(400).json({ error: 'Missing "company" query parameter' })
   }
 
-  if (countPosts(company) === 0) {
+  const scope = corpusScope(company)
+  if (scope.total === 0) {
     return res.status(404).json({
       error: `No Reddit data has been collected for "${String(company).trim()}" yet.`,
     })
   }
 
-  const posts = selectPosts(company, {}).map((post) => ({
+  const posts = selectPosts(company, { includeField: scope.includeField }).map((post) => ({
     id: post.id,
     type: post.type,
     title: post.title,

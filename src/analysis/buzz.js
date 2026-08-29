@@ -844,6 +844,10 @@ export function rankCommunities({
   brandContext,
   history,
   now = Date.now(),
+  // A field corpus has no brand to match: the posts are about the market and
+  // its other companies. Filtering them by the field's name would discard the
+  // lot, so every post counts and the ranking is by activity alone.
+  matchAll = false,
 }) {
   if (!posts?.length) {
     return {
@@ -871,7 +875,7 @@ export function rankCommunities({
       : deriveBrandContext(posts, brand, communities)
 
   const aliasList = context.aliases.map((entry) => entry.alias || entry)
-  const matchesBrand = buildBrandMatcher(brand, aliasList)
+  const matchesBrand = matchAll ? () => true : buildBrandMatcher(brand, aliasList)
   const geoTerms = new Set(context.geoTerms)
 
   const contextRegexes = context.contextTerms
@@ -879,15 +883,15 @@ export function rankCommunities({
     .map(({ term }) => new RegExp(`\\b${escapeRegex(term)}\\b`, 'i'))
 
   const metaByName = new Map(communities.filter((c) => c?.name).map((c) => [c.name, c]))
-  const senseOf = makeSenseClassifier(brand)
+  const senseOf = matchAll ? () => 'brand' : makeSenseClassifier(brand)
 
   const measured = measureCommunities({
     posts,
     metaByName,
     matchesBrand,
     senseOf,
-    capitalisationOf: makeCapitalisationTest(brand),
-    otherSenseTellOf: makeOtherSenseTell(brand),
+    capitalisationOf: matchAll ? () => 'brand' : makeCapitalisationTest(brand),
+    otherSenseTellOf: matchAll ? () => false : makeOtherSenseTell(brand),
     contextRegexes,
     geoTerms,
     now,
