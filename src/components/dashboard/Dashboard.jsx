@@ -144,8 +144,8 @@ export default function Dashboard({
 
           {askedSubject ? (
             <Section
-              title="Your question"
-              description="Read from the same discussions, for the subject you asked about."
+              title={`Your product: ${voice?.focus?.subject || askedSubject}`}
+              description="What the collected discussions say about the product or service you named."
             >
               <RedditVoicePanel company={company} asked={askedSubject} result={voice} />
             </Section>

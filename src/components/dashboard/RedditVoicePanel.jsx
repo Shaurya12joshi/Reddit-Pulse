@@ -98,10 +98,16 @@ function Empty({ children, onRetry }) {
 export default function RedditVoicePanel({ company, asked, result }) {
   const subject = result?.focus?.subject || asked
 
+  const differs = subject && asked && subject.toLowerCase() !== asked.toLowerCase()
+
   const header = (
     <CardHeader
-      title="What Reddit says about it"
-      subtitle={`Your question, answered from the ${company} discussions collected: “${asked}”`}
+      title={`What Reddit says about ${subject}`}
+      subtitle={
+        differs
+          ? `Read from the ${company} discussions collected. You asked for “${asked}”.`
+          : `Read from the ${company} discussions collected`
+      }
       icon={<Icon name="quote" className="h-3.5 w-3.5" />}
       action={
         result?.coverage?.matched ? (
