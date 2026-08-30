@@ -28,14 +28,10 @@ const SCHEMA = {
 const URL_LIKE = /^(https?:\/\/|www\.)|^[a-z0-9-]+(\.[a-z0-9-]+)+(\/|$)/i
 const PREFIXES = ['get', 'try', 'use', 'join', 'app', 'my', 'the', 'go']
 
-// Suffixes that are structure rather than name. Without these, "tesco.co.uk"
-// reads as the company "co".
 const COMPOUND_SUFFIXES = new Set([
   'co', 'com', 'net', 'org', 'gov', 'edu', 'ac', 'or', 'ne', 'go', 'in', 'firm', 'gen', 'ind',
 ])
 
-// Hosts that front many companies. The site owner is still the answer, but a
-// subdomain there is the real name: mycompany.myshopify.com is My Company.
 const PLATFORM_HOSTS = new Set([
   'myshopify.com', 'squarespace.com', 'wixsite.com', 'webflow.io', 'github.io',
   'notion.site', 'substack.com', 'wordpress.com', 'blogspot.com', 'netlify.app', 'vercel.app',
@@ -51,8 +47,6 @@ export function hostOf(value) {
   }
 }
 
-// The label that names the company: the domain minus www, minus the public
-// suffix, however many parts that suffix has.
 export function registrableLabel(host) {
   const parts = String(host || '').replace(/^www\./, '').split('.').filter(Boolean)
   if (parts.length <= 1) return parts[0] || ''
@@ -113,8 +107,6 @@ export async function identifyCompany(input) {
     }
   }
 
-  // Only the host reaches the model. A product path on a marketplace names a
-  // company that does not own the site, and that is the trap this closes.
   const host = isUrl ? hostOf(typed) : ''
   const user = isUrl
     ? `Domain: ${host}\nReading of the domain alone: ${nameFromUrl(typed)}\n` +

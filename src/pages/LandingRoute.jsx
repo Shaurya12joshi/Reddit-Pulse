@@ -17,20 +17,13 @@ export default function LandingRoute() {
 
   useEffect(() => {
     if (hash !== `#${SEARCH_ANCHOR}`) return
-    // Arriving from a report means the scroll driver is still starting up, so
-    // it gets longer to take over before falling back to a plain scroll.
     goToSearch({ graceMs: 1400 })
   }, [hash])
 
-  // A website address names a company just as well as its name does, so the
-  // box takes either. Anything that looks like an address goes to the model
-  // first, and the report is built from the name it comes back with.
   const handleAnalyze = async (rawInput, extras = {}) => {
     const typed = String(rawInput ?? '').trim()
     const keywords = String(extras.keywords ?? '').trim()
 
-    // With no company named, the field itself is the subject: it becomes the
-    // report's name and the key everything is stored under.
     if (!typed && !keywords) return
 
     let name = typed || keywords

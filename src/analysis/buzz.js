@@ -844,9 +844,6 @@ export function rankCommunities({
   brandContext,
   history,
   now = Date.now(),
-  // A field corpus has no brand to match: the posts are about the market and
-  // its other companies. Filtering them by the field's name would discard the
-  // lot, so every post counts and the ranking is by activity alone.
   matchAll = false,
 }) {
   if (!posts?.length) {

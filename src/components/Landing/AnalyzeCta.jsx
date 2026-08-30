@@ -28,7 +28,6 @@ export default function AnalyzeCta({ onAnalyze, resolving = false, id = SEARCH_A
       subject: extras.subject.trim(),
       rivalProduct: extras.rivalProduct.trim(),
       keywords,
-      // A field on its own is a whole report: there is no company to search for.
       fieldOnly: !company,
     })
   }

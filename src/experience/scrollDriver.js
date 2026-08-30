@@ -77,9 +77,6 @@ function stopTween() {
   window.removeEventListener('keydown', stopTween)
 }
 
-// The browser's own smooth scroll takes about the same time whatever the
-// distance, so jumping several acts flings the whole scene past in one blink.
-// This paces the travel by how far it actually is.
 export function scrollToProgress(progress) {
   if (!targetEl || typeof window === 'undefined') return
 

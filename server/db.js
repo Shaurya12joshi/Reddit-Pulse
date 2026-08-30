@@ -260,9 +260,6 @@ if (!columns.includes('search_text')) {
 
 addColumn('posts', 'about_checked', 'INTEGER DEFAULT 0')
 
-// Posts pulled in by a field sweep are about the market, not the brand. They
-// are stored alongside so the field can be read, and excluded from every brand
-// number so the report never claims a rival's thread as its own.
 addColumn('posts', 'field_scope', 'INTEGER DEFAULT 0')
 
 const key = (company) => String(company).trim().toLowerCase()
@@ -309,8 +306,6 @@ export function savePosts(company, enrichedPosts, { scope = 'brand' } = {}) {
         now,
         `${post.title || ''} ${post.body || ''}`.toLowerCase(),
         isField,
-        // A field post is never judged against the brand, so it skips the pass
-        // that would delete it for not being about the brand.
         isField,
       )
     }

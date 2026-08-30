@@ -62,9 +62,6 @@ function ThreadPanel({ post, slot, revealRef, exitRef, index, total, onOpen }) {
     const local = THREE.MathUtils.clamp(reveal * 1.5 - (index / total) * 0.45, 0, 1)
     const eased = local * local * (3 - 2 * local)
 
-    // Leaving is not entering played backwards. The cards draw back into the
-    // depth of the scene and are gone before the next act arrives, so the two
-    // never share the screen.
     const leaving = THREE.MathUtils.clamp(
       exitRef.current * 1.35 - ((total - 1 - index) / total) * 0.3,
       0,
@@ -195,8 +192,6 @@ export default function EvidenceStage({ posts, onOpenPost, reducedMotion = false
       : stagePresence(driver.damped, ACT_INDEX.evidence, { lead: 0.32, tail: 0.45 })
     revealRef.current = THREE.MathUtils.damp(revealRef.current, target, 2.6, step)
 
-    // The withdrawal runs on the act's own clock and completes at 96% of it,
-    // so the cards have cleared the frame before the next act opens.
     const local = actLocalProgress(driver.damped, ACT_INDEX.evidence)
     const leaving = reducedMotion
       ? 0

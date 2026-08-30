@@ -138,9 +138,6 @@ app.post('/api/ingest', async (req, res) => {
 
   const readable = dropContentFree(posts)
 
-  // Field sweeps deliberately collect threads about the market and its other
-  // companies, so the brand filter would throw all of them away. They are kept
-  // whole, flagged, and left out of every brand number.
   const fieldScope = scope === 'field'
   const heuristically = fieldScope ? readable : filterRelevantPosts(readable, company)
 
@@ -295,9 +292,6 @@ function resolvedMarket(company) {
   }
 }
 
-// A field scan stores its discussions under the field's own name with no brand
-// posts at all. Every read has to fall back to them, or the whole report,
-// buzz ranking and raw view come back empty for a company that has data.
 function corpusScope(company) {
   const brandPosts = countPosts(company)
   if (brandPosts > 0) return { fieldOnly: false, includeField: false, total: brandPosts }
@@ -471,9 +465,6 @@ app.get('/api/report', (req, res) => {
     return res.status(400).json({ error: 'Missing "company" query parameter' })
   }
 
-  // A company nobody discusses can still have a busy field. When only the field
-  // sweep found anything, the report is built from that and says so, rather
-  // than turning the reader away.
   const { fieldOnly, total: brandPosts } = corpusScope(company)
 
   if (brandPosts === 0) {
@@ -871,8 +862,6 @@ app.get('/api/comparisons/product', async (req, res) => {
   }
 })
 
-// A website address is a perfectly good way to name a company, so the search
-// box takes one. The model reads it back into the name Reddit uses.
 app.get('/api/identify', async (req, res) => {
   const input = String(req.query.input || '').trim()
   if (!input) return res.status(400).json({ error: 'Missing "input" query parameter' })
@@ -885,8 +874,6 @@ app.get('/api/identify', async (req, res) => {
   }
 })
 
-// Search terms for a field, handed to the collector before it starts, so a
-// startup with no Reddit presence of its own still gets a corpus to report on.
 app.get('/api/field-plan', async (req, res) => {
   const keywords = String(req.query.keywords || '').trim()
   if (!keywords) return res.status(400).json({ error: 'Missing "keywords" query parameter' })

@@ -128,8 +128,6 @@ export default function AnalyzePage() {
     if (name) analyze(name, extras)
   }, [name, extras, analyze])
 
-  // Collect from Reddit again and re-read everything, rather than leaving the
-  // report behind.
   const rerun = useCallback(() => {
     if (name) {
       startedFor.current = null
@@ -137,8 +135,6 @@ export default function AnalyzePage() {
     }
   }, [name, extras, analyze])
 
-  // Straight to the search box, not the top of the landing page: whoever hit
-  // this wants to run another company, not read the pitch again.
   const goHome = () => navigate({ pathname: '/', hash: `#${SEARCH_ANCHOR}` })
 
   const label = company || name

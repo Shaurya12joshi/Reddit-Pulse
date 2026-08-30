@@ -11,7 +11,6 @@ const CARD_GEOMETRY_ARGS = [0.66, 0.42, 0.03]
 
 const ACT_REST = 10
 const TAU = Math.PI * 2
-// How much of a formation change is spent letting the stragglers catch up.
 const STAGGER = 0.42
 
 export default function ConversationField({ count = 620, reducedMotion = false }) {
@@ -88,9 +87,6 @@ export default function ConversationField({ count = 620, reducedMotion = false }
       const i3 = i * 3
       const phase = phases[i]
 
-      // Each card sets off at its own moment, so the cloud crosses as a wave
-      // rather than as one rigid block. Lockstep is what made the change of
-      // formation read as a jump.
       const lead = (phase / TAU) * STAGGER
       const staged = Math.max(0, Math.min(1, (t - lead) / (1 - STAGGER)))
       const ti = staged * staged * (3 - 2 * staged)

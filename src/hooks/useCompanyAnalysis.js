@@ -174,8 +174,6 @@ export function useCompanyAnalysis() {
         .catch(() => null)
       if (controller.signal.aborted) return
 
-      // A re-run collects again whatever the freshness says: the point of
-      // asking for it is to go back to Reddit.
       const needsCollection = force || !freshness || freshness.stale
 
       let hasExtension = false

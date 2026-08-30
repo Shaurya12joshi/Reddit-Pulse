@@ -16,8 +16,6 @@ const dummy = new THREE.Object3D()
 const BAR_GEOMETRY = [0.82, 1, 0.82]
 const RIBBON_GEOMETRY = [0.3, 1, 0.3]
 
-// Every label in the report is DOM inside an Html portal, so none of them can
-// inherit the material fade. They read the same two values the geometry uses.
 const FadeContext = createContext(null)
 
 const smoothstep = (t) => t * t * (3 - 2 * t)
@@ -442,8 +440,6 @@ export default function ReportObject({
     const group = groupRef.current
     if (!group) return
 
-    // Gathered on the first frame the group exists, so the report can fade
-    // instead of blinking out of existence at the edge of its act.
     if (!fadeables.current.length) {
       const found = []
       group.traverse((child) => {
@@ -457,8 +453,6 @@ export default function ReportObject({
       fadeables.current = found
     }
 
-    // Leaving is a withdrawal into the depth of the scene, finished before the
-    // next act opens, not the entrance run backwards.
     const receded = Math.min(1, Math.max(0, gone.current)) ** 2
     const fade = Math.min(1, Math.max(0, reveal.current)) * (1 - receded)
 
